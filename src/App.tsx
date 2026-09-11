@@ -695,42 +695,30 @@ export default function App() {
           onUpdatePlayerMembers={handleUpdatePlayerMembers}
         />
 
-        {/* Quick Action Bar for Table View */}
-        <div className="flex items-center gap-2">
-          <button
-            id="btn-main-add-round"
-            onClick={() => {
-              setActiveAddRoundPlayerId(undefined);
-              setIsAddRoundOpen(true);
-            }}
-            className="flex-1 py-3 sm:py-3.5 landscape:py-2.5 px-4 bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-stone-950 font-bold rounded-2xl shadow-lg shadow-amber-950/40 flex items-center justify-center gap-2 transition-all cursor-pointer text-sm sm:text-base"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-            <span>+ Anotar Mano (Ronda #{rounds.length + 1})</span>
-          </button>
-
+        {/* Quick Utilities Bar */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             id="btn-quick-tranca"
             onClick={() => setIsTrancaCalcOpen(true)}
             title="Calcular Tranca / Cierre"
-            className="py-3 sm:py-3.5 landscape:py-2.5 px-4 bg-stone-800 hover:bg-stone-750 text-stone-200 hover:text-white rounded-2xl border border-stone-700 font-semibold flex items-center gap-1.5 transition-all text-xs sm:text-sm active:scale-95"
+            className="flex-1 py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white rounded-xl sm:rounded-2xl border border-stone-750 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm"
           >
-            <Calculator className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">Calculadora Tranca</span>
+            <Calculator className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <span>Calculadora Tranca</span>
           </button>
 
           <button
             id="btn-quick-music"
             onClick={() => setIsMusicModalOpen(true)}
             title="Buscar música o reproducir"
-            className={`py-3 sm:py-3.5 landscape:py-2.5 px-4 rounded-2xl border font-semibold flex items-center gap-1.5 transition-all text-xs sm:text-sm active:scale-95 ${
+            className={`flex-1 py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm ${
               isMusicPlaying
-                ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-sm shadow-red-950/40'
-                : 'bg-stone-800 hover:bg-stone-750 text-stone-200 hover:text-white border-stone-700'
+                ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-red-950/40'
+                : 'bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white border-stone-750'
             }`}
           >
-            <Music className={`w-4 h-4 text-amber-400 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-            <span className="hidden md:inline">Música</span>
+            <Music className={`w-4 h-4 text-amber-400 flex-shrink-0 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
+            <span>Música</span>
           </button>
         </div>
 
