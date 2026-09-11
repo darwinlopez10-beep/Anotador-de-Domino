@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  Search,
   Plus,
   Play,
   Pause,
@@ -41,8 +40,9 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
   {
     id: 'yt_0nBFWzpWXuM',
     videoId: '0nBFWzpWXuM',
-    title: 'La Vida Es Un Carnaval - Celia Cruz',
+    title: 'La Vida Es Un Carnaval',
     artist: 'Celia Cruz',
+    genre: 'Salsa Brava',
     sourceType: 'youtube',
     url: 'https://www.youtube-nocookie.com/embed/0nBFWzpWXuM?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/0nBFWzpWXuM/hqdefault.jpg',
@@ -51,8 +51,9 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
   {
     id: 'yt_t6nW_X_fQ7c',
     videoId: 't6nW_X_fQ7c',
-    title: 'Chan Chan - Buena Vista Social Club',
+    title: 'Chan Chan',
     artist: 'Buena Vista Social Club',
+    genre: 'Son Cubano',
     sourceType: 'youtube',
     url: 'https://www.youtube-nocookie.com/embed/t6nW_X_fQ7c?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/t6nW_X_fQ7c/hqdefault.jpg',
@@ -61,8 +62,9 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
   {
     id: 'yt_8O_MwlZ2dEg',
     videoId: '8O_MwlZ2dEg',
-    title: 'Brujería - El Gran Combo de Puerto Rico',
+    title: 'Brujería',
     artist: 'El Gran Combo de Puerto Rico',
+    genre: 'Salsa Brava',
     sourceType: 'youtube',
     url: 'https://www.youtube-nocookie.com/embed/8O_MwlZ2dEg?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/8O_MwlZ2dEg/hqdefault.jpg',
@@ -73,6 +75,7 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
     videoId: 'BVYLOe4Xkg0',
     title: 'Mix Salsa Clásica Brava para Bailar y Jugar',
     artist: 'Salsa de Oro',
+    genre: 'Mixes Largos',
     sourceType: 'youtube',
     url: 'https://www.youtube-nocookie.com/embed/BVYLOe4Xkg0?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/BVYLOe4Xkg0/hqdefault.jpg',
@@ -81,8 +84,9 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
   {
     id: 'yt_t5Jq636J4aA',
     videoId: 't5Jq636J4aA',
-    title: 'Bachata Rosa - Juan Luis Guerra 4.40',
-    artist: 'Juan Luis Guerra',
+    title: 'Bachata Rosa',
+    artist: 'Juan Luis Guerra 4.40',
+    genre: 'Bachata',
     sourceType: 'youtube',
     url: 'https://www.youtube-nocookie.com/embed/t5Jq636J4aA?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/t5Jq636J4aA/hqdefault.jpg',
@@ -93,10 +97,66 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
     videoId: 'Z6x_X7rQ48g',
     title: 'Merengues Clásicos de los 80 y 90 Bailable Mix',
     artist: 'Ritmo Latino',
+    genre: 'Mixes Largos',
     sourceType: 'youtube',
     url: 'https://www.youtube-nocookie.com/embed/Z6x_X7rQ48g?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/Z6x_X7rQ48g/hqdefault.jpg',
     durationText: '58:20',
+  },
+  {
+    id: 'yt_2jR9f5hH9vI',
+    videoId: '2jR9f5hH9vI',
+    title: 'La Rebelión (No Le Pegue a la Negra)',
+    artist: 'Joe Arroyo',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube-nocookie.com/embed/2jR9f5hH9vI?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/2jR9f5hH9vI/hqdefault.jpg',
+    durationText: '4:45',
+  },
+  {
+    id: 'yt_Y1j_yqN1_7U',
+    videoId: 'Y1j_yqN1_7U',
+    title: 'La Dueña del Swing',
+    artist: 'Los Hermanos Rosario',
+    genre: 'Merengue',
+    sourceType: 'youtube',
+    url: 'https://www.youtube-nocookie.com/embed/Y1j_yqN1_7U?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/Y1j_yqN1_7U/hqdefault.jpg',
+    durationText: '4:35',
+  },
+  {
+    id: 'yt_N5s_w2nB_W4',
+    videoId: 'N5s_w2nB_W4',
+    title: 'Guantanamera',
+    artist: 'Compay Segundo',
+    genre: 'Son Cubano',
+    sourceType: 'youtube',
+    url: 'https://www.youtube-nocookie.com/embed/N5s_w2nB_W4?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/N5s_w2nB_W4/hqdefault.jpg',
+    durationText: '4:52',
+  },
+  {
+    id: 'yt_qF2oYJ_kMvQ',
+    videoId: 'qF2oYJ_kMvQ',
+    title: 'Un Verano en Nueva York',
+    artist: 'El Gran Combo de Puerto Rico',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube-nocookie.com/embed/qF2oYJ_kMvQ?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/qF2oYJ_kMvQ/hqdefault.jpg',
+    durationText: '5:15',
+  },
+  {
+    id: 'yt_c7R9P_W2mQk',
+    videoId: 'c7R9P_W2mQk',
+    title: 'Mix Son Cubano & Boleros del Recuerdo',
+    artist: 'Tradición Cubana',
+    genre: 'Mixes Largos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube-nocookie.com/embed/c7R9P_W2mQk?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/c7R9P_W2mQk/hqdefault.jpg',
+    durationText: '35:10',
   },
 ];
 
@@ -168,11 +228,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   onAddCustomTrack,
   onDeleteCustomTrack,
 }) => {
-  const [activeTab, setActiveTab] = useState<'search' | 'add' | 'stations'>('search');
-  const [searchQuery, setSearchQuery] = useState('Salsa clasica');
-  const [searchResults, setSearchResults] = useState<MusicTrack[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'curated' | 'add' | 'stations'>('curated');
+  const [selectedGenre, setSelectedGenre] = useState<string>('Todos');
 
   // Mantener guardado el último volumen activo no nulo
   const preMuteRef = React.useRef(volume > 0 ? volume : 0.7);
@@ -205,72 +262,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [savedSuccessMessage, setSavedSuccessMessage] = useState<string | null>(null);
 
-  // Quick YouTube genre suggestions
-  const QUICK_GENRES = [
-    'Salsa Clásica',
-    'Son Cubano',
-    'Celia Cruz',
-    'El Gran Combo',
-    'Bachata Clásica',
-    'Merengue de Oro',
-    'Marc Anthony',
-    'Mix Dominó Bailable',
-    'Boleros del Recuerdo',
-  ];
-
-  // Search YouTube for FULL tracks using our backend server endpoint
-  const handleSearchYouTube = async (termToSearch?: string) => {
-    const query = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
-    if (!query) return;
-
-    setIsSearching(true);
-    setSearchError(null);
-
-    try {
-      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`);
-
-      if (!response.ok) {
-        throw new Error(`Error en el servidor: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        setSearchResults(data.results);
-      } else {
-        // Fallback filter over curated tracks if empty
-        const filtered = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
-          (t) =>
-            t.title.toLowerCase().includes(query.toLowerCase()) ||
-            t.artist.toLowerCase().includes(query.toLowerCase())
-        );
-        if (filtered.length > 0) {
-          setSearchResults(filtered);
-        } else {
-          setSearchResults([]);
-          setSearchError('No se encontraron resultados en YouTube. Prueba con otro artista o ritmo.');
-        }
-      }
-    } catch (err: unknown) {
-      console.warn('Backend search error, falling back to curated playlist:', err);
-      // Fallback to rich curated Domino YouTube list
-      setSearchResults(CURATED_DOMINO_YOUTUBE_TRACKS);
-      setSearchError('Cargando repertorio recomendado para dominó.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Run initial search once on modal open
-  useEffect(() => {
-    if (isOpen && searchResults.length === 0) {
-      handleSearchYouTube('Salsa clasica');
-    }
-  }, [isOpen]);
-
-  const handleQuickGenreSearch = (genre: string) => {
-    setSearchQuery(genre);
-    handleSearchYouTube(genre);
-  };
+  // Curated genres for Domino games
+  const DOMINO_GENRES = ['Todos', 'Salsa Brava', 'Son Cubano', 'Merengue', 'Bachata', 'Mixes Largos'];
+  const displayedCuratedTracks =
+    selectedGenre === 'Todos'
+      ? CURATED_DOMINO_YOUTUBE_TRACKS
+      : CURATED_DOMINO_YOUTUBE_TRACKS.filter((t) => t.genre === selectedGenre);
 
   // Check URL & Auto-fetch video info
   const handleCheckUrl = async () => {
@@ -519,17 +516,17 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         <div className="flex border-b border-stone-800 bg-stone-900 px-4 pt-3 gap-2 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('search')}
+            onClick={() => setActiveTab('curated')}
             className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              activeTab === 'search'
-                ? 'border-red-500 text-red-400'
+              activeTab === 'curated'
+                ? 'border-amber-400 text-amber-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
-            <Search className="w-3.5 h-3.5" />
-            <span>Buscar en YouTube</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-300 font-semibold">
-              Canción Completa
+            <Disc3 className="w-3.5 h-3.5 text-amber-400" />
+            <span>Música de Dominó</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+              {CURATED_DOMINO_YOUTUBE_TRACKS.length}
             </span>
           </button>
 
@@ -543,9 +540,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Añadir música de YouTube</span>
+            <span>Añadir enlace de YouTube</span>
             {customTracks.length > 0 && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-800 text-stone-300 font-semibold">
                 {customTracks.length}
               </span>
             )}
@@ -567,164 +564,132 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
         {/* Tab Content */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-          {/* TAB 1: Search YouTube */}
-          {activeTab === 'search' && (
+          {/* TAB 1: Curated Domino Music */}
+          {activeTab === 'curated' && (
             <div className="space-y-4">
               {/* Notice that playback is full song */}
-              <div className="p-2.5 bg-red-950/30 border border-red-900/40 rounded-xl flex items-center justify-between text-xs text-red-200/90">
+              <div className="p-3 bg-amber-950/25 border border-amber-500/30 rounded-2xl flex items-center justify-between text-xs text-amber-200/90">
                 <div className="flex items-center gap-2">
-                  <Youtube className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  <span>Busca cualquier canción, mix o artista. <strong>Se reproduce completa sin límites.</strong></span>
+                  <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>
+                    Canciones y mixes completos listos para jugar sin cortes. <strong>Toca cualquier canción para reproducirla inmediatamente.</strong>
+                  </span>
                 </div>
               </div>
 
-              {/* Search bar */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-stone-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearchYouTube()}
-                    placeholder="Buscar salsa, artista, mix o canción en YouTube..."
-                    className="w-full bg-stone-950 border border-stone-750 focus:border-red-500 rounded-xl pl-9 pr-4 py-2.5 text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSearchYouTube()}
-                  disabled={isSearching}
-                  className="px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center gap-1.5 flex-shrink-0"
-                >
-                  {isSearching ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                  <span>Buscar</span>
-                </button>
-              </div>
-
-              {/* Genre Pills */}
+              {/* Genre Filter Pills */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs text-stone-400 flex items-center gap-1 mr-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Populares:
-                </span>
-                {QUICK_GENRES.map((genre) => (
+                {DOMINO_GENRES.map((genre) => (
                   <button
                     key={genre}
                     type="button"
-                    onClick={() => handleQuickGenreSearch(genre)}
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-stone-100 border border-stone-700 transition-colors"
+                    onClick={() => setSelectedGenre(genre)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+                      selectedGenre === genre
+                        ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-950/30'
+                        : 'bg-stone-850 hover:bg-stone-800 text-stone-300 border-stone-750'
+                    }`}
                   >
                     {genre}
                   </button>
                 ))}
               </div>
 
-              {/* Search Results List */}
-              {isSearching ? (
-                <div className="py-12 flex flex-col items-center justify-center gap-3 text-stone-400">
-                  <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-                  <span className="text-sm font-medium">Buscando canciones completas en YouTube...</span>
+              {/* Curated Tracks List */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-stone-400 px-1">
+                  <span>Repertorio Disponible ({displayedCuratedTracks.length})</span>
+                  <span className="text-emerald-400 font-medium">100% canciones completas</span>
                 </div>
-              ) : searchError && searchResults.length === 0 ? (
-                <div className="py-8 text-center text-xs sm:text-sm text-stone-400 bg-stone-950/40 rounded-xl p-4 border border-stone-800">
-                  <p>{searchError}</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-stone-400 px-1">
-                    <span>Resultados de YouTube ({searchResults.length})</span>
-                    <span className="text-emerald-400 font-medium">Canciones completas</span>
-                  </div>
 
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {searchResults.map((track) => {
-                      const isThisPlaying =
-                        currentTrack?.id === track.id ||
-                        (track.videoId && currentTrack?.videoId === track.videoId);
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {displayedCuratedTracks.map((track) => {
+                    const isThisPlaying = currentTrack?.videoId === track.videoId && isPlaying;
 
-                      return (
+                    return (
+                      <div
+                        key={track.id}
+                        className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                          isThisPlaying
+                            ? 'bg-amber-950/30 border-amber-500/60 shadow-lg shadow-amber-950/20'
+                            : 'bg-stone-850/80 hover:bg-stone-800 border-stone-800'
+                        }`}
+                      >
                         <div
-                          key={track.id}
-                          className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
-                            isThisPlaying
-                              ? 'bg-red-950/30 border-red-500/50 shadow-md shadow-red-950/20'
-                              : 'bg-stone-850/70 hover:bg-stone-800 border-stone-800'
-                          }`}
+                          onClick={() => onSelectTrack(track)}
+                          className="flex items-center gap-3 truncate flex-1 cursor-pointer group"
                         >
-                          <div
-                            onClick={() => onSelectTrack(track)}
-                            className="flex items-center gap-2.5 truncate flex-1 cursor-pointer group"
-                          >
-                            <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
-                              {track.artworkUrl ? (
-                                <img
-                                  src={track.artworkUrl}
-                                  alt={track.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-stone-900">
-                                  <Youtube className="w-5 h-5 text-red-500" />
-                                </div>
-                              )}
-                              {track.durationText && (
-                                <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[9px] px-1 rounded-tl">
-                                  {track.durationText}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="truncate flex-1">
-                              <h4 className="text-xs font-bold text-stone-200 group-hover:text-red-400 truncate transition-colors">
-                                {track.title}
-                              </h4>
-                              <p className="text-[11px] text-stone-400 truncate">
-                                {track.artist}
-                              </p>
-                            </div>
+                          <div className="relative w-14 h-11 rounded-xl overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
+                            {track.artworkUrl ? (
+                              <img
+                                src={track.artworkUrl}
+                                alt={track.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-stone-900">
+                                <Youtube className="w-5 h-5 text-red-500" />
+                              </div>
+                            )}
+                            {track.durationText && (
+                              <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[9px] px-1 rounded-tl">
+                                {track.durationText}
+                              </div>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Save to custom playlist button */}
-                            <button
-                              type="button"
-                              onClick={() => handleSaveResultTrack(track)}
-                              title="Guardar en mi lista"
-                              className="p-2 rounded-lg text-stone-400 hover:text-amber-300 hover:bg-stone-700/60 transition-colors"
-                            >
-                              <BookmarkPlus className="w-4 h-4" />
-                            </button>
-
-                            {/* Play button */}
-                            <button
-                              type="button"
-                              onClick={() => onSelectTrack(track)}
-                              title={isThisPlaying && isPlaying ? 'Pausar' : 'Reproducir'}
-                              className={`p-2 rounded-xl font-bold transition-all shadow-md ${
-                                isThisPlaying && isPlaying
-                                  ? 'bg-amber-500 text-stone-950'
-                                  : 'bg-red-600 hover:bg-red-500 text-white'
-                              }`}
-                            >
-                              {isThisPlaying && isPlaying ? (
-                                <Pause className="w-4 h-4 fill-current" />
-                              ) : (
-                                <Play className="w-4 h-4 fill-current ml-0.5" />
+                          <div className="truncate flex-1">
+                            <h4 className="text-xs font-bold text-stone-100 group-hover:text-amber-300 truncate transition-colors">
+                              {track.title}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[11px] text-stone-400 truncate">
+                                {track.artist}
+                              </span>
+                              {track.genre && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-stone-750 text-stone-300 font-medium whitespace-nowrap">
+                                  {track.genre}
+                                </span>
                               )}
-                            </button>
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {/* Save to custom playlist button */}
+                          <button
+                            type="button"
+                            onClick={() => handleSaveResultTrack(track)}
+                            title="Guardar en mi lista"
+                            className="p-2 rounded-xl text-stone-400 hover:text-amber-300 hover:bg-stone-750 transition-colors"
+                          >
+                            <BookmarkPlus className="w-4 h-4" />
+                          </button>
+
+                          {/* Play button */}
+                          <button
+                            type="button"
+                            onClick={() => onSelectTrack(track)}
+                            title={isThisPlaying ? 'Pausar' : 'Reproducir'}
+                            className={`p-2.5 rounded-xl font-bold transition-all shadow-md ${
+                              isThisPlaying
+                                ? 'bg-amber-500 text-stone-950'
+                                : 'bg-red-600 hover:bg-red-500 text-white'
+                            }`}
+                          >
+                            {isThisPlaying ? (
+                              <Pause className="w-4 h-4 fill-current" />
+                            ) : (
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -742,10 +707,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-stone-200">
-                      Añadir música de YouTube o Enlace
+                      Añadir enlace de YouTube
                     </h4>
                     <p className="text-[11px] text-stone-400">
-                      Pega cualquier video, canción o mix de YouTube para escucharlo completo.
+                      Pega cualquier enlace o ID de video de YouTube para escucharlo completo.
                     </p>
                   </div>
                 </div>
@@ -830,69 +795,6 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
               </form>
 
-              {/* Recommended Curated YouTube Domino Tracks */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-stone-400 px-1">
-                  <span className="font-bold text-stone-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    Recomendadas para el Dominó (1 clic para reproducir)
-                  </span>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {CURATED_DOMINO_YOUTUBE_TRACKS.map((track) => {
-                    const isThisPlaying = currentTrack?.videoId === track.videoId && isPlaying;
-
-                    return (
-                      <div
-                        key={track.id}
-                        className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
-                          isThisPlaying
-                            ? 'bg-red-950/30 border-red-500/50'
-                            : 'bg-stone-850/60 hover:bg-stone-800 border-stone-800'
-                        }`}
-                      >
-                        <div
-                          onClick={() => onSelectTrack(track)}
-                          className="flex items-center gap-2.5 truncate flex-1 cursor-pointer group"
-                        >
-                          <div className="relative w-12 h-9 rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
-                            {track.artworkUrl && (
-                              <img
-                                src={track.artworkUrl}
-                                alt={track.title}
-                                className="w-full h-full object-cover"
-                                referrerPolicy="no-referrer"
-                              />
-                            )}
-                            {track.durationText && (
-                              <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[8px] px-1 rounded-tl">
-                                {track.durationText}
-                              </div>
-                            )}
-                          </div>
-                          <div className="truncate flex-1">
-                            <h5 className="text-xs font-bold text-stone-200 group-hover:text-amber-400 truncate">
-                              {track.title}
-                            </h5>
-                            <p className="text-[10px] text-stone-400 truncate">{track.artist}</p>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => onSelectTrack(track)}
-                          className="p-2 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-md transition-colors"
-                          title="Reproducir"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* Saved custom tracks list */}
               <div className="space-y-2 pt-2 border-t border-stone-800">
                 <div className="flex items-center justify-between text-xs text-stone-400 px-1">
@@ -903,7 +805,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
                 {customTracks.length === 0 ? (
                   <div className="p-6 text-center text-xs text-stone-500 bg-stone-950/30 rounded-xl border border-stone-800/80">
-                    No tienes canciones guardadas aún. Pega un enlace de YouTube arriba o presiona el icono de guardar en la búsqueda.
+                    No tienes canciones guardadas aún. Pega un enlace de YouTube arriba o presiona el icono de guardar en la pestaña de Música de Dominó.
                   </div>
                 ) : (
                   <div className="space-y-1.5">
