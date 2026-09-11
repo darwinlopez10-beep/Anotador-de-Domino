@@ -17,6 +17,7 @@ import {
   BookmarkPlus,
   ExternalLink,
   Clock,
+  Search,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 
@@ -33,6 +34,7 @@ interface MusicPlayerModalProps {
   customTracks: MusicTrack[];
   onAddCustomTrack: (track: MusicTrack) => void;
   onDeleteCustomTrack: (trackId: string) => void;
+  initialTab?: 'search' | 'curated' | 'add' | 'stations';
 }
 
 // Preset Curated YouTube Tracks ideal for Domino games
@@ -227,9 +229,84 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   customTracks,
   onAddCustomTrack,
   onDeleteCustomTrack,
+  initialTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<'curated' | 'add' | 'stations'>('curated');
+  const [activeTab, setActiveTab] = useState<'search' | 'curated' | 'add' | 'stations'>(
+    initialTab || 'search'
+  );
   const [selectedGenre, setSelectedGenre] = useState<string>('Todos');
+
+  // Search YouTube state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<MusicTrack[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
+  const POPULAR_SEARCH_TAGS = [
+    'Salsa Brava',
+    'Frankie Ruiz',
+    'Héctor Lavoe',
+    'Celia Cruz',
+    'El Gran Combo',
+    'Son Cubano',
+    'Bachata Clásica',
+    'Merengue Ripiao',
+    'Mix Dominó',
+  ];
+
+  const handleSearchYouTube = async (termToSearch?: string) => {
+    const query = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
+    if (!query) return;
+
+    setIsSearching(true);
+    setSearchError(null);
+    setHasSearched(true);
+
+    try {
+      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error(`Error en el servidor: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        setSearchResults(data.results);
+      } else {
+        const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
+          (t) =>
+            t.title.toLowerCase().includes(query.toLowerCase()) ||
+            t.artist.toLowerCase().includes(query.toLowerCase())
+        );
+        if (localMatches.length > 0) {
+          setSearchResults(localMatches);
+        } else {
+          setSearchResults([]);
+          setSearchError(`No se encontraron canciones en YouTube para "${query}".`);
+        }
+      }
+    } catch (err) {
+      console.warn('YouTube search fallback:', err);
+      const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
+        (t) =>
+          t.title.toLowerCase().includes(query.toLowerCase()) ||
+          t.artist.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleQuickTagClick = (tag: string) => {
+    setSearchQuery(tag);
+    handleSearchYouTube(tag);
+  };
 
   // Mantener guardado el último volumen activo no nulo
   const preMuteRef = React.useRef(volume > 0 ? volume : 0.7);
@@ -390,9 +467,6 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               <h3 className="text-lg font-bold text-stone-100 font-display flex items-center gap-2">
                 Música para la Partida
               </h3>
-              <p className="text-xs text-stone-400">
-                Canciones completas desde YouTube (sin cortes de 30s) y emisoras en vivo
-              </p>
             </div>
           </div>
 
@@ -516,6 +590,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         <div className="flex border-b border-stone-800 bg-stone-900 px-4 pt-3 gap-2 overflow-x-auto">
           <button
             type="button"
+            onClick={() => setActiveTab('search')}
+            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'search'
+                ? 'border-red-500 text-red-400'
+                : 'border-transparent text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            <Search className="w-3.5 h-3.5 text-red-400" />
+            <span>Buscar en YouTube</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('curated')}
             className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'curated'
@@ -524,7 +611,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             }`}
           >
             <Disc3 className="w-3.5 h-3.5 text-amber-400" />
-            <span>Música de Dominó</span>
+            <span>Recomendadas</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
               {CURATED_DOMINO_YOUTUBE_TRACKS.length}
             </span>
@@ -540,7 +627,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Añadir enlace de YouTube</span>
+            <span>Mi Lista</span>
             {customTracks.length > 0 && (
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-800 text-stone-300 font-semibold">
                 {customTracks.length}
@@ -564,7 +651,237 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
         {/* Tab Content */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-          {/* TAB 1: Curated Domino Music */}
+          {/* TAB: Search in YouTube */}
+          {activeTab === 'search' && (
+            <div className="space-y-4">
+              {/* Tip Banner */}
+              <div className="p-3 bg-red-950/30 border border-red-500/40 rounded-2xl flex items-center justify-between text-xs text-red-200/90">
+                <div className="flex items-center gap-2">
+                  <Youtube className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <span>
+                    Busca cualquier artista, salsa, merengue o canción de YouTube. <strong>Se reproduce completa sin pausas.</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Search Form */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSearchYouTube();
+                }}
+                className="flex gap-2"
+              >
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar salsa, artista, canción o mix en YouTube..."
+                    className="w-full bg-stone-950 border border-stone-750 focus:border-red-500 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSearching || !searchQuery.trim()}
+                  className="px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
+                >
+                  {isSearching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  <span>Buscar en YouTube</span>
+                </button>
+              </form>
+
+              {/* Quick Suggestion Pills */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] text-stone-400 flex items-center gap-1 mr-1">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Populares:
+                </span>
+                {POPULAR_SEARCH_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleQuickTagClick(tag)}
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-amber-300 border border-stone-750 transition-colors"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Results Display */}
+              {isSearching ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 text-stone-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+                  <span className="text-sm font-medium">Buscando canciones en YouTube...</span>
+                </div>
+              ) : searchError ? (
+                <div className="py-8 text-center text-xs sm:text-sm text-stone-400 bg-stone-950/40 rounded-xl p-4 border border-stone-800">
+                  <p>{searchError}</p>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-stone-400 px-1">
+                    <span>Resultados de YouTube ({searchResults.length})</span>
+                    <span className="text-emerald-400 font-medium flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> Canción completa
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {searchResults.map((track) => {
+                      const isThisPlaying =
+                        (currentTrack?.id === track.id ||
+                          (track.videoId && currentTrack?.videoId === track.videoId)) &&
+                        isPlaying;
+
+                      return (
+                        <div
+                          key={track.id}
+                          className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                            isThisPlaying
+                              ? 'bg-red-950/30 border-red-500/60 shadow-lg shadow-red-950/20'
+                              : 'bg-stone-850/80 hover:bg-stone-800 border-stone-800'
+                          }`}
+                        >
+                          <div
+                            onClick={() => onSelectTrack(track)}
+                            className="flex items-center gap-3 truncate flex-1 cursor-pointer group"
+                          >
+                            <div className="relative w-14 h-11 rounded-xl overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
+                              {track.artworkUrl ? (
+                                <img
+                                  src={track.artworkUrl}
+                                  alt={track.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-stone-900">
+                                  <Youtube className="w-5 h-5 text-red-500" />
+                                </div>
+                              )}
+                              {track.durationText && (
+                                <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[9px] px-1 rounded-tl">
+                                  {track.durationText}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="truncate flex-1">
+                              <h4 className="text-xs font-bold text-stone-100 group-hover:text-red-400 truncate transition-colors">
+                                {track.title}
+                              </h4>
+                              <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                                {track.artist}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveResultTrack(track)}
+                              title="Guardar en mi lista"
+                              className="p-2 rounded-xl text-stone-400 hover:text-amber-300 hover:bg-stone-750 transition-colors"
+                            >
+                              <BookmarkPlus className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => onSelectTrack(track)}
+                              title={isThisPlaying ? 'Pausar' : 'Reproducir'}
+                              className={`p-2.5 rounded-xl font-bold transition-all shadow-md ${
+                                isThisPlaying
+                                  ? 'bg-amber-500 text-stone-950'
+                                  : 'bg-red-600 hover:bg-red-500 text-white'
+                              }`}
+                            >
+                              {isThisPlaying ? (
+                                <Pause className="w-4 h-4 fill-current" />
+                              ) : (
+                                <Play className="w-4 h-4 fill-current ml-0.5" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Initial state before searching: popular picks ready to play */
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between text-xs text-stone-400 px-1">
+                    <span className="font-bold text-stone-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      Canciones populares listas para sonar (toca para reproducir)
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {CURATED_DOMINO_YOUTUBE_TRACKS.slice(0, 6).map((track) => {
+                      const isThisPlaying = currentTrack?.videoId === track.videoId && isPlaying;
+                      return (
+                        <div
+                          key={track.id}
+                          className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
+                            isThisPlaying
+                              ? 'bg-red-950/30 border-red-500/50'
+                              : 'bg-stone-850/60 hover:bg-stone-800 border-stone-800'
+                          }`}
+                        >
+                          <div
+                            onClick={() => onSelectTrack(track)}
+                            className="flex items-center gap-2.5 truncate flex-1 cursor-pointer group"
+                          >
+                            <div className="relative w-12 h-9 rounded-lg overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
+                              {track.artworkUrl && (
+                                <img
+                                  src={track.artworkUrl}
+                                  alt={track.title}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              )}
+                              {track.durationText && (
+                                <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[8px] px-1 rounded-tl">
+                                  {track.durationText}
+                                </div>
+                              )}
+                            </div>
+                            <div className="truncate flex-1">
+                              <h5 className="text-xs font-bold text-stone-200 group-hover:text-red-400 truncate">
+                                {track.title}
+                              </h5>
+                              <p className="text-[10px] text-stone-400 truncate">{track.artist}</p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => onSelectTrack(track)}
+                            className="p-2 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-md transition-colors"
+                            title="Reproducir"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: Curated Domino Music */}
           {activeTab === 'curated' && (
             <div className="space-y-4">
               {/* Notice that playback is full song */}
@@ -599,7 +916,6 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-stone-400 px-1">
                   <span>Repertorio Disponible ({displayedCuratedTracks.length})</span>
-                  <span className="text-emerald-400 font-medium">100% canciones completas</span>
                 </div>
 
                 <div className="grid gap-2.5 sm:grid-cols-2">
@@ -707,17 +1023,17 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-stone-200">
-                      Añadir enlace de YouTube
+                      Añadir canción
                     </h4>
                     <p className="text-[11px] text-stone-400">
-                      Pega cualquier enlace o ID de video de YouTube para escucharlo completo.
+                      Pega cualquier enlace o ID de video para reproducirlo.
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs text-stone-300 font-medium">
-                    Enlace de YouTube o ID de video:
+                    Enlace o ID de video:
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -805,7 +1121,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
                 {customTracks.length === 0 ? (
                   <div className="p-6 text-center text-xs text-stone-500 bg-stone-950/30 rounded-xl border border-stone-800/80">
-                    No tienes canciones guardadas aún. Pega un enlace de YouTube arriba o presiona el icono de guardar en la pestaña de Música de Dominó.
+                    No tienes canciones guardadas aún. Pega un enlace arriba o presiona el icono de guardar en la pestaña de Recomendadas.
                   </div>
                 ) : (
                   <div className="space-y-1.5">

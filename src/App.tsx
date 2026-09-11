@@ -40,7 +40,7 @@ import {
   playTileClickSound,
   triggerVibration,
 } from './utils/sound';
-import { Plus, Calculator, Timer, Trophy, Music } from 'lucide-react';
+import { Plus, Calculator, Timer, Trophy, Music, Search } from 'lucide-react';
 
 const TEAM_COLORS = ['#10b981', '#f59e0b', '#38bdf8', '#ec4899'];
 
@@ -125,6 +125,7 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
+  const [musicModalTab, setMusicModalTab] = useState<'search' | 'curated' | 'add' | 'stations'>('search');
 
   // Music Player States
   const [currentMusicTrack, setCurrentMusicTrack] = useState<MusicTrack | null>(null);
@@ -679,7 +680,10 @@ export default function App() {
         onOpenTrancaCalc={() => setIsTrancaCalcOpen(true)}
         onOpenTimer={() => setIsTimerOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenMusic={() => setIsMusicModalOpen(true)}
+        onOpenMusic={() => {
+          setMusicModalTab('search');
+          setIsMusicModalOpen(true);
+        }}
         onNewGame={handleNewGame}
         roundsCount={rounds.length}
       />
@@ -696,29 +700,48 @@ export default function App() {
         />
 
         {/* Quick Utilities Bar */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+          {/* Botón Buscar Canciones de YouTube */}
+          <button
+            id="btn-quick-search-music"
+            onClick={() => {
+              setMusicModalTab('search');
+              setIsMusicModalOpen(true);
+            }}
+            title="Buscar canciones de YouTube"
+            className="py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-red-600/20 hover:bg-red-600/30 text-red-200 hover:text-white rounded-xl sm:rounded-2xl border border-red-500/40 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer"
+          >
+            <Search className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span className="font-bold">Buscar Canciones (YouTube)</span>
+          </button>
+
+          {/* Botón Calculadora Tranca */}
           <button
             id="btn-quick-tranca"
             onClick={() => setIsTrancaCalcOpen(true)}
             title="Calcular Tranca / Cierre"
-            className="flex-1 py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white rounded-xl sm:rounded-2xl border border-stone-750 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm"
+            className="py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white rounded-xl sm:rounded-2xl border border-stone-750 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer"
           >
             <Calculator className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span>Calculadora Tranca</span>
           </button>
 
+          {/* Botón Música */}
           <button
             id="btn-quick-music"
-            onClick={() => setIsMusicModalOpen(true)}
-            title="Buscar música o reproducir"
-            className={`flex-1 py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm ${
+            onClick={() => {
+              setMusicModalTab('curated');
+              setIsMusicModalOpen(true);
+            }}
+            title="Música y radio para la partida"
+            className={`py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer ${
               isMusicPlaying
-                ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-red-950/40'
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-amber-950/40'
                 : 'bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white border-stone-750'
             }`}
           >
             <Music className={`w-4 h-4 text-amber-400 flex-shrink-0 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-            <span>Música</span>
+            <span>{isMusicPlaying ? 'Música Activa' : 'Música'}</span>
           </button>
         </div>
 
@@ -763,6 +786,17 @@ export default function App() {
         </button>
 
         <button
+          onClick={() => {
+            setMusicModalTab('search');
+            setIsMusicModalOpen(true);
+          }}
+          className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300"
+        >
+          <Search className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Buscar</span>
+        </button>
+
+        <button
           onClick={() => setIsTrancaCalcOpen(true)}
           className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200"
         >
@@ -779,7 +813,10 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setIsMusicModalOpen(true)}
+          onClick={() => {
+            setMusicModalTab('curated');
+            setIsMusicModalOpen(true);
+          }}
           className={`flex flex-col items-center gap-1 ${
             isMusicPlaying ? 'text-amber-400' : 'text-stone-400 hover:text-stone-200'
           }`}
@@ -860,6 +897,7 @@ export default function App() {
         customTracks={customTracks}
         onAddCustomTrack={handleAddCustomTrack}
         onDeleteCustomTrack={handleDeleteCustomTrack}
+        initialTab={musicModalTab}
       />
 
       <VictoryModal

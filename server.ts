@@ -35,39 +35,70 @@ async function startServer() {
       }
 
       const html = await response.text();
-      const match = html.match(/var ytInitialData = ({.*?});<\/script>/);
+      let data: any = null;
 
-      if (!match) {
+      // Robust extraction of ytInitialData
+      const marker = 'ytInitialData = ';
+      let startIdx = html.indexOf(marker);
+      if (startIdx !== -1) {
+        startIdx += marker.length;
+        const endIdx = html.indexOf(';</script>', startIdx);
+        if (endIdx !== -1) {
+          try {
+            data = JSON.parse(html.substring(startIdx, endIdx));
+          } catch (e) {
+            console.warn('Direct slice parse failed, trying regex fallback:', e);
+          }
+        }
+      }
+
+      if (!data) {
+        const altMatch = html.match(/ytInitialData\s*=\s*({.+?});\s*<\/script>/s);
+        if (altMatch) {
+          try {
+            data = JSON.parse(altMatch[1]);
+          } catch (e) {
+            console.warn('Regex fallback parse failed:', e);
+          }
+        }
+      }
+
+      if (!data) {
         return res.json({ results: [] });
       }
 
-      const data = JSON.parse(match[1]);
-      const contents =
-        data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]
-          ?.itemSectionRenderer?.contents || [];
+      const sections =
+        data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
 
-      const results = [];
-      for (const item of contents) {
-        if (item.videoRenderer) {
-          const v = item.videoRenderer;
-          if (v.videoId) {
-            const title = v.title?.runs?.[0]?.text || 'Video de YouTube';
-            const artist = v.ownerText?.runs?.[0]?.text || 'YouTube';
-            const durationText = v.lengthText?.simpleText || '';
-            const thumbnail =
-              v.thumbnail?.thumbnails?.[v.thumbnail.thumbnails.length - 1]?.url ||
-              `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`;
+      const results: any[] = [];
+      for (const section of sections) {
+        const items = section?.itemSectionRenderer?.contents || [];
+        for (const item of items) {
+          if (item.videoRenderer) {
+            const v = item.videoRenderer;
+            if (v.videoId) {
+              const title =
+                v.title?.runs?.[0]?.text || v.title?.simpleText || 'Video de YouTube';
+              const artist =
+                v.ownerText?.runs?.[0]?.text ||
+                v.shortBylineText?.runs?.[0]?.text ||
+                'YouTube';
+              const durationText = v.lengthText?.simpleText || '';
+              const thumbnail =
+                v.thumbnail?.thumbnails?.[v.thumbnail.thumbnails.length - 1]?.url ||
+                `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`;
 
-            results.push({
-              id: `yt_${v.videoId}`,
-              videoId: v.videoId,
-              title,
-              artist,
-              sourceType: 'youtube',
-              url: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
-              artworkUrl: thumbnail,
-              durationText,
-            });
+              results.push({
+                id: `yt_${v.videoId}`,
+                videoId: v.videoId,
+                title,
+                artist,
+                sourceType: 'youtube',
+                url: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+                artworkUrl: thumbnail,
+                durationText,
+              });
+            }
           }
         }
       }
