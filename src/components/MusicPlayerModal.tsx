@@ -270,7 +270,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setHasSearched(true);
 
     try {
-      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`);
+      // AbortController with 12s timeout for mobile connections
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         throw new Error(`Error en el servidor: ${response.status}`);
       }
@@ -287,17 +295,23 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           setSearchResults(localMatches);
         } else {
           setSearchResults([]);
-          setSearchError(`No se encontraron canciones en YouTube para "${query}".`);
+          setSearchError(`No se encontraron canciones para "${query}". Prueba con otro nombre o artista.`);
         }
       }
-    } catch (err) {
-      console.warn('YouTube search fallback:', err);
+    } catch (err: unknown) {
+      console.warn('YouTube search notice:', err);
+      const isAbort = (err as { name?: string })?.name === 'AbortError';
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
           t.artist.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS);
+      if (isAbort) {
+        setSearchError('La búsqueda tardó más de lo esperado en la conexión móvil. Mostrando canciones recomendadas.');
+      } else {
+        setSearchError('Hubo un inconveniente al conectar con YouTube. Mostrando canciones recomendadas disponibles.');
+      }
     } finally {
       setIsSearching(false);
     }
@@ -655,44 +669,78 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           {activeTab === 'search' && (
             <div className="space-y-4">
               {/* Tip Banner */}
-              <div className="p-3 bg-red-950/30 border border-red-500/40 rounded-2xl flex items-center justify-between text-xs text-red-200/90">
+              <div className="p-2.5 sm:p-3 bg-red-950/30 border border-red-500/40 rounded-2xl flex items-center justify-between text-xs text-red-200/90">
                 <div className="flex items-center gap-2">
                   <Youtube className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  <span>
-                    Busca cualquier artista, salsa, merengue o canción de YouTube. <strong>Se reproduce completa sin pausas.</strong>
+                  <span className="text-[11px] sm:text-xs leading-tight">
+                    Busca salsa, merengue, bachata o cualquier artista en YouTube. <strong>Se reproduce completo.</strong>
                   </span>
                 </div>
               </div>
 
               {/* Search Form */}
               <form
+                action="javascript:void(0);"
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSearchYouTube();
                 }}
-                className="flex gap-2"
+                className="flex gap-2 items-center"
               >
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <div className="relative flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
-                    type="text"
+                    type="search"
+                    enterKeyHint="search"
+                    inputMode="search"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar salsa, artista, canción o mix en YouTube..."
-                    className="w-full bg-stone-950 border border-stone-750 focus:border-red-500 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = (e.currentTarget.value || searchQuery).trim();
+                        e.currentTarget.blur();
+                        if (val) {
+                          handleSearchYouTube(val);
+                        }
+                      }
+                    }}
+                    placeholder="Buscar salsa, artista o canción..."
+                    className="w-full bg-stone-950 border border-stone-750 focus:border-red-500 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-500 hover:text-stone-300 transition-colors"
+                      title="Borrar búsqueda"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <button
                   type="submit"
                   disabled={isSearching || !searchQuery.trim()}
-                  className="px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
+                  onPointerDown={(e) => {
+                    // Prevents keyboard blur event on mobile touchscreen from canceling the tap/click
+                    e.preventDefault();
+                  }}
+                  onClick={() => {
+                    handleSearchYouTube();
+                  }}
+                  className="px-3.5 sm:px-4 py-2.5 bg-red-600 hover:bg-red-500 active:bg-red-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
                 >
                   {isSearching ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Search className="w-4 h-4" />
                   )}
-                  <span>Buscar en YouTube</span>
+                  <span className="sm:hidden font-bold">Buscar</span>
+                  <span className="hidden sm:inline">Buscar en YouTube</span>
                 </button>
               </form>
 
@@ -706,8 +754,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   <button
                     key={tag}
                     type="button"
+                    onPointerDown={(e) => e.preventDefault()}
                     onClick={() => handleQuickTagClick(tag)}
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-amber-300 border border-stone-750 transition-colors"
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-amber-300 border border-stone-750 transition-colors cursor-pointer active:scale-95 touch-manipulation"
                   >
                     {tag}
                   </button>
@@ -720,102 +769,113 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   <Loader2 className="w-8 h-8 animate-spin text-red-500" />
                   <span className="text-sm font-medium">Buscando canciones en YouTube...</span>
                 </div>
-              ) : searchError ? (
-                <div className="py-8 text-center text-xs sm:text-sm text-stone-400 bg-stone-950/40 rounded-xl p-4 border border-stone-800">
-                  <p>{searchError}</p>
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-stone-400 px-1">
-                    <span>Resultados de YouTube ({searchResults.length})</span>
-                    <span className="text-emerald-400 font-medium flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> Canción completa
-                    </span>
-                  </div>
+              ) : (
+                <div className="space-y-3">
+                  {searchError && (
+                    <div className="p-3 text-center text-xs text-amber-200 bg-amber-950/40 rounded-xl border border-amber-500/30 flex items-center justify-between gap-2">
+                      <p className="flex-1 text-left">{searchError}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleSearchYouTube()}
+                        className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-bold whitespace-nowrap"
+                      >
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
 
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    {searchResults.map((track) => {
-                      const isThisPlaying =
-                        (currentTrack?.id === track.id ||
-                          (track.videoId && currentTrack?.videoId === track.videoId)) &&
-                        isPlaying;
+                  {searchResults.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-stone-400 px-1">
+                        <span>Resultados de YouTube ({searchResults.length})</span>
+                        <span className="text-emerald-400 font-medium flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" /> Canción completa
+                        </span>
+                      </div>
 
-                      return (
-                        <div
-                          key={track.id}
-                          className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                            isThisPlaying
-                              ? 'bg-red-950/30 border-red-500/60 shadow-lg shadow-red-950/20'
-                              : 'bg-stone-850/80 hover:bg-stone-800 border-stone-800'
-                          }`}
-                        >
-                          <div
-                            onClick={() => onSelectTrack(track)}
-                            className="flex items-center gap-3 truncate flex-1 cursor-pointer group"
-                          >
-                            <div className="relative w-14 h-11 rounded-xl overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
-                              {track.artworkUrl ? (
-                                <img
-                                  src={track.artworkUrl}
-                                  alt={track.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-stone-900">
-                                  <Youtube className="w-5 h-5 text-red-500" />
-                                </div>
-                              )}
-                              {track.durationText && (
-                                <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[9px] px-1 rounded-tl">
-                                  {track.durationText}
-                                </div>
-                              )}
-                            </div>
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        {searchResults.map((track) => {
+                          const isThisPlaying =
+                            (currentTrack?.id === track.id ||
+                              (track.videoId && currentTrack?.videoId === track.videoId)) &&
+                            isPlaying;
 
-                            <div className="truncate flex-1">
-                              <h4 className="text-xs font-bold text-stone-100 group-hover:text-red-400 truncate transition-colors">
-                                {track.title}
-                              </h4>
-                              <p className="text-[11px] text-stone-400 truncate mt-0.5">
-                                {track.artist}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleSaveResultTrack(track)}
-                              title="Guardar en mi lista"
-                              className="p-2 rounded-xl text-stone-400 hover:text-amber-300 hover:bg-stone-750 transition-colors"
-                            >
-                              <BookmarkPlus className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => onSelectTrack(track)}
-                              title={isThisPlaying ? 'Pausar' : 'Reproducir'}
-                              className={`p-2.5 rounded-xl font-bold transition-all shadow-md ${
+                          return (
+                            <div
+                              key={track.id}
+                              className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                                 isThisPlaying
-                                  ? 'bg-amber-500 text-stone-950'
-                                  : 'bg-red-600 hover:bg-red-500 text-white'
+                                  ? 'bg-red-950/30 border-red-500/60 shadow-lg shadow-red-950/20'
+                                  : 'bg-stone-850/80 hover:bg-stone-800 border-stone-800'
                               }`}
                             >
-                              {isThisPlaying ? (
-                                <Pause className="w-4 h-4 fill-current" />
-                              ) : (
-                                <Play className="w-4 h-4 fill-current ml-0.5" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
+                              <div
+                                onClick={() => onSelectTrack(track)}
+                                className="flex items-center gap-3 truncate flex-1 cursor-pointer group touch-manipulation"
+                              >
+                                <div className="relative w-14 h-11 rounded-xl overflow-hidden bg-stone-900 border border-stone-700 flex-shrink-0">
+                                  {track.artworkUrl ? (
+                                    <img
+                                      src={track.artworkUrl}
+                                      alt={track.title}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-stone-900">
+                                      <Youtube className="w-5 h-5 text-red-500" />
+                                    </div>
+                                  )}
+                                  {track.durationText && (
+                                    <div className="absolute bottom-0 right-0 bg-black/80 text-white font-mono text-[9px] px-1 rounded-tl">
+                                      {track.durationText}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="truncate flex-1">
+                                  <h4 className="text-xs font-bold text-stone-100 group-hover:text-red-400 truncate transition-colors">
+                                    {track.title}
+                                  </h4>
+                                  <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                                    {track.artist}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveResultTrack(track)}
+                                  title="Guardar en mi lista"
+                                  className="p-2 rounded-xl text-stone-400 hover:text-amber-300 hover:bg-stone-750 transition-colors touch-manipulation"
+                                >
+                                  <BookmarkPlus className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => onSelectTrack(track)}
+                                  title={isThisPlaying ? 'Pausar' : 'Reproducir'}
+                                  className={`p-2.5 rounded-xl font-bold transition-all shadow-md touch-manipulation ${
+                                    isThisPlaying
+                                      ? 'bg-amber-500 text-stone-950'
+                                      : 'bg-red-600 hover:bg-red-500 text-white'
+                                  }`}
+                                >
+                                  {isThisPlaying ? (
+                                    <Pause className="w-4 h-4 fill-current" />
+                                  ) : (
+                                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : !searchError ? (
                 /* Initial state before searching: popular picks ready to play */
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between text-xs text-stone-400 px-1">
@@ -876,6 +936,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       );
                     })}
                   </div>
+                </div>
+              ) : null}
                 </div>
               )}
             </div>
@@ -1040,15 +1102,22 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       type="text"
                       value={customUrl}
                       onChange={(e) => setCustomUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCheckUrl();
+                        }
+                      }}
                       placeholder="https://www.youtube.com/watch?v=... o https://youtu.be/..."
                       required
-                      className="flex-1 bg-stone-900 border border-stone-750 focus:border-red-500 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-100 placeholder:text-stone-600 focus:outline-none"
+                      className="flex-1 min-w-0 bg-stone-900 border border-stone-750 focus:border-red-500 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-100 placeholder:text-stone-600 focus:outline-none"
                     />
                     <button
                       type="button"
+                      onPointerDown={(e) => e.preventDefault()}
                       onClick={handleCheckUrl}
                       disabled={isCheckingUrl || !customUrl.trim()}
-                      className="px-3 py-2 bg-stone-800 hover:bg-stone-700 disabled:opacity-50 text-stone-200 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
+                      className="px-3 py-2 bg-stone-800 hover:bg-stone-700 disabled:opacity-50 text-stone-200 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap cursor-pointer touch-manipulation"
                     >
                       {isCheckingUrl ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
                       <span>Consultar datos</span>
