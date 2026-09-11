@@ -91,21 +91,21 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
               <tr className="border-b border-stone-800 bg-stone-900/40 text-stone-400 text-xs">
                 <th className="py-2.5 px-3 sm:px-4 w-12 text-center font-bold">#</th>
                 <th
-                  className="py-2.5 px-4 font-bold border-r border-stone-800/80"
+                  className="py-2.5 px-3 sm:px-4 font-bold border-r border-stone-800/80"
                   style={{ color: players[0].color }}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{players[0].name}</span>
-                    <span className="text-xs opacity-75 font-normal">Acumulado</span>
+                    <span className="text-sm font-extrabold tracking-tight">{players[0].name}</span>
+                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">Acumulado</span>
                   </div>
                 </th>
                 <th
-                  className="py-2.5 px-4 font-bold"
+                  className="py-2.5 px-3 sm:px-4 font-bold"
                   style={{ color: players[1].color }}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{players[1].name}</span>
-                    <span className="text-xs opacity-75 font-normal">Acumulado</span>
+                    <span className="text-sm font-extrabold tracking-tight">{players[1].name}</span>
+                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">Acumulado</span>
                   </div>
                 </th>
                 <th className="py-2.5 px-3 w-10 text-center font-normal text-stone-500"></th>

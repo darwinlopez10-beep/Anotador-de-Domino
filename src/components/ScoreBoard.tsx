@@ -110,7 +110,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                             if (e.key === 'Enter') saveEdit(player.id);
                             if (e.key === 'Escape') setEditingPlayerId(null);
                           }}
-                          className="bg-stone-900 border border-amber-500/60 rounded px-1.5 py-0.5 text-xs sm:text-sm text-stone-100 focus:outline-none w-full"
+                          className="bg-stone-900 border border-amber-500/60 rounded px-1.5 py-0.5 text-xs sm:text-sm text-stone-100 focus:outline-none w-full font-bold"
                         />
                         <button
                           onClick={() => saveEdit(player.id)}
@@ -122,7 +122,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 group cursor-pointer min-w-0" onClick={() => startEdit(player)}>
-                        <h2 className="text-xs sm:text-lg landscape:text-base font-bold text-stone-100 truncate tracking-tight">
+                        <h2 className="text-sm xs:text-base sm:text-xl landscape:text-base font-extrabold text-stone-100 truncate tracking-tight">
                           {player.name}
                         </h2>
                         <button
@@ -130,7 +130,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                           className="text-stone-500 hover:text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 flex-shrink-0"
                           title="Editar nombre"
                         >
-                          <Edit2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                       </div>
                     )}
@@ -157,16 +157,16 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                             maxLength={18}
                             placeholder="Jugador 1"
                             onChange={(e) => setMember1Input(e.target.value)}
-                            className="w-1/2 bg-stone-950 border border-stone-750 rounded px-1 py-0.5 text-[10px] sm:text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                            className="w-1/2 bg-stone-950 border border-stone-750 rounded px-1.5 py-0.5 text-xs sm:text-sm text-stone-100 focus:outline-none focus:border-amber-500 font-medium"
                           />
-                          <span className="text-stone-500 text-[10px] sm:text-xs">&</span>
+                          <span className="text-stone-500 text-xs sm:text-sm font-bold">&</span>
                           <input
                             type="text"
                             value={member2Input}
                             maxLength={18}
                             placeholder="Jugador 2"
                             onChange={(e) => setMember2Input(e.target.value)}
-                            className="w-1/2 bg-stone-950 border border-stone-750 rounded px-1 py-0.5 text-[10px] sm:text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                            className="w-1/2 bg-stone-950 border border-stone-750 rounded px-1.5 py-0.5 text-xs sm:text-sm text-stone-100 focus:outline-none focus:border-amber-500 font-medium"
                           />
                         </div>
                         <button
@@ -175,22 +175,22 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                           className="w-full sm:w-auto p-1 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded text-xs flex items-center justify-center flex-shrink-0"
                           title="Guardar jugadores"
                         >
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : (
                       <div
                         onClick={() => startEditMembers(player)}
-                        className="inline-flex items-center gap-1 text-[10px] sm:text-xs landscape:text-[11px] text-stone-400 hover:text-stone-200 cursor-pointer group/members py-0.5 transition-colors max-w-full"
+                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm landscape:text-xs text-stone-300 hover:text-white cursor-pointer group/members py-0.5 transition-colors max-w-full"
                         title="Toca para editar los nombres de los jugadores"
                       >
-                        <Users className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-stone-500 group-hover/members:text-amber-400 flex-shrink-0" />
-                        <span className="font-medium truncate">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500/80 group-hover/members:text-amber-400 flex-shrink-0" />
+                        <span className="font-semibold text-xs sm:text-sm text-stone-200 truncate">
                           {player.members && player.members.length === 2
                             ? `${player.members[0]} & ${player.members[1]}`
                             : 'Jugador 1 & Jugador 2'}
                         </span>
-                        <Edit2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 opacity-0 group-hover/members:opacity-100 text-stone-400 transition-opacity flex-shrink-0" />
+                        <Edit2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-60 group-hover/members:opacity-100 text-stone-400 transition-opacity flex-shrink-0" />
                       </div>
                     )}
                   </div>
