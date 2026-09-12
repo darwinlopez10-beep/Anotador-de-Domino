@@ -23,7 +23,7 @@ async function startServer() {
     try {
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
       const response = await fetch(searchUrl, {
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(10000),
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -38,68 +38,141 @@ async function startServer() {
       const html = await response.text();
       let data: any = null;
 
-      // Robust extraction of ytInitialData
-      const marker = 'ytInitialData = ';
-      let startIdx = html.indexOf(marker);
-      if (startIdx !== -1) {
-        startIdx += marker.length;
-        const endIdx = html.indexOf(';</script>', startIdx);
-        if (endIdx !== -1) {
-          try {
-            data = JSON.parse(html.substring(startIdx, endIdx));
-          } catch (e) {
-            console.warn('Direct slice parse failed, trying regex fallback:', e);
+      // 1. Robust balanced-braces extraction of ytInitialData
+      const marker = 'ytInitialData';
+      const markerIdx = html.indexOf(marker);
+      if (markerIdx !== -1) {
+        const eqIdx = html.indexOf('=', markerIdx);
+        if (eqIdx !== -1) {
+          const startBrace = html.indexOf('{', eqIdx);
+          if (startBrace !== -1) {
+            let depth = 0;
+            let inString = false;
+            let escape = false;
+            let endBrace = -1;
+            for (let i = startBrace; i < html.length; i++) {
+              const char = html[i];
+              if (escape) {
+                escape = false;
+                continue;
+              }
+              if (char === '\\') {
+                escape = true;
+                continue;
+              }
+              if (char === '"' && !escape) {
+                inString = !inString;
+                continue;
+              }
+              if (!inString) {
+                if (char === '{') depth++;
+                else if (char === '}') {
+                  depth--;
+                  if (depth === 0) {
+                    endBrace = i;
+                    break;
+                  }
+                }
+              }
+            }
+            if (endBrace !== -1) {
+              try {
+                data = JSON.parse(html.substring(startBrace, endBrace + 1));
+              } catch (e) {
+                console.warn('Balanced braces JSON parse failed:', e);
+              }
+            }
           }
         }
       }
 
+      // 2. Fallback slice extraction if braces parse didn't succeed
       if (!data) {
-        const altMatch = html.match(/ytInitialData\s*=\s*({.+?});\s*<\/script>/s);
-        if (altMatch) {
-          try {
-            data = JSON.parse(altMatch[1]);
-          } catch (e) {
-            console.warn('Regex fallback parse failed:', e);
+        const sliceMarker = 'ytInitialData = ';
+        const startIdx = html.indexOf(sliceMarker);
+        if (startIdx !== -1) {
+          const contentStart = startIdx + sliceMarker.length;
+          const endIdx = html.indexOf(';</script>', contentStart);
+          if (endIdx !== -1) {
+            try {
+              data = JSON.parse(html.substring(contentStart, endIdx));
+            } catch (e) {
+              console.warn('Slice JSON parse fallback failed:', e);
+            }
           }
         }
       }
-
-      if (!data) {
-        return res.json({ results: [] });
-      }
-
-      const sections =
-        data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
 
       const results: any[] = [];
-      for (const section of sections) {
-        const items = section?.itemSectionRenderer?.contents || [];
-        for (const item of items) {
-          if (item.videoRenderer) {
-            const v = item.videoRenderer;
-            if (v.videoId) {
-              const title =
-                v.title?.runs?.[0]?.text || v.title?.simpleText || 'Video de YouTube';
-              const artist =
-                v.ownerText?.runs?.[0]?.text ||
-                v.shortBylineText?.runs?.[0]?.text ||
-                'YouTube';
-              const durationText = v.lengthText?.simpleText || '';
-              const thumbnail =
-                v.thumbnail?.thumbnails?.[v.thumbnail.thumbnails.length - 1]?.url ||
-                `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`;
+      const seenVideoIds = new Set<string>();
 
-              results.push({
-                id: `yt_${v.videoId}`,
-                videoId: v.videoId,
-                title,
-                artist,
-                sourceType: 'youtube',
-                url: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
-                artworkUrl: thumbnail,
-                durationText,
-              });
-            }
+      // Recursive finder that extracts videos from any YouTube response layout (desktop or mobile)
+      const extractVideosRecursively = (obj: any) => {
+        if (!obj || typeof obj !== 'object') return;
+
+        if (obj.videoId && typeof obj.videoId === 'string') {
+          const vid = obj.videoId;
+          if (!seenVideoIds.has(vid)) {
+            seenVideoIds.add(vid);
+            const title =
+              obj.title?.runs?.[0]?.text ||
+              obj.title?.simpleText ||
+              obj.headline?.simpleText ||
+              obj.accessibility?.accessibilityData?.label ||
+              'Video de YouTube';
+            const artist =
+              obj.ownerText?.runs?.[0]?.text ||
+              obj.shortBylineText?.runs?.[0]?.text ||
+              obj.longBylineText?.runs?.[0]?.text ||
+              'YouTube';
+            const durationText = obj.lengthText?.simpleText || '';
+            const thumbnail =
+              obj.thumbnail?.thumbnails?.[obj.thumbnail.thumbnails.length - 1]?.url ||
+              `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+
+            results.push({
+              id: `yt_${vid}`,
+              videoId: vid,
+              title,
+              artist,
+              sourceType: 'youtube',
+              url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
+              artworkUrl: thumbnail,
+              durationText,
+            });
+          }
+          return;
+        }
+
+        for (const key of Object.keys(obj)) {
+          if (key !== 'trackingParams' && key !== 'innertubeCommand' && key !== 'onVisible') {
+            extractVideosRecursively(obj[key]);
+          }
+        }
+      };
+
+      if (data) {
+        extractVideosRecursively(data);
+      }
+
+      // 3. If no videos were found via JSON, use regex pattern matching for videoIds
+      if (results.length === 0) {
+        const vidRegex = /"videoId":"([a-zA-Z0-9_-]{11})"/g;
+        let match;
+        while ((match = vidRegex.exec(html)) !== null && results.length < 20) {
+          const vid = match[1];
+          if (!seenVideoIds.has(vid)) {
+            seenVideoIds.add(vid);
+            results.push({
+              id: `yt_${vid}`,
+              videoId: vid,
+              title: `${query} (YouTube)`,
+              artist: 'YouTube',
+              sourceType: 'youtube',
+              url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
+              artworkUrl: `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
+              durationText: '',
+            });
           }
         }
       }

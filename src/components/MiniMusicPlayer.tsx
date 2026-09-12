@@ -13,9 +13,11 @@ import {
   Plus,
   Minus,
   Sliders,
+  ExternalLink,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 import { extractYouTubeId } from './MusicPlayerModal';
+import { openInYouTube } from '../utils/youtubeMobile';
 
 interface MiniMusicPlayerProps {
   track: MusicTrack;
@@ -283,6 +285,18 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
                 }`}
               >
                 <Tv className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Abrir en YouTube en Celular / App */}
+            {isYouTube && ytVideoId && (
+              <button
+                type="button"
+                onClick={() => openInYouTube(ytVideoId)}
+                title="Abrir en YouTube en tu celular o app"
+                className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
               </button>
             )}
 
