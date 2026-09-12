@@ -20,10 +20,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
 
-  const [editingMembersTeamId, setEditingMembersTeamId] = useState<string | null>(null);
-  const [member1Input, setMember1Input] = useState<string>('');
-  const [member2Input, setMember2Input] = useState<string>('');
-
   const highestScore = Math.max(...players.map((p) => p.score), 0);
 
   const startEdit = (player: PlayerScore) => {
@@ -35,24 +31,11 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
     const trimmed = editingName.trim();
     if (trimmed) {
       onUpdatePlayerName(playerId, trimmed);
+      if (onUpdatePlayerMembers) {
+        onUpdatePlayerMembers(playerId, [trimmed]);
+      }
     }
     setEditingPlayerId(null);
-  };
-
-  const startEditMembers = (player: PlayerScore) => {
-    setEditingMembersTeamId(player.id);
-    setMember1Input(player.members?.[0] || 'Jugador 1');
-    setMember2Input(player.members?.[1] || 'Jugador 2');
-  };
-
-  const saveEditMembers = (playerId: string) => {
-    if (onUpdatePlayerMembers) {
-      onUpdatePlayerMembers(playerId, [
-        member1Input.trim() || 'Jugador 1',
-        member2Input.trim() || 'Jugador 2',
-      ]);
-    }
-    setEditingMembersTeamId(null);
   };
 
   const isTwoTeams = players.length === 2;
@@ -110,11 +93,12 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                             if (e.key === 'Enter') saveEdit(player.id);
                             if (e.key === 'Escape') setEditingPlayerId(null);
                           }}
-                          className="bg-stone-900 border border-amber-500/60 rounded-lg px-2 py-0.5 text-base sm:text-lg text-stone-100 focus:outline-none w-full font-black"
+                          className="bg-stone-900 border border-amber-500/60 rounded-lg px-2 py-0.5 text-base sm:text-xl text-stone-100 focus:outline-none w-full font-black"
                         />
                         <button
+                          type="button"
                           onClick={() => saveEdit(player.id)}
-                          className="p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs flex-shrink-0"
+                          className="p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs flex-shrink-0 cursor-pointer"
                           title="Guardar nombre"
                         >
                           <Check className="w-4 h-4" />
@@ -128,7 +112,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                         <button
                           type="button"
                           className="text-stone-400 hover:text-stone-200 opacity-80 group-hover:opacity-100 transition-opacity p-0.5 flex-shrink-0"
-                          title="Editar nombre de equipo"
+                          title="Editar nombre"
                         >
                           <Edit2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                         </button>
@@ -144,57 +128,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     </span>
                   )}
                 </div>
-
-                {/* Team Members Display / Editing for teams mode */}
-                {isTwoTeams && (
-                  <div className="mb-1.5 sm:mb-2 landscape:mb-1">
-                    {editingMembersTeamId === player.id ? (
-                      <div className="flex flex-col sm:flex-row items-center gap-1 p-1.5 bg-stone-900/90 border border-amber-500/50 rounded-xl">
-                        <div className="flex items-center gap-1 w-full">
-                          <input
-                            type="text"
-                            value={member1Input}
-                            maxLength={18}
-                            placeholder="Jugador 1"
-                            onChange={(e) => setMember1Input(e.target.value)}
-                            className="w-1/2 bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs sm:text-sm text-stone-100 focus:outline-none focus:border-amber-500 font-bold"
-                          />
-                          <span className="text-stone-500 text-xs sm:text-sm font-bold">&</span>
-                          <input
-                            type="text"
-                            value={member2Input}
-                            maxLength={18}
-                            placeholder="Jugador 2"
-                            onChange={(e) => setMember2Input(e.target.value)}
-                            className="w-1/2 bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs sm:text-sm text-stone-100 focus:outline-none focus:border-amber-500 font-bold"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => saveEditMembers(player.id)}
-                          className="w-full sm:w-auto p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs flex items-center justify-center flex-shrink-0"
-                          title="Guardar jugadores"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => startEditMembers(player)}
-                        className="flex items-center gap-1.5 py-1.5 px-2 rounded-xl bg-stone-900/80 hover:bg-stone-900 border border-stone-750 cursor-pointer group/members transition-colors max-w-full shadow-sm"
-                        title="Toca para editar los nombres de los jugadores"
-                      >
-                        <Users className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                        <span className="font-extrabold text-sm sm:text-lg landscape:text-sm text-stone-100 truncate flex-1">
-                          {player.members && player.members.length === 2
-                            ? `${player.members[0]} & ${player.members[1]}`
-                            : 'Jugador 1 & Jugador 2'}
-                        </span>
-                        <Edit2 className="w-3.5 h-3.5 text-stone-400 opacity-70 group-hover/members:opacity-100 transition-opacity flex-shrink-0" />
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Main Score Digits Display */}
                 <div className="my-1.5 sm:my-3 landscape:my-1 text-center py-2 sm:py-3.5 landscape:py-1 px-1.5 bg-stone-900/90 rounded-2xl border border-stone-750 shadow-inner shadow-black/40">

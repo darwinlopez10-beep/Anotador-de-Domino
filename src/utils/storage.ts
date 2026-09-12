@@ -10,10 +10,10 @@ const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS: GameSettings = {
   targetScore: 100,
   gameMode: 'teams',
-  team1Name: 'Nosotros',
-  team2Name: 'Ellos',
-  team1Members: ['Jugador 1', 'Jugador 2'],
-  team2Members: ['Jugador 1', 'Jugador 2'],
+  team1Name: 'Jugador 1',
+  team2Name: 'Jugador 2',
+  team1Members: ['Jugador 1'],
+  team2Members: ['Jugador 2'],
   individualPlayerNames: ['Jugador 1', 'Jugador 2', 'Jugador 3', 'Jugador 4'],
   trancaRule: 'sum_opponent', // sum_opponent: suma de todas las fichas de los rivales
   capicuaBonus: 25, // bonus opcional para capicúa si aplica
@@ -36,11 +36,38 @@ export function loadSettings(): GameSettings {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw);
+
+    // Sanitize team 1 name to a single player name
+    let team1Name = parsed.team1Name;
+    if (!team1Name || team1Name === 'Nosotros' || team1Name === 'Equipo 1' || team1Name.includes('&')) {
+      team1Name = parsed.team1Members?.[0] || 'Jugador 1';
+      if (team1Name.includes('&')) {
+        team1Name = team1Name.split('&')[0].trim() || 'Jugador 1';
+      }
+    }
+
+    // Sanitize team 2 name to a single player name
+    let team2Name = parsed.team2Name;
+    if (!team2Name || team2Name === 'Ellos' || team2Name === 'Equipo 2' || team2Name.includes('&')) {
+      team2Name = parsed.team2Members?.[0] || 'Jugador 2';
+      if (team2Name.includes('&')) {
+        team2Name = team2Name.split('&')[0].trim() || 'Jugador 2';
+      }
+      if (team2Name === 'Jugador 3' || team2Name === 'Jugador 4') {
+        team2Name = 'Jugador 2';
+      }
+    }
+
+    const team1Members = [team1Name];
+    const team2Members = [team2Name];
+
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
-      team1Members: parsed.team1Members || DEFAULT_SETTINGS.team1Members,
-      team2Members: parsed.team2Members || DEFAULT_SETTINGS.team2Members,
+      team1Name,
+      team2Name,
+      team1Members,
+      team2Members,
     };
   } catch {
     return DEFAULT_SETTINGS;

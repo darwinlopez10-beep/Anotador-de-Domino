@@ -40,28 +40,38 @@ import {
   playTileClickSound,
   triggerVibration,
 } from './utils/sound';
-import { Plus, Calculator, Timer, Trophy, Music } from 'lucide-react';
+import { Plus, Calculator, Timer, Trophy, Music, Check, RotateCcw } from 'lucide-react';
 
 const TEAM_COLORS = ['#10b981', '#f59e0b', '#38bdf8', '#ec4899'];
 
 function createInitialPlayers(settings: GameSettings): PlayerScore[] {
   if (settings.gameMode === 'teams') {
+    let p1Name = settings.team1Name || settings.team1Members?.[0] || 'Jugador 1';
+    if (p1Name.includes('&')) p1Name = p1Name.split('&')[0].trim();
+    if (!p1Name || p1Name === 'Nosotros' || p1Name === 'Equipo 1') p1Name = 'Jugador 1';
+
+    let p2Name = settings.team2Name || settings.team2Members?.[0] || 'Jugador 2';
+    if (p2Name.includes('&')) p2Name = p2Name.split('&')[0].trim();
+    if (!p2Name || p2Name === 'Ellos' || p2Name === 'Equipo 2' || p2Name === 'Jugador 3' || p2Name === 'Jugador 4') {
+      p2Name = 'Jugador 2';
+    }
+
     return [
       {
         id: 'team_1',
-        name: settings.team1Name || 'Nosotros',
+        name: p1Name,
         color: TEAM_COLORS[0],
         score: 0,
         handsWon: 0,
-        members: settings.team1Members || ['Jugador 1', 'Jugador 2'],
+        members: [p1Name],
       },
       {
         id: 'team_2',
-        name: settings.team2Name || 'Ellos',
+        name: p2Name,
         color: TEAM_COLORS[1],
         score: 0,
         handsWon: 0,
-        members: settings.team2Members || ['Jugador 3', 'Jugador 4'],
+        members: [p2Name],
       },
     ];
   } else {
@@ -82,11 +92,24 @@ export default function App() {
     const currentSettings = loadSettings();
     if (saved && saved.players && saved.players.length > 0) {
       return saved.players.map((p) => {
-        if (p.id === 'team_1' && (!p.members || p.members.length === 0)) {
-          return { ...p, members: currentSettings.team1Members || ['Jugador 1', 'Jugador 2'] };
+        if (p.id === 'team_1' || p.id === 'team-1') {
+          let name = p.name;
+          if (!name || name === 'Nosotros' || name === 'Equipo 1' || name.includes('&')) {
+            name = p.members?.[0] || currentSettings.team1Name || 'Jugador 1';
+            if (name.includes('&')) name = name.split('&')[0].trim();
+          }
+          const finalName = name || 'Jugador 1';
+          return { ...p, id: 'team_1', name: finalName, members: [finalName] };
         }
-        if (p.id === 'team_2' && (!p.members || p.members.length === 0)) {
-          return { ...p, members: currentSettings.team2Members || ['Jugador 3', 'Jugador 4'] };
+        if (p.id === 'team_2' || p.id === 'team-2') {
+          let name = p.name;
+          if (!name || name === 'Ellos' || name === 'Equipo 2' || name.includes('&')) {
+            name = p.members?.[0] || currentSettings.team2Name || 'Jugador 2';
+            if (name.includes('&')) name = name.split('&')[0].trim();
+          }
+          if (name === 'Jugador 3' || name === 'Jugador 4' || !name) name = 'Jugador 2';
+          const finalName = name;
+          return { ...p, id: 'team_2', name: finalName, members: [finalName] };
         }
         return p;
       });
@@ -124,6 +147,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const [musicModalTab, setMusicModalTab] = useState<'search' | 'curated' | 'add' | 'stations'>('search');
 
@@ -135,6 +159,7 @@ export default function App() {
   const [musicCurrentTime, setMusicCurrentTime] = useState(0);
   const [musicDuration, setMusicDuration] = useState(0);
   const [customTracks, setCustomTracks] = useState<MusicTrack[]>(() => loadCustomTracks());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -188,6 +213,15 @@ export default function App() {
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   // Active winner player object
   const winnerPlayer = useMemo(() => {
@@ -373,30 +407,30 @@ export default function App() {
     }
   };
 
-  // Reset / New Game: reinicia los puntos y los nombres registrados de la partida
+  // Reset / New Game: abre la confirmación para borrar nombres y puntos a cero
   const handleNewGame = () => {
-    if (rounds.length > 0) {
-      const confirmed = window.confirm(
-        '¿Deseas reiniciar la partida? Se reiniciarán los puntos a 0 y los nombres registrados volverán a los valores iniciales.'
-      );
-      if (!confirmed) return;
-    }
-
     playTileClickSound(settings.soundEnabled);
+    setIsResetConfirmOpen(true);
+  };
+
+  // Confirm Reset: borra tanto los nombres de los jugadores como los puntos a cero
+  const confirmResetGame = () => {
+    playTileClickSound(settings.soundEnabled);
+    triggerVibration(settings.vibrationEnabled, 40);
     clearActiveGame();
     setRounds([]);
     setMatchOver(false);
     setWinnerId(null);
     setStartTime(Date.now());
 
-    // Restablecer nombres registrados a sus valores iniciales por defecto
+    // Restablecer nombres registrados a valores por defecto (Jugador 1 y Jugador 2)
     const resetSettings: GameSettings = {
       ...settings,
-      team1Name: DEFAULT_SETTINGS.team1Name,
-      team2Name: DEFAULT_SETTINGS.team2Name,
-      team1Members: ['Jugador 1', 'Jugador 2'],
-      team2Members: ['Jugador 3', 'Jugador 4'],
-      individualPlayerNames: [...DEFAULT_SETTINGS.individualPlayerNames],
+      team1Name: 'Jugador 1',
+      team2Name: 'Jugador 2',
+      team1Members: ['Jugador 1'],
+      team2Members: ['Jugador 2'],
+      individualPlayerNames: ['Jugador 1', 'Jugador 2', 'Jugador 3', 'Jugador 4'],
     };
     setSettings(resetSettings);
     saveSettings(resetSettings);
@@ -404,6 +438,9 @@ export default function App() {
     // Recrear jugadores con nombres iniciales y 0 puntos
     const freshPlayers = createInitialPlayers(resetSettings);
     setPlayers(freshPlayers);
+
+    setIsResetConfirmOpen(false);
+    setToastMessage('Partida reiniciada: nombres y puntos a cero');
   };
 
   // Rematch after victory
@@ -432,28 +469,31 @@ export default function App() {
   // Update a single player's name inline
   const handleUpdatePlayerName = (playerId: string, newName: string) => {
     setPlayers((prev) =>
-      prev.map((p) => (p.id === playerId ? { ...p, name: newName } : p))
+      prev.map((p) => (p.id === playerId ? { ...p, name: newName, members: [newName] } : p))
     );
     // Also sync with settings
     if (settings.gameMode === 'teams') {
-      if (playerId === 'team_1') {
-        setSettings((s) => ({ ...s, team1Name: newName }));
-      } else if (playerId === 'team_2') {
-        setSettings((s) => ({ ...s, team2Name: newName }));
+      if (playerId === 'team_1' || playerId === 'team-1') {
+        setSettings((s) => ({ ...s, team1Name: newName, team1Members: [newName] }));
+      } else if (playerId === 'team_2' || playerId === 'team-2') {
+        setSettings((s) => ({ ...s, team2Name: newName, team2Members: [newName] }));
       }
     }
   };
 
-  // Update members for a team (Nosotros / Ellos)
+  // Update members for a team
   const handleUpdatePlayerMembers = (playerId: string, members: string[]) => {
+    const singleName = members[0] || (playerId === 'team_1' ? 'Jugador 1' : 'Jugador 2');
     setPlayers((prev) =>
-      prev.map((p) => (p.id === playerId ? { ...p, members } : p))
+      prev.map((p) =>
+        p.id === playerId ? { ...p, name: singleName, members: [singleName] } : p
+      )
     );
     // Also sync with settings
-    if (playerId === 'team_1') {
-      setSettings((s) => ({ ...s, team1Members: members }));
-    } else if (playerId === 'team_2') {
-      setSettings((s) => ({ ...s, team2Members: members }));
+    if (playerId === 'team_1' || playerId === 'team-1') {
+      setSettings((s) => ({ ...s, team1Name: singleName, team1Members: [singleName] }));
+    } else if (playerId === 'team_2' || playerId === 'team-2') {
+      setSettings((s) => ({ ...s, team2Name: singleName, team2Members: [singleName] }));
     }
   };
 
@@ -526,7 +566,7 @@ export default function App() {
   // History Handlers
   const handleManualSaveMatch = () => {
     if (rounds.length === 0) {
-      alert('Anota al menos una mano para poder archivar la partida en el historial.');
+      setToastMessage('Anota al menos una mano para poder archivar la partida.');
       return;
     }
 
@@ -566,7 +606,7 @@ export default function App() {
 
     savePastMatch(pastMatch);
     setPastMatches((prev) => [pastMatch, ...prev.filter((m) => m.id !== pastMatch.id)]);
-    alert('¡Partida archivada con éxito en el historial!');
+    setToastMessage('¡Partida archivada con éxito en el historial!');
   };
 
   const handleDeletePastMatch = (matchId: string) => {
@@ -701,6 +741,7 @@ export default function App() {
       <main className="flex-1 max-w-5xl w-full mx-auto p-2 sm:p-6 landscape:p-3 space-y-3 sm:space-y-5 landscape:space-y-3 pb-28 sm:pb-16 landscape:pb-16">
         {/* Score Board Cards */}
         <ScoreBoard
+          key={startTime}
           players={players}
           targetScore={settings.targetScore}
           onAddRoundForPlayer={handleOpenAddRoundForPlayer}
@@ -897,6 +938,71 @@ export default function App() {
         onNewGameSetup={handleNewGameSetup}
         onResetGame={handleNewGame}
       />
+
+      {/* Reset Game Confirmation Dialog */}
+      {isResetConfirmOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 flex-shrink-0">
+                <RotateCcw className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-stone-100">
+                  ¿Reiniciar partida?
+                </h3>
+                <p className="text-xs text-stone-400">
+                  Esta acción borrará tanto los nombres como los puntos a cero.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 text-xs text-stone-300 space-y-1.5">
+              <p className="font-semibold text-amber-400">Se restablecerá:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-stone-400 text-[11px]">
+                <li>Puntos y manos ganadas vuelven a 0</li>
+                <li>Nombres se restablecen a &quot;Jugador 1&quot; y &quot;Jugador 2&quot;</li>
+                <li>Se borran las rondas anotadas</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-300 font-bold text-xs border border-stone-700 transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-reset"
+                onClick={confirmResetGame}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-black text-xs transition-all shadow-lg shadow-amber-950/40 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Sí, reiniciar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <aside
+          aria-label="Notificación del sistema"
+          aria-live="polite"
+          className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-stone-950 font-black px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm animate-in fade-in slide-in-from-bottom-3 duration-200 border border-amber-400/80 pointer-events-none"
+        >
+          <Check className="w-4 h-4 stroke-[3] flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </aside>
+      )}
     </div>
   );
 }

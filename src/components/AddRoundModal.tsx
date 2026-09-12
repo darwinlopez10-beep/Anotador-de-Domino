@@ -47,26 +47,16 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
 
   // Quick edit names panel
   const [isEditingNames, setIsEditingNames] = useState<boolean>(false);
-  const [editTeam1Members, setEditTeam1Members] = useState<string[]>([]);
-  const [editTeam2Members, setEditTeam2Members] = useState<string[]>([]);
-  const [editTeam1Name, setEditTeam1Name] = useState<string>('');
-  const [editTeam2Name, setEditTeam2Name] = useState<string>('');
+  const [editPlayer1Name, setEditPlayer1Name] = useState<string>('');
+  const [editPlayer2Name, setEditPlayer2Name] = useState<string>('');
 
   // Sync state when modal opens
   useEffect(() => {
-    if (defaultWinnerId) {
-      setSelectedWinnerId(defaultWinnerId);
-    } else if (players.length > 0) {
-      setSelectedWinnerId(players[0].id);
-    }
+    const activeWinnerId = defaultWinnerId || players[0]?.id || '';
+    setSelectedWinnerId(activeWinnerId);
 
-    // Default player name if available for the selected team
-    const defaultPlayer = players.find((p) => p.id === (defaultWinnerId || players[0]?.id));
-    if (defaultPlayer?.members && defaultPlayer.members.length > 0) {
-      setSelectedPlayerName(defaultPlayer.members[0] || '');
-    } else {
-      setSelectedPlayerName('');
-    }
+    const defaultPlayer = players.find((p) => p.id === activeWinnerId);
+    setSelectedPlayerName(defaultPlayer?.name || '');
 
     setPointsInput('');
     setReason('normal');
@@ -75,18 +65,8 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
 
     // Prepare quick edit fields
     if (players.length >= 2) {
-      setEditTeam1Name(players[0]?.name || 'Nosotros');
-      setEditTeam2Name(players[1]?.name || 'Ellos');
-      setEditTeam1Members(
-        players[0]?.members?.length === 2
-          ? [...players[0].members]
-          : ['Jugador 1', 'Jugador 2']
-      );
-      setEditTeam2Members(
-        players[1]?.members?.length === 2
-          ? [...players[1].members]
-          : ['Jugador 1', 'Jugador 2']
-      );
+      setEditPlayer1Name(players[0]?.name || 'Jugador 1');
+      setEditPlayer2Name(players[1]?.name || 'Jugador 2');
     }
   }, [isOpen, defaultWinnerId, players]);
 
@@ -127,43 +107,31 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
     setPointsInput(String(curr + pts));
   };
 
-  const handleSelectTeam = (playerId: string) => {
+  const handleSelectWinner = (playerId: string) => {
     setSelectedWinnerId(playerId);
     playTileClickSound(soundEnabled);
-    const player = players.find((p) => p.id === playerId);
-    if (player?.members && player.members.length > 0) {
-      // If currently selected player is not in this team, default to first member
-      if (!player.members.includes(selectedPlayerName)) {
-        setSelectedPlayerName(player.members[0]);
-      }
-    } else {
-      setSelectedPlayerName('');
-    }
-  };
-
-  const handleSelectPlayerOut = (teamId: string, memberName: string) => {
-    playTileClickSound(soundEnabled);
     triggerVibration(vibrationEnabled, 25);
-    setSelectedWinnerId(teamId);
-    setSelectedPlayerName(memberName);
+    const player = players.find((p) => p.id === playerId);
+    setSelectedPlayerName(player?.name || '');
   };
 
   const handleSaveNames = () => {
     playTileClickSound(soundEnabled);
     if (players.length >= 2) {
+      const p1 = editPlayer1Name.trim() || 'Jugador 1';
+      const p2 = editPlayer2Name.trim() || 'Jugador 2';
       if (onUpdatePlayerName) {
-        onUpdatePlayerName(players[0].id, editTeam1Name.trim() || 'Nosotros');
-        onUpdatePlayerName(players[1].id, editTeam2Name.trim() || 'Ellos');
+        onUpdatePlayerName(players[0].id, p1);
+        onUpdatePlayerName(players[1].id, p2);
       }
       if (onUpdatePlayerMembers) {
-        onUpdatePlayerMembers(players[0].id, [
-          editTeam1Members[0]?.trim() || 'Jugador 1',
-          editTeam1Members[1]?.trim() || 'Jugador 2',
-        ]);
-        onUpdatePlayerMembers(players[1].id, [
-          editTeam2Members[0]?.trim() || 'Jugador 1',
-          editTeam2Members[1]?.trim() || 'Jugador 2',
-        ]);
+        onUpdatePlayerMembers(players[0].id, [p1]);
+        onUpdatePlayerMembers(players[1].id, [p2]);
+      }
+      if (selectedWinnerId === players[0].id) {
+        setSelectedPlayerName(p1);
+      } else if (selectedWinnerId === players[1].id) {
+        setSelectedPlayerName(p2);
       }
     }
     setIsEditingNames(false);
@@ -233,220 +201,103 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" />
-                    Editar Nombres de Parejas
+                    Editar Nombres de Jugadores
                   </span>
                   <button
                     type="button"
                     onClick={handleSaveNames}
-                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-lg text-xs flex items-center gap-1 shadow"
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                     <span>Guardar nombres</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Team 1 (Nosotros) */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Jugador 1 */}
                   <div className="p-2.5 bg-stone-900 rounded-xl border border-stone-800 space-y-1.5">
                     <label className="text-[11px] font-bold text-emerald-400 block">
-                      Equipo 1 (ej. Nosotros)
+                      Jugador 1
                     </label>
                     <input
                       type="text"
-                      value={editTeam1Name}
-                      onChange={(e) => setEditTeam1Name(e.target.value)}
-                      placeholder="Nosotros"
-                      className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs text-stone-100 mb-1 focus:outline-none focus:border-amber-500"
+                      value={editPlayer1Name}
+                      onChange={(e) => setEditPlayer1Name(e.target.value)}
+                      placeholder="Jugador 1"
+                      className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                     />
-                    <span className="text-[10px] text-stone-500 block font-semibold">Jugadores:</span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <input
-                        type="text"
-                        value={editTeam1Members[0] || ''}
-                        onChange={(e) => {
-                          const updated = [...editTeam1Members];
-                          updated[0] = e.target.value;
-                          setEditTeam1Members(updated);
-                        }}
-                        placeholder="Jugador 1"
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
-                      />
-                      <input
-                        type="text"
-                        value={editTeam1Members[1] || ''}
-                        onChange={(e) => {
-                          const updated = [...editTeam1Members];
-                          updated[1] = e.target.value;
-                          setEditTeam1Members(updated);
-                        }}
-                        placeholder="Jugador 2"
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
                   </div>
 
-                  {/* Team 2 (Ellos) */}
+                  {/* Jugador 2 */}
                   <div className="p-2.5 bg-stone-900 rounded-xl border border-stone-800 space-y-1.5">
                     <label className="text-[11px] font-bold text-amber-400 block">
-                      Equipo 2 (ej. Ellos)
+                      Jugador 2
                     </label>
                     <input
                       type="text"
-                      value={editTeam2Name}
-                      onChange={(e) => setEditTeam2Name(e.target.value)}
-                      placeholder="Ellos"
-                      className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs text-stone-100 mb-1 focus:outline-none focus:border-amber-500"
+                      value={editPlayer2Name}
+                      onChange={(e) => setEditPlayer2Name(e.target.value)}
+                      placeholder="Jugador 2"
+                      className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                     />
-                    <span className="text-[10px] text-stone-500 block font-semibold">Jugadores:</span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <input
-                        type="text"
-                        value={editTeam2Members[0] || ''}
-                        onChange={(e) => {
-                          const updated = [...editTeam2Members];
-                          updated[0] = e.target.value;
-                          setEditTeam2Members(updated);
-                        }}
-                        placeholder="Jugador 1"
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
-                      />
-                      <input
-                        type="text"
-                        value={editTeam2Members[1] || ''}
-                        onChange={(e) => {
-                          const updated = [...editTeam2Members];
-                          updated[1] = e.target.value;
-                          setEditTeam2Members(updated);
-                        }}
-                        placeholder="Jugador 2"
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2 py-1 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Team & Players selection cards */}
-            {isTwoTeams ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {players.map((team, idx) => {
-                  const isTeamSelected = selectedWinnerId === team.id;
-                  const members = team.members && team.members.length > 0
-                    ? team.members
-                    : ['Jugador 1', 'Jugador 2'];
-
-                  return (
-                    <div
-                      key={team.id}
-                      className={`p-3 rounded-2xl border transition-all ${
-                        isTeamSelected
-                          ? 'bg-stone-850 border-amber-500/50 shadow-md ring-1 ring-amber-500/20'
-                          : 'bg-stone-850/60 border-stone-800 hover:border-stone-700'
-                      }`}
-                    >
-                      {/* Team Header Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleSelectTeam(team.id)}
-                        className={`w-full flex items-center justify-between p-2 rounded-xl text-left font-bold transition-all mb-2.5 ${
-                          isTeamSelected
-                            ? 'text-stone-950 shadow'
-                            : 'bg-stone-900/80 text-stone-300 hover:text-white'
-                        }`}
-                        style={{
-                          backgroundColor: isTeamSelected ? team.color : undefined,
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{
-                              backgroundColor: isTeamSelected ? '#1c1917' : team.color,
-                            }}
-                          />
-                          <span className="text-sm font-extrabold">{team.name}</span>
-                        </div>
-                        {isTeamSelected && (
-                          <span className="text-[11px] font-black uppercase tracking-wider bg-stone-950/20 px-2 py-0.5 rounded-full">
-                            Ganó la mano
-                          </span>
-                        )}
-                      </button>
-
-                      {/* Players / Salió selector for this team */}
-                      <div>
-                        <span className="text-[11px] font-semibold text-stone-400 block mb-1.5 flex items-center gap-1">
-                          <User className="w-3 h-3 text-stone-500" />
-                          <span>¿Quién salió / dominó de {team.name}?</span>
+            {/* Winner Selection Cards */}
+            <div className={`grid gap-2.5 sm:gap-3 ${isTwoTeams ? 'grid-cols-2' : players.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+              {players.map((player) => {
+                const isSelected = selectedWinnerId === player.id;
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    onClick={() => handleSelectWinner(player.id)}
+                    className={`p-3 rounded-2xl border transition-all text-left flex flex-col justify-between min-h-[64px] cursor-pointer ${
+                      isSelected
+                        ? 'border-amber-400 shadow-md ring-2 ring-amber-400/40 font-bold'
+                        : 'bg-stone-850/70 border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-850'
+                    }`}
+                    style={{
+                      backgroundColor: isSelected ? player.color : undefined,
+                      color: isSelected ? '#0c0a09' : undefined,
+                    }}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+                          style={{
+                            backgroundColor: isSelected ? '#1c1917' : player.color,
+                          }}
+                        />
+                        <span className="text-sm sm:text-base font-black truncate">
+                          {player.name}
                         </span>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {members.map((memberName, mIdx) => {
-                            const isMemberSelected =
-                              isTeamSelected && selectedPlayerName === memberName;
-                            return (
-                              <button
-                                key={mIdx}
-                                type="button"
-                                onClick={() => handleSelectPlayerOut(team.id, memberName)}
-                                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center truncate ${
-                                  isMemberSelected
-                                    ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-sm font-extrabold ring-1 ring-white/30'
-                                    : 'bg-stone-900 border-stone-800 text-stone-300 hover:border-stone-700 hover:text-stone-100'
-                                }`}
-                              >
-                                {memberName}
-                              </button>
-                            );
-                          })}
-                        </div>
                       </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 flex-shrink-0 stroke-[3]" />
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Individual mode */
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {players.map((p) => {
-                  const isSelected = selectedWinnerId === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedWinnerId(p.id);
-                        setSelectedPlayerName(p.name);
-                        playTileClickSound(soundEnabled);
-                      }}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-bold transition-all ${
-                        isSelected
-                          ? 'border-transparent text-stone-950 shadow-md ring-2 ring-white/20'
-                          : 'border-stone-800 bg-stone-850/80 text-stone-300 hover:border-stone-700'
-                      }`}
-                      style={{
-                        backgroundColor: isSelected ? p.color : undefined,
-                      }}
-                    >
-                      <span
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: isSelected ? '#1c1917' : p.color }}
-                      />
-                      <span className="truncate">{p.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    {isSelected && (
+                      <span className="text-[10px] font-black uppercase tracking-wider mt-1 bg-stone-950/20 px-2 py-0.5 rounded-md self-start">
+                        Ganó la mano
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-            {/* Selected winner and player summary badge */}
+            {/* Selected winner summary badge */}
             <div className="mt-2.5 px-3 py-1.5 bg-stone-950/70 border border-stone-800/80 rounded-xl flex items-center justify-between text-xs">
               <span className="text-stone-400">Mano a favor de:</span>
               <div className="flex items-center gap-1.5 font-bold">
                 <span style={{ color: selectedPlayerObj?.color || '#f59e0b' }}>
-                  {selectedPlayerObj?.name || 'Equipo'}
+                  {selectedPlayerObj?.name || 'Jugador'}
                 </span>
-                {selectedPlayerName && (
+                {selectedPlayerName && selectedPlayerName !== selectedPlayerObj?.name && (
                   <>
                     <span className="text-stone-600">•</span>
                     <span className="text-amber-400">Salió: {selectedPlayerName}</span>

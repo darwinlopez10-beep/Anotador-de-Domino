@@ -22,16 +22,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   );
 
   const [gameMode, setGameMode] = useState<GameMode>(currentSettings.gameMode);
-  const [team1Name, setTeam1Name] = useState<string>(currentSettings.team1Name);
-  const [team2Name, setTeam2Name] = useState<string>(currentSettings.team2Name);
-  const [team1Members, setTeam1Members] = useState<[string, string]>([
-    currentSettings.team1Members?.[0] || 'Jugador 1',
-    currentSettings.team1Members?.[1] || 'Jugador 2',
-  ]);
-  const [team2Members, setTeam2Members] = useState<[string, string]>([
-    currentSettings.team2Members?.[0] || 'Jugador 3',
-    currentSettings.team2Members?.[1] || 'Jugador 4',
-  ]);
+  const [player1Name, setPlayer1Name] = useState<string>(() => {
+    let n = currentSettings.team1Members?.[0] || currentSettings.team1Name || 'Jugador 1';
+    if (n.includes('&')) n = n.split('&')[0].trim();
+    return n || 'Jugador 1';
+  });
+  const [player2Name, setPlayer2Name] = useState<string>(() => {
+    let n = currentSettings.team2Members?.[0] || currentSettings.team2Name || 'Jugador 2';
+    if (n.includes('&')) n = n.split('&')[0].trim();
+    if (n === 'Jugador 3' || n === 'Jugador 4') n = 'Jugador 2';
+    return n || 'Jugador 2';
+  });
   const [individualNames, setIndividualNames] = useState<string[]>(
     currentSettings.individualPlayerNames
   );
@@ -78,19 +79,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return t || `Jugador ${i + 1}`;
     });
 
+    const p1 = player1Name.trim() || 'Jugador 1';
+    const p2 = player2Name.trim() || 'Jugador 2';
+
     const newSettings: GameSettings = {
       targetScore: Math.max(10, activeScore || 100),
       gameMode,
-      team1Name: team1Name.trim() || 'Nosotros',
-      team2Name: team2Name.trim() || 'Ellos',
-      team1Members: [
-        team1Members[0].trim() || 'Jugador 1',
-        team1Members[1].trim() || 'Jugador 2',
-      ],
-      team2Members: [
-        team2Members[0].trim() || 'Jugador 3',
-        team2Members[1].trim() || 'Jugador 4',
-      ],
+      team1Name: p1,
+      team2Name: p2,
+      team1Members: [p1],
+      team2Members: [p2],
       individualPlayerNames: trimmedIndividual,
       trancaRule,
       capicuaBonus,
@@ -195,9 +193,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-stone-850 border-stone-800 text-stone-400'
                 }`}
               >
-                <div className="font-bold text-stone-100">Por Parejas (2 Equipos)</div>
+                <div className="font-bold text-stone-100">2 Jugadores / Lados</div>
                 <div className="text-[11px] text-stone-400 mt-0.5">
-                  El clásico &quot;Nosotros vs Ellos&quot;
+                  Marcador clásico frente a frente
                 </div>
               </button>
               <button
@@ -209,9 +207,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-stone-850 border-stone-800 text-stone-400'
                 }`}
               >
-                <div className="font-bold text-stone-100">Individual (Todos contra todos)</div>
+                <div className="font-bold text-stone-100">Individual (3 ó 4)</div>
                 <div className="text-[11px] text-stone-400 mt-0.5">
-                  De 2 a 4 jugadores
+                  De 3 a 4 jugadores
                 </div>
               </button>
             </div>
@@ -220,81 +218,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {gameMode === 'teams' ? (
               <div className="space-y-3 p-3 bg-stone-850 rounded-xl border border-stone-800">
                 <div className="grid grid-cols-2 gap-3">
+                  {/* Lado 1: Jugador 1 */}
                   <div className="space-y-2">
-                    <div>
-                      <label className="text-[11px] text-stone-400 font-bold block mb-1">
-                        Nombre Equipo 1
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-stone-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <label className="text-xs text-stone-200 font-bold block">
+                        Jugador 1
                       </label>
-                      <input
-                        type="text"
-                        value={team1Name}
-                        maxLength={20}
-                        onChange={(e) => setTeam1Name(e.target.value)}
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
-                        placeholder="Ej. Nosotros"
-                      />
                     </div>
                     <div>
-                      <label className="text-[10px] text-stone-500 font-medium block mb-1">
-                        Jugadores de {team1Name || 'Equipo 1'}
-                      </label>
-                      <div className="space-y-1">
-                        <input
-                          type="text"
-                          value={team1Members[0]}
-                          maxLength={18}
-                          onChange={(e) => setTeam1Members([e.target.value, team1Members[1]])}
-                          className="w-full bg-stone-950/80 border border-stone-800 rounded-lg px-2 py-1 text-[11px] text-stone-200 focus:outline-none focus:border-amber-500"
-                          placeholder="Jugador 1"
-                        />
-                        <input
-                          type="text"
-                          value={team1Members[1]}
-                          maxLength={18}
-                          onChange={(e) => setTeam1Members([team1Members[0], e.target.value])}
-                          className="w-full bg-stone-950/80 border border-stone-800 rounded-lg px-2 py-1 text-[11px] text-stone-200 focus:outline-none focus:border-amber-500"
-                          placeholder="Jugador 2"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        value={player1Name}
+                        maxLength={20}
+                        onChange={(e) => setPlayer1Name(e.target.value)}
+                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
+                        placeholder="Jugador 1"
+                      />
                     </div>
                   </div>
 
+                  {/* Lado 2: Jugador 2 */}
                   <div className="space-y-2">
-                    <div>
-                      <label className="text-[11px] text-stone-400 font-bold block mb-1">
-                        Nombre Equipo 2
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-stone-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                      <label className="text-xs text-stone-200 font-bold block">
+                        Jugador 2
                       </label>
-                      <input
-                        type="text"
-                        value={team2Name}
-                        maxLength={20}
-                        onChange={(e) => setTeam2Name(e.target.value)}
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
-                        placeholder="Ej. Ellos"
-                      />
                     </div>
                     <div>
-                      <label className="text-[10px] text-stone-500 font-medium block mb-1">
-                        Jugadores de {team2Name || 'Equipo 2'}
-                      </label>
-                      <div className="space-y-1">
-                        <input
-                          type="text"
-                          value={team2Members[0]}
-                          maxLength={18}
-                          onChange={(e) => setTeam2Members([e.target.value, team2Members[1]])}
-                          className="w-full bg-stone-950/80 border border-stone-800 rounded-lg px-2 py-1 text-[11px] text-stone-200 focus:outline-none focus:border-amber-500"
-                          placeholder="Jugador 3"
-                        />
-                        <input
-                          type="text"
-                          value={team2Members[1]}
-                          maxLength={18}
-                          onChange={(e) => setTeam2Members([team2Members[0], e.target.value])}
-                          className="w-full bg-stone-950/80 border border-stone-800 rounded-lg px-2 py-1 text-[11px] text-stone-200 focus:outline-none focus:border-amber-500"
-                          placeholder="Jugador 4"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        value={player2Name}
+                        maxLength={20}
+                        onChange={(e) => setPlayer2Name(e.target.value)}
+                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
+                        placeholder="Jugador 2"
+                      />
                     </div>
                   </div>
                 </div>
