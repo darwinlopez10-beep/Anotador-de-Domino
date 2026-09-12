@@ -15,6 +15,7 @@ interface VictoryModalProps {
   soundEnabled: boolean;
   onRematch: () => void;
   onNewGameSetup: () => void;
+  onResetGame?: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -28,6 +29,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   soundEnabled,
   onRematch,
   onNewGameSetup,
+  onResetGame,
 }) => {
   useEffect(() => {
     if (!isOpen || !winner) return;
@@ -178,17 +180,28 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             <span>Revancha (Mismos Equipos)</span>
           </button>
           <div className="flex items-center gap-2">
+            {onResetGame && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onResetGame();
+                }}
+                className="flex-1 py-2.5 px-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 font-semibold rounded-xl text-xs border border-amber-500/40 transition-all cursor-pointer"
+              >
+                Reiniciar Puntos y Nombres
+              </button>
+            )}
             <button
               onClick={onNewGameSetup}
-              className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 font-semibold rounded-xl text-xs border border-stone-700 transition-all"
+              className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 font-semibold rounded-xl text-xs border border-stone-700 transition-all cursor-pointer"
             >
-              Configurar Nueva Partida
+              Ajustes
             </button>
             <button
               onClick={onClose}
-              className="py-2.5 px-4 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-stone-200 font-semibold rounded-xl text-xs border border-stone-800 transition-all"
+              className="py-2.5 px-4 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-stone-200 font-semibold rounded-xl text-xs border border-stone-800 transition-all cursor-pointer"
             >
-              Ver Tabla
+              Cerrar
             </button>
           </div>
         </div>

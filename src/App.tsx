@@ -40,7 +40,7 @@ import {
   playTileClickSound,
   triggerVibration,
 } from './utils/sound';
-import { Plus, Calculator, Timer, Trophy, Music, Search } from 'lucide-react';
+import { Plus, Calculator, Timer, Trophy, Music } from 'lucide-react';
 
 const TEAM_COLORS = ['#10b981', '#f59e0b', '#38bdf8', '#ec4899'];
 
@@ -373,11 +373,11 @@ export default function App() {
     }
   };
 
-  // Reset / New Game
+  // Reset / New Game: reinicia los puntos y los nombres registrados de la partida
   const handleNewGame = () => {
     if (rounds.length > 0) {
       const confirmed = window.confirm(
-        '¿Deseas reiniciar la partida actual? Los puntos de esta partida volverán a 0.'
+        '¿Deseas reiniciar la partida? Se reiniciarán los puntos a 0 y los nombres registrados volverán a los valores iniciales.'
       );
       if (!confirmed) return;
     }
@@ -388,13 +388,22 @@ export default function App() {
     setMatchOver(false);
     setWinnerId(null);
     setStartTime(Date.now());
-    setPlayers((prev) =>
-      prev.map((p) => ({
-        ...p,
-        score: 0,
-        handsWon: 0,
-      }))
-    );
+
+    // Restablecer nombres registrados a sus valores iniciales por defecto
+    const resetSettings: GameSettings = {
+      ...settings,
+      team1Name: DEFAULT_SETTINGS.team1Name,
+      team2Name: DEFAULT_SETTINGS.team2Name,
+      team1Members: ['Jugador 1', 'Jugador 2'],
+      team2Members: ['Jugador 3', 'Jugador 4'],
+      individualPlayerNames: [...DEFAULT_SETTINGS.individualPlayerNames],
+    };
+    setSettings(resetSettings);
+    saveSettings(resetSettings);
+
+    // Recrear jugadores con nombres iniciales y 0 puntos
+    const freshPlayers = createInitialPlayers(resetSettings);
+    setPlayers(freshPlayers);
   };
 
   // Rematch after victory
@@ -700,21 +709,7 @@ export default function App() {
         />
 
         {/* Quick Utilities Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-          {/* Botón Buscar Canciones de YouTube */}
-          <button
-            id="btn-quick-search-music"
-            onClick={() => {
-              setMusicModalTab('search');
-              setIsMusicModalOpen(true);
-            }}
-            title="Buscar canciones de YouTube"
-            className="py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-red-600/20 hover:bg-red-600/30 text-red-200 hover:text-white rounded-xl sm:rounded-2xl border border-red-500/40 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer"
-          >
-            <Search className="w-4 h-4 text-red-400 flex-shrink-0" />
-            <span className="font-bold">Buscar Canciones (YouTube)</span>
-          </button>
-
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {/* Botón Calculadora Tranca */}
           <button
             id="btn-quick-tranca"
@@ -783,17 +778,6 @@ export default function App() {
             <Plus className="w-5 h-5 stroke-[3]" />
           </div>
           <span className="text-[10px] font-bold">Anotar</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setMusicModalTab('search');
-            setIsMusicModalOpen(true);
-          }}
-          className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300"
-        >
-          <Search className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Buscar</span>
         </button>
 
         <button
@@ -911,6 +895,7 @@ export default function App() {
         soundEnabled={settings.soundEnabled}
         onRematch={handleRematch}
         onNewGameSetup={handleNewGameSetup}
+        onResetGame={handleNewGame}
       />
     </div>
   );

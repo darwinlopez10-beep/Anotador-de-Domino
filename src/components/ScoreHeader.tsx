@@ -143,8 +143,8 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
           <button
             id="btn-new-game"
             onClick={onNewGame}
-            title="Nueva partida"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold text-xs sm:text-sm shadow-md shadow-amber-900/30 transition-all active:scale-95 ml-1"
+            title="Reiniciar partida (puntos y nombres)"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold text-xs sm:text-sm shadow-md shadow-amber-900/30 transition-all active:scale-95 ml-1 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Reiniciar</span>
