@@ -60,12 +60,19 @@ export function openInYouTube(videoId: string, preferNativeApp: boolean = true):
 
   const webUrl = getYouTubeWatchUrl(videoId);
 
-  if (isMobileDevice() && preferNativeApp) {
-    // For mobile, opening the webUrl triggers the native YouTube app via Universal Links / App Links
-    // on both iOS and Android. Opening in _blank avoids navigating away from the domino game.
-    window.open(webUrl, '_blank', 'noopener,noreferrer');
-  } else {
-    window.open(webUrl, '_blank', 'noopener,noreferrer');
+  try {
+    const win = window.open(webUrl, '_blank', 'noopener,noreferrer');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      const a = document.createElement('a');
+      a.href = webUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch {
+    window.location.href = webUrl;
   }
 }
 
@@ -76,5 +83,19 @@ export function openYouTubeSearch(query: string): void {
   const q = query.trim();
   if (!q) return;
   const searchUrl = getYouTubeSearchUrl(q);
-  window.open(searchUrl, '_blank', 'noopener,noreferrer');
+
+  try {
+    const win = window.open(searchUrl, '_blank', 'noopener,noreferrer');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      const a = document.createElement('a');
+      a.href = searchUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch {
+    window.location.href = searchUrl;
+  }
 }

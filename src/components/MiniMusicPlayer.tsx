@@ -44,7 +44,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   onOpenFullPlayer,
   onClosePlayer,
 }) => {
-  const [showVideo, setShowVideo] = useState(false);
+  const [showVideo, setShowVideo] = useState(true);
   const [showVolumeControls, setShowVolumeControls] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
@@ -179,7 +179,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
         {isYouTube && ytVideoId && (
           <div
             className={`transition-all duration-300 overflow-hidden rounded-xl bg-black border border-stone-800 ${
-              showVideo ? 'w-full aspect-video opacity-100 mb-1' : 'h-0 w-0 opacity-0 pointer-events-none'
+              showVideo ? 'w-full aspect-video opacity-100 mb-1' : 'w-full h-1 opacity-0 pointer-events-none'
             }`}
           >
             <iframe
