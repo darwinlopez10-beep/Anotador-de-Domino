@@ -310,23 +310,79 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   const songsListSectionRef = useRef<HTMLDivElement>(null);
   const modalScrollContainerRef = useRef<HTMLDivElement>(null);
   const searchBarContainerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Active YouTube video ID
   const activeVideoId = currentTrack?.videoId || (currentTrack?.url ? extractYouTubeId(currentTrack.url) : null);
 
+  // Sincronizar estado play/pause con el iframe integrado de YouTube
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    try {
+      if (isPlaying) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
+          '*'
+        );
+      } else {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
+          '*'
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }, [isPlaying]);
+
+  // Sincronizar volumen con el iframe integrado
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    try {
+      const vol100 = Math.round(volume * 100);
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: 'setVolume', args: [vol100] }),
+        '*'
+      );
+      if (vol100 === 0) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'mute', args: '' }),
+          '*'
+        );
+      } else {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'unMute', args: '' }),
+          '*'
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }, [volume]);
+
   const handleSelectAndScrollToPlayer = (track: MusicTrack) => {
+    // Vinculación síncrona directa con el evento del usuario (Android Autoplay Policy)
     onSelectTrack(track);
     setIsVideoExpanded(true);
-    setTimeout(() => {
-      if (playerContainerRef.current) {
-        playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
+
+    // Desplazamiento suave al reproductor integrado
+    if (playerContainerRef.current) {
+      playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const handleSearchYouTube = async (termToSearch?: string) => {
     const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
     const query = (rawVal || '').trim();
+
+    // Ocultar teclado virtual en Android inmediatamente con blur()
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     if (!query) {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
@@ -334,25 +390,20 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       return;
     }
 
-    // Sincronizar input y ocultar teclado táctil móvil
+    // Sincronizar estado
     setSearchQuery(query);
     if (searchInputRef.current) {
       searchInputRef.current.value = query;
-      searchInputRef.current.blur();
     }
 
     setIsSearching(true);
     setSearchError(null);
     setHasSearched(true);
-    // En celular, minimizamos el video superior para que las canciones encontradas queden visibles de inmediato
-    setIsVideoExpanded(false);
 
-    // Scroll inmediato a la sección de canciones para que el celular no se quede en blanco
-    setTimeout(() => {
-      if (songsListSectionRef.current) {
-        songsListSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
+    // Scroll inmediato a la sección de canciones para que en móvil se vean los resultados de inmediato
+    if (songsListSectionRef.current) {
+      songsListSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     try {
       const controller = new AbortController();
@@ -396,25 +447,33 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       setSearchError(`Mostrando canciones recomendadas para "${query}".`);
     } finally {
       setIsSearching(false);
-      // Garantizar que en celular el usuario esté viendo las canciones encontradas
+      // Asegurar que en el móvil los resultados estén en vista
       setTimeout(() => {
         if (songsListSectionRef.current) {
           songsListSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 100);
+      }, 50);
     }
   };
 
-  // Al presionar un cuadro (Salsa Brava, Joe Arroyo, Héctor Lavoe, Frank Sinatra, etc.)
+  // Al presionar un cuadro rápido de artista (Frank Sinatra, Salsa Brava, Joe Arroyo, etc.)
   const handleQuickTagClick = (tag: string) => {
-    setSearchQuery(tag);
+    // Ocultar teclado inmediatamente
     if (searchInputRef.current) {
       searchInputRef.current.value = tag;
       searchInputRef.current.blur();
     }
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    setSearchQuery(tag);
+
+    // Gesto de usuario síncrono para Android Autoplay
     const quickPick = POPULAR_QUICK_PICKS[tag];
     if (quickPick && (!currentTrack || currentTrack.id !== quickPick.id)) {
       onSelectTrack(quickPick);
+      setIsVideoExpanded(true);
     }
     handleSearchYouTube(tag);
   };
@@ -473,10 +532,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           {/* 1. BARRA DE BÚSQUEDA ARRIBA (Misma estructura exacta en celular y computadora) */}
           <div ref={searchBarContainerRef} className="space-y-2.5">
             <form
+              action="#"
+              method="get"
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const term = searchInputRef.current?.value || searchQuery;
+                const term = searchInputRef.current?.value ?? searchQuery;
                 handleSearchYouTube(term);
               }}
               className="flex flex-row items-center gap-2 w-full"
@@ -490,15 +551,26 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <input
                   ref={searchInputRef}
                   type="search"
+                  name="search"
+                  id="youtube-search-input"
                   enterKeyHint="search"
                   inputMode="search"
                   autoComplete="off"
                   autoCorrect="off"
+                  autoCapitalize="none"
                   spellCheck={false}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const val = (e.currentTarget.value || searchQuery).trim();
+                      handleSearchYouTube(val);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.which === 13 || e.keyCode === 13) {
                       e.preventDefault();
                       e.stopPropagation();
                       const val = (e.currentTarget.value || searchQuery).trim();
@@ -506,7 +578,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     }
                   }}
                   placeholder="Canción o artista (ej: Frank Sinatra)..."
-                  className="w-full bg-transparent px-2.5 sm:px-3 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none"
+                  className="w-full bg-transparent px-2.5 sm:px-3 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none min-h-[44px]"
                 />
                 {searchQuery && (
                   <button
@@ -518,30 +590,32 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         searchInputRef.current.value = '';
                       }
                     }}
-                    className="p-1.5 sm:p-2 text-stone-500 hover:text-stone-300 transition-colors flex-shrink-0 mr-1 cursor-pointer"
+                    className="p-2 text-stone-500 hover:text-stone-300 transition-colors flex-shrink-0 mr-1 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                     title="Borrar texto"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
-              {/* Botón con la palabra Buscar al lado */}
+              {/* Botón con la palabra Buscar al lado (type submit para tecla Ir/Buscar en teclado Android) */}
               <button
-                type="button"
+                type="submit"
+                id="btn-search-music"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const val = searchInputRef.current?.value || searchQuery;
+                  const val = searchInputRef.current?.value ?? searchQuery;
                   handleSearchYouTube(val);
                 }}
                 onTouchEnd={(e) => {
                   e.preventDefault();
-                  const val = searchInputRef.current?.value || searchQuery;
+                  e.stopPropagation();
+                  const val = searchInputRef.current?.value ?? searchQuery;
                   handleSearchYouTube(val);
                 }}
                 disabled={isSearching}
-                className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation active:scale-95 select-none"
+                className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[44px] min-w-[84px] touch-manipulation active:scale-95 select-none"
               >
                 {isSearching ? (
                   <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
@@ -570,7 +644,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         e.preventDefault();
                         handleQuickTagClick(tag);
                       }}
-                      className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[36px] select-none ${
+                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[40px] select-none ${
                         isCurrentTag
                           ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-950/40'
                           : 'bg-stone-850 hover:bg-stone-800 active:bg-stone-750 text-stone-200 hover:text-amber-300 border-stone-750'
@@ -585,7 +659,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
           </div>
 
-          {/* 3. REPRODUCTOR COMPACTO SI HAY CANCIÓN SELECCIONADA */}
+          {/* 3. REPRODUCTOR COMPACTO INTEGRADO (Cero ventanas emergentes, Autoplay Policy compliance) */}
           {currentTrack && activeVideoId && (
             <div
               ref={playerContainerRef}
@@ -593,7 +667,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 truncate flex-1">
-                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-stone-900 border border-stone-800 flex-shrink-0 flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-stone-900 border border-stone-800 flex-shrink-0 flex items-center justify-center">
                     {currentTrack.artworkUrl ? (
                       <img
                         src={currentTrack.artworkUrl}
@@ -619,11 +693,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Play / Pause */}
+                  {/* Play / Pause con área táctil cómoda */}
                   <button
                     type="button"
                     onClick={onTogglePlay}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-bold text-xs shadow transition-transform active:scale-95 flex items-center gap-1 cursor-pointer"
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      onTogglePlay();
+                    }}
+                    className="min-h-[44px] px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-bold text-xs shadow transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer touch-manipulation"
                   >
                     {isPlaying ? (
                       <>
@@ -642,7 +720,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsVideoExpanded((prev) => !prev)}
-                    className="p-1.5 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-850 transition-colors text-xs flex items-center gap-1 cursor-pointer"
+                    className="min-h-[44px] p-2 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-850 transition-colors text-xs flex items-center gap-1 cursor-pointer"
                     title={isVideoExpanded ? 'Ocultar video' : 'Ver video'}
                   >
                     <Tv className="w-4 h-4 text-stone-400" />
@@ -651,14 +729,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
               </div>
 
-              {/* Video embebido si se expande */}
+              {/* Video embebido en el mismo modal sin popup ni window.open */}
               {isVideoExpanded && (
                 <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-stone-800 mt-1 shadow-md">
                   <iframe
+                    ref={iframeRef}
                     key={activeVideoId}
                     src={embedUrl}
                     title={currentTrack.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     className="w-full h-full border-0"
                   />
@@ -687,7 +766,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSearchYouTube()}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px]"
                   >
                     Reintentar búsqueda
                   </button>
@@ -716,7 +795,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     setSearchError(null);
                     if (searchInputRef.current) searchInputRef.current.value = '';
                   }}
-                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer"
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer py-1"
                 >
                   Ver recomendadas
                 </button>
@@ -737,14 +816,14 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     setSearchResults([]);
                     if (searchInputRef.current) searchInputRef.current.value = '';
                   }}
-                  className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400 cursor-pointer"
+                  className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400 cursor-pointer min-h-[44px]"
                 >
                   Ver lista recomendada de dominó
                 </button>
               </div>
             )}
 
-            {/* Songs List */}
+            {/* Songs List - Tarjetas completamente táctiles y adaptables */}
             <div className="space-y-2">
               {(hasSearched ? searchResults : CURATED_DOMINO_YOUTUBE_TRACKS).map((track) => {
                 const isThisPlaying = isPlaying && currentTrack?.id === track.id;
@@ -753,7 +832,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   <div
                     key={track.id}
                     onClick={() => handleSelectAndScrollToPlayer(track)}
-                    className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation ${
+                    onTouchEnd={(e) => {
+                      // Permitir scroll pero si es un toque rápido activar la canción
+                      handleSelectAndScrollToPlayer(track);
+                    }}
+                    className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation min-h-[62px] ${
                       isThisPlaying
                         ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
                         : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
@@ -761,7 +844,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   >
                     {/* Left: Thumbnail & Details */}
                     <div className="flex items-center gap-3 truncate flex-1 group">
-                      <div className="relative w-14 sm:w-16 h-10 sm:h-11 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
+                      <div className="relative w-14 sm:w-16 h-11 sm:h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
                         {track.artworkUrl ? (
                           <img
                             src={track.artworkUrl}
@@ -779,17 +862,17 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         )}
                       </div>
 
-                      <div className="truncate flex-1">
+                      <div className="truncate flex-1 min-w-0">
                         <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
                           {track.title}
                         </h5>
-                        <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                        <p className="text-[11px] sm:text-xs text-stone-400 truncate mt-0.5">
                           {track.artist}
                         </p>
                       </div>
                     </div>
 
-                    {/* Right: Direct play button */}
+                    {/* Right: Direct play button con área táctil accesible >= 44px */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         type="button"
@@ -797,8 +880,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                           e.stopPropagation();
                           handleSelectAndScrollToPlayer(track);
                         }}
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          handleSelectAndScrollToPlayer(track);
+                        }}
                         title={isThisPlaying ? 'Pausar canción' : 'Reproducir en la aplicación'}
-                        className={`px-3 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
+                        className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
                           isThisPlaying
                             ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
                             : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'

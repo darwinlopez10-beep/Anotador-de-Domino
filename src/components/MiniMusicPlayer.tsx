@@ -181,7 +181,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
               ref={iframeRef}
               src={embedUrl}
               title={track.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               onLoad={handleIframeLoad}
               className="w-full h-full"
