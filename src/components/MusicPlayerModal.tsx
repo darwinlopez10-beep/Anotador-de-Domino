@@ -295,7 +295,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchResultsAnchorRef = useRef<HTMLDivElement>(null);
+  const songsListSectionRef = useRef<HTMLDivElement>(null);
   const modalScrollContainerRef = useRef<HTMLDivElement>(null);
   const searchBarContainerRef = useRef<HTMLDivElement>(null);
 
@@ -322,7 +322,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       return;
     }
 
-    // Sincronizar input y ocultar teclado táctil móvil para ver la lista de canciones abajo
+    // Sincronizar input y ocultar teclado táctil móvil
     setSearchQuery(query);
     if (searchInputRef.current) {
       searchInputRef.current.value = query;
@@ -332,12 +332,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setIsSearching(true);
     setSearchError(null);
     setHasSearched(true);
-    // En el celular, si hay un video grande arriba, lo minimizamos para que el usuario vea de inmediato las canciones encontradas
+    // En celular, minimizamos el video superior para que las canciones encontradas queden visibles de inmediato
     setIsVideoExpanded(false);
+
+    // Scroll inmediato a la sección de canciones para que el celular no se quede en blanco
+    setTimeout(() => {
+      if (songsListSectionRef.current) {
+        songsListSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
       const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
@@ -348,7 +355,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Error del servidor (${response.status})`);
+        throw new Error(`Error de servidor (${response.status})`);
       }
       const data = await response.json();
       if (data && Array.isArray(data.results) && data.results.length > 0) {
@@ -363,11 +370,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           setSearchResults(localMatches);
         } else {
           setSearchResults([]);
-          setSearchError(`No se encontraron canciones en YouTube para "${query}".`);
+          setSearchError(`No se encontraron resultados en internet para "${query}".`);
         }
       }
     } catch (err: unknown) {
-      console.error('Búsqueda en YouTube falló, usando canciones recomendadas:', err);
+      console.error('Búsqueda falló, usando respaldo:', err);
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -377,24 +384,21 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       setSearchError(`Mostrando canciones recomendadas para "${query}".`);
     } finally {
       setIsSearching(false);
-      // Mover la vista suavemente a la lista de canciones dentro del contenedor
+      // Garantizar que en celular el usuario esté viendo las canciones encontradas
       setTimeout(() => {
-        if (modalScrollContainerRef.current && searchBarContainerRef.current) {
-          modalScrollContainerRef.current.scrollTo({
-            top: searchBarContainerRef.current.offsetTop - 15,
-            behavior: 'smooth',
-          });
+        if (songsListSectionRef.current) {
+          songsListSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
     }
   };
 
   // Al presionar un cuadro (Salsa Brava, Joe Arroyo, Héctor Lavoe, etc.)
-  // Pone todas las canciones de ese artista o género abajo en la lista
   const handleQuickTagClick = (tag: string) => {
     setSearchQuery(tag);
     if (searchInputRef.current) {
       searchInputRef.current.value = tag;
+      searchInputRef.current.blur();
     }
     handleSearchYouTube(tag);
   };
@@ -649,9 +653,20 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
               {/* Botón con la palabra Buscar al lado */}
               <button
-                type="submit"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const val = searchInputRef.current?.value || searchQuery;
+                  handleSearchYouTube(val);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  const val = searchInputRef.current?.value || searchQuery;
+                  handleSearchYouTube(val);
+                }}
                 disabled={isSearching}
-                className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation active:scale-95"
+                className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation active:scale-95 select-none"
               >
                 {isSearching ? (
                   <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
@@ -676,7 +691,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       key={tag}
                       type="button"
                       onClick={() => handleQuickTagClick(tag)}
-                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[38px] ${
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        handleQuickTagClick(tag);
+                      }}
+                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[38px] select-none ${
                         isCurrentTag
                           ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-950/40'
                           : 'bg-stone-850 hover:bg-stone-800 active:bg-stone-750 text-stone-200 hover:text-amber-300 border-stone-750'
@@ -691,123 +710,161 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
           </div>
 
-          {/* Error notice if search failed */}
-          <div ref={searchResultsAnchorRef} className="scroll-mt-4" />
-          {searchError && (
-            <div className="p-3 text-xs text-amber-200 bg-amber-950/40 rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-              <p className="flex-1 text-left">{searchError}</p>
-              <div className="flex items-center gap-2 justify-end">
+          {/* Song Results Section */}
+          <div ref={songsListSectionRef} className="space-y-3 scroll-mt-2">
+            {/* Status indicator while searching */}
+            {isSearching && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center gap-2.5 text-amber-300 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                <span className="text-xs font-bold">
+                  Buscando canciones en YouTube para &quot;{searchQuery || 'música'}&quot;...
+                </span>
+              </div>
+            )}
+
+            {/* Error notice if search failed */}
+            {searchError && !isSearching && (
+              <div className="p-3 text-xs text-amber-200 bg-amber-950/40 rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <p className="flex-1 text-left">{searchError}</p>
+                <div className="flex items-center gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleSearchYouTube()}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap"
+                  >
+                    Reintentar búsqueda
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Section Header */}
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+                <Youtube className="w-4 h-4 text-red-500" />
+                {hasSearched
+                  ? searchResults.length > 0
+                    ? `Canciones en YouTube para "${searchQuery}" (${searchResults.length})`
+                    : `Sin resultados para "${searchQuery}"`
+                  : `Canciones Recomendadas para Dominó (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`}
+              </h4>
+
+              {hasSearched && (
                 <button
                   type="button"
-                  onClick={() => handleSearchYouTube()}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap"
+                  onClick={() => {
+                    setHasSearched(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setSearchError(null);
+                    if (searchInputRef.current) searchInputRef.current.value = '';
+                  }}
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2"
                 >
-                  Reintentar búsqueda
+                  Ver recomendadas
+                </button>
+              )}
+            </div>
+
+            {/* Empty state if searched and no results */}
+            {hasSearched && !isSearching && searchResults.length === 0 && (
+              <div className="p-6 text-center bg-stone-850/60 rounded-xl border border-stone-750/60 space-y-2">
+                <p className="text-xs text-stone-300">
+                  No se encontraron canciones para &quot;{searchQuery}&quot;.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasSearched(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    if (searchInputRef.current) searchInputRef.current.value = '';
+                  }}
+                  className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400"
+                >
+                  Ver lista recomendada de dominó
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Loading Indicator */}
-          {isSearching && (
-            <div className="py-8 flex flex-col items-center justify-center gap-2 text-stone-400">
-              <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-              <p className="text-xs">Buscando canciones en YouTube...</p>
-            </div>
-          )}
+            {/* Songs List */}
+            <div className="space-y-2">
+              {(hasSearched ? searchResults : CURATED_DOMINO_YOUTUBE_TRACKS).map((track) => {
+                const isThisPlaying = isPlaying && currentTrack?.id === track.id;
 
-          {/* Song Results Section */}
-          {!isSearching && (
-            <div className="space-y-3">
-              {/* Section Header */}
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
-                  <Youtube className="w-4 h-4 text-red-500" />
-                  {hasSearched
-                    ? `Canciones en YouTube para "${searchQuery}" (${searchResults.length})`
-                    : 'Canciones Recomendadas para Dominó'}
-                </h4>
-              </div>
-
-              {/* Songs List */}
-              <div className="space-y-2">
-                {(hasSearched ? searchResults : CURATED_DOMINO_YOUTUBE_TRACKS).map((track) => {
-                  const trackVideoId = track.videoId || extractYouTubeId(track.url) || '';
-                  const isThisPlaying = isPlaying && currentTrack?.id === track.id;
-
-                  return (
-                    <div
-                      key={track.id}
-                      className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                        isThisPlaying
-                          ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-950/20'
-                          : 'bg-stone-850/80 hover:bg-stone-800 border-stone-750/70 hover:border-stone-700'
-                      }`}
-                    >
-                      {/* Left: Thumbnail & Details */}
-                      <div
-                        onClick={() => handleSelectAndScrollToPlayer(track)}
-                        className="flex items-center gap-3 truncate flex-1 cursor-pointer group"
-                      >
-                        <div className="relative w-14 sm:w-16 h-10 sm:h-11 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
-                          {track.artworkUrl ? (
-                            <img
-                              src={track.artworkUrl}
-                              alt={track.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <Youtube className="w-5 h-5 text-red-500" />
-                          )}
-                          {track.durationText && (
-                            <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
-                              {track.durationText}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="truncate flex-1">
-                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
-                            {track.title}
-                          </h5>
-                          <p className="text-[11px] text-stone-400 truncate mt-0.5">
-                            {track.artist}
-                          </p>
-                        </div>
+                return (
+                  <div
+                    key={track.id}
+                    onClick={() => handleSelectAndScrollToPlayer(track)}
+                    className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation ${
+                      isThisPlaying
+                        ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-950/20'
+                        : 'bg-stone-850/80 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
+                    }`}
+                  >
+                    {/* Left: Thumbnail & Details */}
+                    <div className="flex items-center gap-3 truncate flex-1 group">
+                      <div className="relative w-14 sm:w-16 h-10 sm:h-11 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
+                        {track.artworkUrl ? (
+                          <img
+                            src={track.artworkUrl}
+                            alt={track.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <Youtube className="w-5 h-5 text-red-500" />
+                        )}
+                        {track.durationText && (
+                          <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
+                            {track.durationText}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Right: Direct play button */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectAndScrollToPlayer(track)}
-                          title={isThisPlaying ? 'Pausar canción' : 'Reproducir en la aplicación'}
-                          className={`px-3 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
-                            isThisPlaying
-                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
-                              : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
-                          }`}
-                        >
-                          {isThisPlaying ? (
-                            <>
-                              <Pause className="w-4 h-4 fill-current" />
-                              <span className="hidden xs:inline">Pausar</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 fill-current ml-0.5" />
-                              <span className="hidden xs:inline">Reproducir</span>
-                            </>
-                          )}
-                        </button>
+                      <div className="truncate flex-1">
+                        <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
+                          {track.title}
+                        </h5>
+                        <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                          {track.artist}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Right: Direct play button */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectAndScrollToPlayer(track);
+                        }}
+                        title={isThisPlaying ? 'Pausar canción' : 'Reproducir en la aplicación'}
+                        className={`px-3 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
+                          isThisPlaying
+                            ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
+                            : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
+                        }`}
+                      >
+                        {isThisPlaying ? (
+                          <>
+                            <Pause className="w-4 h-4 fill-current" />
+                            <span className="hidden xs:inline">Pausar</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                            <span className="hidden xs:inline">Reproducir</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
