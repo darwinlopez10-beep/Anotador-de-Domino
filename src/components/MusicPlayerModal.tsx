@@ -13,6 +13,7 @@ import {
   Tv,
   Globe,
   Disc3,
+  Music,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 
@@ -295,6 +296,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchResultsAnchorRef = useRef<HTMLDivElement>(null);
+  const modalScrollContainerRef = useRef<HTMLDivElement>(null);
+  const searchBarContainerRef = useRef<HTMLDivElement>(null);
 
   // Active YouTube video ID
   const activeVideoId = currentTrack?.videoId || (currentTrack?.url ? extractYouTubeId(currentTrack.url) : null);
@@ -312,7 +315,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   const handleSearchYouTube = async (termToSearch?: string) => {
     const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
     const query = (rawVal || '').trim();
-    if (!query) return;
+    if (!query) {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+      return;
+    }
 
     // Sincronizar input y ocultar teclado táctil móvil para ver la lista de canciones abajo
     setSearchQuery(query);
@@ -324,10 +332,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setIsSearching(true);
     setSearchError(null);
     setHasSearched(true);
+    // En el celular, si hay un video grande arriba, lo minimizamos para que el usuario vea de inmediato las canciones encontradas
+    setIsVideoExpanded(false);
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
@@ -353,11 +363,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           setSearchResults(localMatches);
         } else {
           setSearchResults([]);
-          setSearchError(`No se encontraron canciones en internet para "${query}".`);
+          setSearchError(`No se encontraron canciones en YouTube para "${query}".`);
         }
       }
     } catch (err: unknown) {
-      console.error('Búsqueda en internet falló, usando respaldo local:', err);
+      console.error('Búsqueda en YouTube falló, usando canciones recomendadas:', err);
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -367,10 +377,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       setSearchError(`Mostrando canciones recomendadas para "${query}".`);
     } finally {
       setIsSearching(false);
-      // En celular igual que en computadora: mostrar y posicionar la vista en la lista de canciones abajo
+      // Mover la vista suavemente a la lista de canciones dentro del contenedor
       setTimeout(() => {
-        searchResultsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 150);
+        if (modalScrollContainerRef.current && searchBarContainerRef.current) {
+          modalScrollContainerRef.current.scrollTo({
+            top: searchBarContainerRef.current.offsetTop - 15,
+            behavior: 'smooth',
+          });
+        }
+      }, 100);
     }
   };
 
@@ -434,7 +449,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         </div>
 
         {/* Scrollable Container */}
-        <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-4">
+        <div ref={modalScrollContainerRef} className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-4">
           {/* Active Song Player (Structure matching Karaoke Pro) */}
           {currentTrack && activeVideoId ? (
             <div
@@ -576,8 +591,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
           )}
 
-          {/* Search Bar Form */}
-          <div className="space-y-3">
+          {/* Search Bar Form (Identical structure on mobile and desktop) */}
+          <div ref={searchBarContainerRef} className="space-y-3">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -585,63 +600,66 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 const term = searchInputRef.current?.value || searchQuery;
                 handleSearchYouTube(term);
               }}
-              className="flex flex-col sm:flex-row gap-2"
+              className="flex flex-row items-center gap-2 w-full"
             >
-              <div className="flex gap-2 items-center flex-1">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    ref={searchInputRef}
-                    type="search"
-                    enterKeyHint="search"
-                    inputMode="search"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.keyCode === 13) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const val = (e.currentTarget.value || searchQuery).trim();
-                        handleSearchYouTube(val);
+              {/* Campo con etiqueta "Música" integrada */}
+              <div className="relative flex-1 min-w-0 flex items-center bg-stone-950 border border-stone-750 focus-within:border-amber-500 rounded-xl overflow-hidden shadow-inner transition-colors">
+                <div className="px-2.5 sm:px-3 py-2.5 bg-stone-900 border-r border-stone-800 flex items-center gap-1.5 text-amber-400 flex-shrink-0 select-none">
+                  <Music className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-stone-200">Música</span>
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  enterKeyHint="search"
+                  inputMode="search"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const val = (e.currentTarget.value || searchQuery).trim();
+                      handleSearchYouTube(val);
+                    }
+                  }}
+                  placeholder="Canción o artista (ej: Frank Sinatra)..."
+                  className="w-full bg-transparent px-2.5 sm:px-3 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSearchQuery('');
+                      if (searchInputRef.current) {
+                        searchInputRef.current.value = '';
                       }
                     }}
-                    placeholder="Escribe una canción o artista (ej: Frank Sinatra, Hector Lavoe)..."
-                    className="w-full bg-stone-950 border border-stone-750 focus:border-amber-500 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setSearchQuery('');
-                        if (searchInputRef.current) {
-                          searchInputRef.current.value = '';
-                        }
-                      }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-500 hover:text-stone-300 transition-colors"
-                      title="Borrar texto"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSearching}
-                  className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
-                >
-                  {isSearching ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
-                  ) : (
-                    <Globe className="w-4 h-4 text-stone-950" />
-                  )}
-                  <span>Buscar en Internet</span>
-                </button>
+                    className="p-1.5 sm:p-2 text-stone-500 hover:text-stone-300 transition-colors flex-shrink-0 mr-1"
+                    title="Borrar texto"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+
+              {/* Botón con la palabra Buscar al lado */}
+              <button
+                type="submit"
+                disabled={isSearching}
+                className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation active:scale-95"
+              >
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
+                ) : (
+                  <Search className="w-4 h-4 text-stone-950 stroke-[2.5]" />
+                )}
+                <span>Buscar</span>
+              </button>
             </form>
 
             {/* Popular quick-tap search chips */}
@@ -694,7 +712,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           {isSearching && (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-stone-400">
               <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-              <p className="text-xs">Buscando canciones en internet...</p>
+              <p className="text-xs">Buscando canciones en YouTube...</p>
             </div>
           )}
 
@@ -706,7 +724,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
                   <Youtube className="w-4 h-4 text-red-500" />
                   {hasSearched
-                    ? `Resultados en internet para "${searchQuery}" (${searchResults.length})`
+                    ? `Canciones en YouTube para "${searchQuery}" (${searchResults.length})`
                     : 'Canciones Recomendadas para Dominó'}
                 </h4>
               </div>
