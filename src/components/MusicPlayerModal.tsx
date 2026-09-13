@@ -8,17 +8,12 @@ import {
   Sparkles,
   Loader2,
   Youtube,
-  ExternalLink,
   Search,
-  Smartphone,
   ChevronUp,
   Tv,
+  Globe,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
-import {
-  openInYouTube,
-  openYouTubeSearch,
-} from '../utils/youtubeMobile';
 
 interface MusicPlayerModalProps {
   isOpen: boolean;
@@ -254,19 +249,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           setSearchResults(localMatches);
         } else {
           setSearchResults([]);
-          setSearchError(`No se encontraron resultados para "${query}". Puedes abrir la búsqueda directamente en la app de YouTube.`);
+          setSearchError(`No se encontraron resultados en internet para "${query}". Intenta con otro nombre de canción o artista.`);
         }
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Error de conexión';
-      console.error('Error al buscar canciones en YouTube (móvil/web):', errMsg, err);
+      console.error('Error al buscar canciones en internet:', errMsg, err);
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
           t.artist.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS);
-      setSearchError('No se pudo conectar a la búsqueda en línea. Mostrando canciones recomendadas.');
+      setSearchError('No se pudo conectar a la búsqueda en internet. Mostrando canciones recomendadas.');
     } finally {
       setIsSearching(false);
       setTimeout(() => {
@@ -323,10 +318,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-                Buscar Canciones
+                Buscar Canciones en Internet
               </h3>
               <p className="text-[11px] text-stone-400">
-                Reproduce música en la aplicación o ábrela en tu celular
+                Busca y reproduce música directamente en la app
               </p>
             </div>
           </div>
@@ -390,19 +385,14 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
               )}
 
-              {/* Player Controls & Prominent Mobile YouTube Button */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-stone-850">
-                {/* DIRECT BUTTON TO OPEN IN YOUTUBE APP ON MOBILE */}
-                <button
-                  type="button"
-                  onClick={() => openInYouTube(activeVideoId)}
-                  className="px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-red-950/40 transition-all active:scale-95 cursor-pointer touch-manipulation"
-                  title="Abrir esta canción directamente en la app de YouTube en tu celular"
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>Abrir en YouTube (Celular)</span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-90" />
-                </button>
+              {/* Player Controls */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-850">
+                <div className="flex items-center gap-2 text-xs text-stone-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[11px] sm:text-xs text-stone-300 font-medium">
+                    {isPlaying ? 'Reproduciendo' : 'En pausa'}
+                  </span>
+                </div>
 
                 {/* In-App Audio Controls */}
                 <div className="flex items-center gap-2">
@@ -500,8 +490,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         }
                       }
                     }}
-                    placeholder="Buscar canción, artista o salsa..."
-                    className="w-full bg-stone-950 border border-stone-750 focus:border-red-500 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
+                    placeholder="Escribe una canción, artista o salsa para buscar en internet..."
+                    className="w-full bg-stone-950 border border-stone-750 focus:border-amber-500 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
                   />
                   {searchQuery && (
                     <button
@@ -536,29 +526,16 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       handleSearchYouTube(val);
                     }
                   }}
-                  className="px-3.5 sm:px-4 py-2.5 bg-red-600 hover:bg-red-500 active:bg-red-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
+                  className="px-3.5 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
                 >
                   {isSearching ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
                   ) : (
-                    <Search className="w-4 h-4" />
+                    <Globe className="w-4 h-4 text-stone-950" />
                   )}
-                  <span className="sm:hidden font-bold">Buscar</span>
-                  <span className="hidden sm:inline">Buscar</span>
+                  <span>Buscar en Internet</span>
                 </button>
               </div>
-
-              {/* Direct Button to open current search on Mobile YouTube App */}
-              <button
-                type="button"
-                onClick={() => openYouTubeSearch((searchInputRef.current?.value || searchQuery).trim() || 'salsa para jugar domino')}
-                title="Abrir la búsqueda directamente en la app de YouTube en tu celular"
-                className="px-3 py-2.5 bg-stone-850 hover:bg-stone-800 active:bg-stone-750 border border-stone-700/80 text-stone-200 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all flex-shrink-0 min-h-[42px] touch-manipulation"
-              >
-                <Smartphone className="w-4 h-4 text-red-400" />
-                <span>Abrir en App YouTube</span>
-                <ExternalLink className="w-3.5 h-3.5 text-stone-400" />
-              </button>
             </form>
 
             {/* Popular quick-tap search chips */}
@@ -591,16 +568,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   onClick={() => handleSearchYouTube()}
                   className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap"
                 >
-                  Reintentar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openYouTubeSearch(searchQuery.trim() || 'salsa')}
-                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shadow"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>Abrir en YouTube</span>
-                  <ExternalLink className="w-3 h-3" />
+                  Reintentar búsqueda
                 </button>
               </div>
             </div>
@@ -609,8 +577,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           {/* Loading Indicator */}
           {isSearching && (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-stone-400">
-              <Loader2 className="w-6 h-6 animate-spin text-red-500" />
-              <p className="text-xs">Buscando canciones en YouTube...</p>
+              <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+              <p className="text-xs">Buscando canciones en internet...</p>
             </div>
           )}
 
@@ -622,7 +590,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
                   <Youtube className="w-4 h-4 text-red-500" />
                   {hasSearched
-                    ? `Resultados para "${searchQuery}" (${searchResults.length})`
+                    ? `Resultados en internet para "${searchQuery}" (${searchResults.length})`
                     : 'Canciones Recomendadas para Dominó'}
                 </h4>
               </div>
@@ -666,7 +634,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         </div>
 
                         <div className="truncate flex-1">
-                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-red-400 transition-colors truncate">
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
                             {track.title}
                           </h5>
                           <p className="text-[11px] text-stone-400 truncate mt-0.5">
@@ -675,43 +643,27 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Right: Two direct actions (Play in App & Open in Phone) */}
+                      {/* Right: Direct play button */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* 1. BUTTON TO OPEN ON MOBILE PHONE YOUTUBE APP */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openInYouTube(trackVideoId);
-                          }}
-                          title="Abrir en YouTube en tu celular"
-                          className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-stone-800 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 hover:text-red-300 border border-red-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 touch-manipulation cursor-pointer"
-                        >
-                          <Smartphone className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Celular</span>
-                          <ExternalLink className="w-3 h-3 opacity-80" />
-                        </button>
-
-                        {/* 2. BUTTON TO PLAY IN APPLICATION */}
                         <button
                           type="button"
                           onClick={() => handleSelectAndScrollToPlayer(track)}
-                          title={isThisPlaying ? 'Pausar' : 'Reproducir en la aplicación'}
-                          className={`p-2 sm:px-3 sm:py-2 rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5 touch-manipulation cursor-pointer ${
+                          title={isThisPlaying ? 'Pausar canción' : 'Reproducir en la aplicación'}
+                          className={`px-3 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
                             isThisPlaying
-                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30'
-                              : 'bg-red-600 hover:bg-red-500 text-white shadow-red-950/30'
+                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
+                              : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
                           }`}
                         >
                           {isThisPlaying ? (
                             <>
-                              <Pause className="w-3.5 h-3.5 fill-current" />
-                              <span className="text-xs hidden sm:inline">Pausar</span>
+                              <Pause className="w-4 h-4 fill-current" />
+                              <span className="hidden xs:inline">Pausar</span>
                             </>
                           ) : (
                             <>
-                              <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                              <span className="text-xs hidden sm:inline">Reproducir</span>
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                              <span className="hidden xs:inline">Reproducir</span>
                             </>
                           )}
                         </button>
