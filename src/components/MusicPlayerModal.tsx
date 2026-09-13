@@ -206,13 +206,21 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchResultsAnchorRef = useRef<HTMLDivElement>(null);
 
   // Active YouTube video ID
   const activeVideoId = currentTrack?.videoId || (currentTrack?.url ? extractYouTubeId(currentTrack.url) : null);
 
   const handleSearchYouTube = async (termToSearch?: string) => {
-    const query = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
+    const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
+    const query = (rawVal || '').trim();
     if (!query) return;
+
+    // Sincronizar input y ocultar teclado táctil móvil para ver resultados
+    setSearchQuery(query);
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
 
     setIsSearching(true);
     setSearchError(null);
@@ -224,14 +232,17 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
       const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
       });
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}`);
+        throw new Error(`Error del servidor (${response.status})`);
       }
       const data = await response.json();
-      if (data.results && data.results.length > 0) {
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
         setSearchResults(data.results);
       } else {
         const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
@@ -247,16 +258,20 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         }
       }
     } catch (err: unknown) {
-      console.warn('YouTube search notice:', err);
+      const errMsg = err instanceof Error ? err.message : 'Error de conexión';
+      console.error('Error al buscar canciones en YouTube (móvil/web):', errMsg, err);
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
           t.artist.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS);
-      setSearchError('No se pudo conectar a la búsqueda en línea. Puedes abrir YouTube directamente en tu celular.');
+      setSearchError('No se pudo conectar a la búsqueda en línea. Mostrando canciones recomendadas.');
     } finally {
       setIsSearching(false);
+      setTimeout(() => {
+        searchResultsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
     }
   };
 
@@ -449,8 +464,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           {/* Search Bar Form */}
           <div className="space-y-3">
             <form
+              action="#"
+              method="get"
               onSubmit={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 handleSearchYouTube();
               }}
               className="flex flex-col sm:flex-row gap-2"
@@ -468,9 +486,14 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     spellCheck={false}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onSearch={(e) => {
+                      e.preventDefault();
+                      handleSearchYouTube();
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' || e.keyCode === 13) {
                         e.preventDefault();
+                        e.stopPropagation();
                         const val = (e.currentTarget.value || searchQuery).trim();
                         if (val) {
                           handleSearchYouTube(val);
@@ -483,7 +506,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   {searchQuery && (
                     <button
                       type="button"
-                      onClick={() => setSearchQuery('')}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setSearchQuery('');
+                      }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-500 hover:text-stone-300 transition-colors"
                       title="Borrar búsqueda"
                     >
@@ -494,11 +520,20 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
                 <button
                   type="submit"
-                  disabled={isSearching || !searchQuery.trim()}
-                  onClick={(e) => {
-                    if (searchQuery.trim()) {
+                  disabled={isSearching}
+                  onTouchStart={(e) => {
+                    const val = (searchInputRef.current?.value || searchQuery).trim();
+                    if (val && !isSearching) {
                       e.preventDefault();
-                      handleSearchYouTube();
+                      handleSearchYouTube(val);
+                    }
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const val = (searchInputRef.current?.value || searchQuery).trim();
+                    if (val && !isSearching) {
+                      handleSearchYouTube(val);
                     }
                   }}
                   className="px-3.5 sm:px-4 py-2.5 bg-red-600 hover:bg-red-500 active:bg-red-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
@@ -516,7 +551,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               {/* Direct Button to open current search on Mobile YouTube App */}
               <button
                 type="button"
-                onClick={() => openYouTubeSearch(searchQuery.trim() || 'salsa para jugar domino')}
+                onClick={() => openYouTubeSearch((searchInputRef.current?.value || searchQuery).trim() || 'salsa para jugar domino')}
                 title="Abrir la búsqueda directamente en la app de YouTube en tu celular"
                 className="px-3 py-2.5 bg-stone-850 hover:bg-stone-800 active:bg-stone-750 border border-stone-700/80 text-stone-200 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all flex-shrink-0 min-h-[42px] touch-manipulation"
               >
@@ -546,6 +581,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           </div>
 
           {/* Error notice if search failed */}
+          <div ref={searchResultsAnchorRef} className="scroll-mt-4" />
           {searchError && (
             <div className="p-3 text-xs text-amber-200 bg-amber-950/40 rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <p className="flex-1 text-left">{searchError}</p>
