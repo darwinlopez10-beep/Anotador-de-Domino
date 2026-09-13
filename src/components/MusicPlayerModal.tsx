@@ -272,12 +272,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setIsVideoExpanded(true);
   };
 
-  // Función de búsqueda en YouTube
+  // Función de búsqueda en YouTube resistente a caídas de red y bloqueadores de Android
   const handleSearchYouTube = async (termToSearch?: string) => {
-    const rawVal = termToSearch !== undefined ? termToSearch : searchQuery;
+    const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
     const query = (rawVal || '').trim();
 
-    // Ocultar teclado virtual en Android
+    // Ocultar teclado virtual en Android y enfocar resultados
     if (searchInputRef.current) {
       searchInputRef.current.blur();
     }
@@ -286,6 +286,27 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     }
 
     if (!query) {
+      setSearchError('Escribe el nombre de un cantante, grupo o canción, o toca uno de los botones abajo.');
+      return;
+    }
+
+    // Comprobar si el usuario pegó un enlace directo de YouTube
+    const directVideoId = extractYouTubeId(query);
+    if (directVideoId) {
+      const directTrack: MusicTrack = {
+        id: `yt_${directVideoId}`,
+        videoId: directVideoId,
+        title: 'Canción de YouTube',
+        artist: 'YouTube',
+        sourceType: 'youtube',
+        url: `https://www.youtube.com/embed/${directVideoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+        artworkUrl: `https://img.youtube.com/vi/${directVideoId}/hqdefault.jpg`,
+      };
+      setSearchResults([directTrack]);
+      setSearchQuery(query);
+      setHasSearched(true);
+      setSearchError(null);
+      handleSelectSong(directTrack);
       return;
     }
 
@@ -294,47 +315,75 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setSearchError(null);
     setHasSearched(true);
 
+    // Timeout de seguridad en cliente (6 segundos) para que nunca se quede colgado en Android
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+
+    let finalTracks: MusicTrack[] = [];
+    let fetchSucceeded = false;
+
+    // Probar primero con /api/music/search (inmune a bloqueadores de publicidad en Android)
     try {
-      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`);
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}`);
-      }
-      const data = await response.json();
-      if (data && Array.isArray(data.results) && data.results.length > 0) {
-        setSearchResults(data.results);
-      } else {
-        // Filtrar coincidencias locales si las hay, o indicar que no se encontraron resultados
-        const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
-          (t) =>
-            t.title.toLowerCase().includes(query.toLowerCase()) ||
-            t.artist.toLowerCase().includes(query.toLowerCase()) ||
-            (t.genre && t.genre.toLowerCase().includes(query.toLowerCase()))
-        );
-        if (localMatches.length > 0) {
-          setSearchResults(localMatches);
-        } else {
-          setSearchResults([]);
-          setSearchError(`No se encontraron canciones en YouTube para "${query}". Intenta buscar con otro nombre.`);
+      const response = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Array.isArray(data.results) && data.results.length > 0) {
+          finalTracks = data.results;
+          fetchSucceeded = true;
         }
       }
-    } catch (err: unknown) {
-      console.warn('Error al buscar en YouTube:', err);
-      // Solo mostrar canciones locales si realmente coinciden con la búsqueda
+    } catch {
+      // Ignorar e intentar con la ruta secundaria
+    }
+
+    // Ruta secundaria de respaldo si la primera no respondió
+    if (!fetchSucceeded) {
+      try {
+        const response2 = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (response2.ok) {
+          const data2 = await response2.json();
+          if (data2 && Array.isArray(data2.results) && data2.results.length > 0) {
+            finalTracks = data2.results;
+            fetchSucceeded = true;
+          }
+        }
+      } catch {
+        // Ignorar
+      }
+    }
+
+    clearTimeout(timeoutId);
+
+    if (finalTracks.length > 0) {
+      setSearchResults(finalTracks);
+      setSearchError(null);
+      // Desplazar suavemente a los resultados
+      setTimeout(() => {
+        songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } else {
+      // Filtrar coincidencias locales si las hay
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
           t.artist.toLowerCase().includes(query.toLowerCase()) ||
           (t.genre && t.genre.toLowerCase().includes(query.toLowerCase()))
       );
+
       if (localMatches.length > 0) {
         setSearchResults(localMatches);
+        setSearchError(null);
       } else {
         setSearchResults([]);
-        setSearchError(`No se pudo conectar a la búsqueda para "${query}". Toca Reintentar.`);
+        setSearchError(`No se encontraron canciones en YouTube para "${query}".`);
       }
-    } finally {
-      setIsSearching(false);
     }
+
+    setIsSearching(false);
   };
 
   // Al presionar un botón de artista/género rápido: solo busca, NUNCA reproduce automáticamente
@@ -402,6 +451,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           {/* 1. BARRA DE BÚSQUEDA GENERAL ARRIBA (Misma estructura exacta en celular y computadora) */}
           <div ref={searchBarContainerRef} className="space-y-2.5">
             <form
+              action="javascript:void(0)"
               onSubmit={(e) => {
                 e.preventDefault();
                 const term = searchInputRef.current?.value ?? searchQuery;
@@ -417,7 +467,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
                 <input
                   ref={searchInputRef}
-                  type="text"
+                  type="search"
+                  inputMode="search"
                   name="search"
                   id="youtube-search-input"
                   enterKeyHint="search"
@@ -456,11 +507,16 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 )}
               </div>
 
-              {/* Botón con la palabra Buscar al lado (type submit para enviar formulario en Android y PC) */}
+              {/* Botón con la palabra Buscar al lado (type submit + onClick para máxima compatibilidad móvil y PC) */}
               <button
                 type="submit"
                 id="btn-search-music"
                 disabled={isSearching}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const term = searchInputRef.current?.value ?? searchQuery;
+                  handleSearchYouTube(term);
+                }}
                 className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[44px] min-w-[84px] touch-manipulation active:scale-95 select-none"
               >
                 {isSearching ? (
@@ -613,14 +669,25 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             {searchError && !isSearching && (
               <div className="p-3 text-xs text-amber-200 bg-amber-950/40 rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                 <p className="flex-1 text-left">{searchError}</p>
-                <div className="flex items-center gap-2 justify-end">
+                <div className="flex items-center gap-2 justify-end flex-wrap">
                   <button
                     type="button"
                     onClick={() => handleSearchYouTube()}
                     className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px]"
                   >
-                    Reintentar búsqueda
+                    Reintentar
                   </button>
+                  {searchQuery && (
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-red-600/30 hover:bg-red-600/40 text-red-200 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px] flex items-center gap-1.5 border border-red-500/40"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Abrir en YouTube</span>
+                    </a>
+                  )}
                 </div>
               </div>
             )}
