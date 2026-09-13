@@ -161,7 +161,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
 
   // Construct standard embed URL with JavaScript API enabled
   const embedUrl = ytVideoId
-    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=1&playsinline=1&enablejsapi=1&version=3`
+    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3`
     : '';
 
   return (

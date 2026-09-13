@@ -185,42 +185,12 @@ async function startServer() {
         }
       }
 
-      // 4. If YouTube returned fewer than 3 results, supplement with iTunes Search API
-      if (results.length < 3) {
-        try {
-          const itunesRes = await fetch(
-            `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=15`,
-            { signal: AbortSignal.timeout(5000) }
-          );
-          if (itunesRes.ok) {
-            const itunesData = await itunesRes.json();
-            if (itunesData && Array.isArray(itunesData.results)) {
-              for (const item of itunesData.results) {
-                const songTitle = item.trackName || '';
-                const songArtist = item.artistName || query;
-                const minutes = Math.floor((item.trackTimeMillis || 0) / 60000);
-                const seconds = Math.floor(((item.trackTimeMillis || 0) % 60000) / 1000);
-                const durStr = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-                const itunesArt = item.artworkUrl100?.replace('100x100bb', '300x300bb') || item.artworkUrl100;
+      // Filter results to ensure valid YouTube videoId
+      const validYouTubeResults = results.filter(
+        (r) => r.videoId && typeof r.videoId === 'string' && r.videoId.length === 11
+      );
 
-                results.push({
-                  id: `itunes_${item.trackId || Math.random().toString(36).substring(7)}`,
-                  title: songTitle,
-                  artist: songArtist,
-                  sourceType: 'youtube',
-                  url: item.previewUrl || '',
-                  artworkUrl: itunesArt,
-                  durationText: durStr,
-                });
-              }
-            }
-          }
-        } catch (itunesErr) {
-          console.warn('iTunes fallback search failed:', itunesErr);
-        }
-      }
-
-      const finalResults = results.slice(0, 30);
+      const finalResults = validYouTubeResults.slice(0, 30);
       if (finalResults.length > 0) {
         searchCache.set(cacheKey, { time: Date.now(), results: finalResults });
       }
