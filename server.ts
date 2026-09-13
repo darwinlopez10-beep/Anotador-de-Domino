@@ -30,175 +30,259 @@ async function startServer() {
       return res.json({ results: cached.results });
     }
 
+    let finalResults: any[] = [];
+    const seenVideoIds = new Set<string>();
+
     try {
-      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-      const response = await fetch(searchUrl, {
-        signal: AbortSignal.timeout(10000),
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-        },
-      });
+      // 1. PRIMARY: YouTube Innertube Web Client API (Direct JSON, highly reliable for any artist/song)
+      try {
+        const innertubeRes = await fetch('https://www.youtube.com/youtubei/v1/search?prettyPrint=false', {
+          method: 'POST',
+          signal: AbortSignal.timeout(9000),
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          },
+          body: JSON.stringify({
+            context: {
+              client: {
+                clientName: 'WEB',
+                clientVersion: '2.20240313.01.00',
+                hl: 'es',
+                gl: 'US',
+              },
+            },
+            query,
+          }),
+        });
 
-      let results: any[] = [];
-      const seenVideoIds = new Set<string>();
+        if (innertubeRes.ok) {
+          const innertubeData = await innertubeRes.json();
+          const walkInnertube = (o: any) => {
+            if (!o || typeof o !== 'object') return;
+            if (o.videoId && typeof o.videoId === 'string' && o.videoId.length === 11) {
+              if (o.title && !seenVideoIds.has(o.videoId)) {
+                seenVideoIds.add(o.videoId);
+                const title =
+                  (Array.isArray(o.title?.runs) ? o.title.runs.map((r: any) => r.text).join('') : '') ||
+                  o.title?.simpleText ||
+                  o.headline?.simpleText ||
+                  '';
+                const artist =
+                  (Array.isArray(o.ownerText?.runs) ? o.ownerText.runs.map((r: any) => r.text).join('') : '') ||
+                  (Array.isArray(o.shortBylineText?.runs) ? o.shortBylineText.runs.map((r: any) => r.text).join('') : '') ||
+                  (Array.isArray(o.longBylineText?.runs) ? o.longBylineText.runs.map((r: any) => r.text).join('') : '') ||
+                  'YouTube';
 
-      if (response.ok) {
-        const html = await response.text();
-        let data: any = null;
-
-        // 1. Robust balanced-braces extraction of ytInitialData
-        const marker = 'ytInitialData';
-        const markerIdx = html.indexOf(marker);
-        if (markerIdx !== -1) {
-          const eqIdx = html.indexOf('=', markerIdx);
-          if (eqIdx !== -1) {
-            const startBrace = html.indexOf('{', eqIdx);
-            if (startBrace !== -1) {
-              let depth = 0;
-              let inString = false;
-              let escape = false;
-              let endBrace = -1;
-              for (let i = startBrace; i < html.length; i++) {
-                const char = html[i];
-                if (escape) {
-                  escape = false;
-                  continue;
-                }
-                if (char === '\\') {
-                  escape = true;
-                  continue;
-                }
-                if (char === '"' && !escape) {
-                  inString = !inString;
-                  continue;
-                }
-                if (!inString) {
-                  if (char === '{') depth++;
-                  else if (char === '}') {
-                    depth--;
-                    if (depth === 0) {
-                      endBrace = i;
+                let durationText = o.lengthText?.simpleText || '';
+                if (!durationText && Array.isArray(o.thumbnailOverlays)) {
+                  for (const ov of o.thumbnailOverlays) {
+                    const time = ov?.thumbnailOverlayTimeStatusRenderer?.text?.simpleText;
+                    if (time) {
+                      durationText = time;
                       break;
                     }
                   }
                 }
+
+                const thumb =
+                  o.thumbnail?.thumbnails?.[o.thumbnail.thumbnails.length - 1]?.url ||
+                  `https://img.youtube.com/vi/${o.videoId}/hqdefault.jpg`;
+
+                if (title) {
+                  finalResults.push({
+                    id: `yt_${o.videoId}`,
+                    videoId: o.videoId,
+                    title: title.trim(),
+                    artist: artist.trim(),
+                    sourceType: 'youtube',
+                    url: `https://www.youtube.com/embed/${o.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+                    artworkUrl: thumb,
+                    durationText: durationText.trim(),
+                  });
+                }
               }
-              if (endBrace !== -1) {
-                try {
-                  data = JSON.parse(html.substring(startBrace, endBrace + 1));
-                } catch (e) {
-                  console.warn('Balanced braces JSON parse failed:', e);
+              return;
+            }
+            for (const k of Object.keys(o)) {
+              if (k !== 'trackingParams' && k !== 'innertubeCommand') {
+                walkInnertube(o[k]);
+              }
+            }
+          };
+
+          walkInnertube(innertubeData);
+        }
+      } catch (innertubeErr) {
+        console.warn('Innertube search failed, falling back to HTML scraping:', innertubeErr);
+      }
+
+      // 2. SECONDARY: Standard YouTube HTML scraping fallback
+      if (finalResults.length === 0) {
+        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        const response = await fetch(searchUrl, {
+          signal: AbortSignal.timeout(9000),
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          },
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          let data: any = null;
+
+          const marker = 'ytInitialData';
+          const markerIdx = html.indexOf(marker);
+          if (markerIdx !== -1) {
+            const eqIdx = html.indexOf('=', markerIdx);
+            if (eqIdx !== -1) {
+              const startBrace = html.indexOf('{', eqIdx);
+              if (startBrace !== -1) {
+                let depth = 0;
+                let inString = false;
+                let escape = false;
+                let endBrace = -1;
+                for (let i = startBrace; i < html.length; i++) {
+                  const char = html[i];
+                  if (escape) {
+                    escape = false;
+                    continue;
+                  }
+                  if (char === '\\') {
+                    escape = true;
+                    continue;
+                  }
+                  if (char === '"' && !escape) {
+                    inString = !inString;
+                    continue;
+                  }
+                  if (!inString) {
+                    if (char === '{') depth++;
+                    else if (char === '}') {
+                      depth--;
+                      if (depth === 0) {
+                        endBrace = i;
+                        break;
+                      }
+                    }
+                  }
+                }
+                if (endBrace !== -1) {
+                  try {
+                    data = JSON.parse(html.substring(startBrace, endBrace + 1));
+                  } catch (e) {
+                    // Ignore
+                  }
                 }
               }
             }
           }
-        }
 
-        // 2. Fallback slice extraction if braces parse didn't succeed
-        if (!data) {
-          const sliceMarker = 'ytInitialData = ';
-          const startIdx = html.indexOf(sliceMarker);
-          if (startIdx !== -1) {
-            const contentStart = startIdx + sliceMarker.length;
-            const endIdx = html.indexOf(';</script>', contentStart);
-            if (endIdx !== -1) {
-              try {
-                data = JSON.parse(html.substring(contentStart, endIdx));
-              } catch (e) {
-                console.warn('Slice JSON parse fallback failed:', e);
+          if (!data) {
+            const sliceMarker = 'ytInitialData = ';
+            const startIdx = html.indexOf(sliceMarker);
+            if (startIdx !== -1) {
+              const contentStart = startIdx + sliceMarker.length;
+              const endIdx = html.indexOf(';</script>', contentStart);
+              if (endIdx !== -1) {
+                try {
+                  data = JSON.parse(html.substring(contentStart, endIdx));
+                } catch (e) {
+                  // Ignore
+                }
+              }
+            }
+          }
+
+          const extractVideosRecursively = (obj: any) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (obj.videoId && typeof obj.videoId === 'string') {
+              const vid = obj.videoId;
+              if (!seenVideoIds.has(vid)) {
+                seenVideoIds.add(vid);
+                const title =
+                  obj.title?.runs?.[0]?.text ||
+                  obj.title?.simpleText ||
+                  obj.headline?.simpleText ||
+                  obj.accessibility?.accessibilityData?.label ||
+                  '';
+                const artist =
+                  obj.ownerText?.runs?.[0]?.text ||
+                  obj.shortBylineText?.runs?.[0]?.text ||
+                  obj.longBylineText?.runs?.[0]?.text ||
+                  'YouTube';
+                const durationText = obj.lengthText?.simpleText || '';
+                const thumbnail =
+                  obj.thumbnail?.thumbnails?.[obj.thumbnail.thumbnails.length - 1]?.url ||
+                  `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+
+                if (title) {
+                  finalResults.push({
+                    id: `yt_${vid}`,
+                    videoId: vid,
+                    title: title.trim(),
+                    artist: artist.trim(),
+                    sourceType: 'youtube',
+                    url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
+                    artworkUrl: thumbnail,
+                    durationText,
+                  });
+                }
+              }
+              return;
+            }
+
+            for (const key of Object.keys(obj)) {
+              if (key !== 'trackingParams' && key !== 'innertubeCommand' && key !== 'onVisible') {
+                extractVideosRecursively(obj[key]);
+              }
+            }
+          };
+
+          if (data) {
+            extractVideosRecursively(data);
+          }
+
+          if (finalResults.length === 0) {
+            const vidRegex = /"videoId":"([a-zA-Z0-9_-]{11})"/g;
+            let match;
+            while ((match = vidRegex.exec(html)) !== null && finalResults.length < 25) {
+              const vid = match[1];
+              if (!seenVideoIds.has(vid)) {
+                seenVideoIds.add(vid);
+                finalResults.push({
+                  id: `yt_${vid}`,
+                  videoId: vid,
+                  title: `${query} - Éxito`,
+                  artist: query,
+                  sourceType: 'youtube',
+                  url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
+                  artworkUrl: `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
+                  durationText: '',
+                });
               }
             }
           }
         }
-
-        // Recursive finder that extracts videos from any YouTube response layout
-        const extractVideosRecursively = (obj: any) => {
-          if (!obj || typeof obj !== 'object') return;
-
-          if (obj.videoId && typeof obj.videoId === 'string') {
-            const vid = obj.videoId;
-            if (!seenVideoIds.has(vid)) {
-              seenVideoIds.add(vid);
-              const title =
-                obj.title?.runs?.[0]?.text ||
-                obj.title?.simpleText ||
-                obj.headline?.simpleText ||
-                obj.accessibility?.accessibilityData?.label ||
-                'Video de YouTube';
-              const artist =
-                obj.ownerText?.runs?.[0]?.text ||
-                obj.shortBylineText?.runs?.[0]?.text ||
-                obj.longBylineText?.runs?.[0]?.text ||
-                'YouTube';
-              const durationText = obj.lengthText?.simpleText || '';
-              const thumbnail =
-                obj.thumbnail?.thumbnails?.[obj.thumbnail.thumbnails.length - 1]?.url ||
-                `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
-
-              results.push({
-                id: `yt_${vid}`,
-                videoId: vid,
-                title,
-                artist,
-                sourceType: 'youtube',
-                url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
-                artworkUrl: thumbnail,
-                durationText,
-              });
-            }
-            return;
-          }
-
-          for (const key of Object.keys(obj)) {
-            if (key !== 'trackingParams' && key !== 'innertubeCommand' && key !== 'onVisible') {
-              extractVideosRecursively(obj[key]);
-            }
-          }
-        };
-
-        if (data) {
-          extractVideosRecursively(data);
-        }
-
-        // 3. Fallback regex search for videoId matches
-        if (results.length === 0) {
-          const vidRegex = /"videoId":"([a-zA-Z0-9_-]{11})"/g;
-          let match;
-          while ((match = vidRegex.exec(html)) !== null && results.length < 25) {
-            const vid = match[1];
-            if (!seenVideoIds.has(vid)) {
-              seenVideoIds.add(vid);
-              results.push({
-                id: `yt_${vid}`,
-                videoId: vid,
-                title: `${query} - Éxito`,
-                artist: query,
-                sourceType: 'youtube',
-                url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
-                artworkUrl: `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
-                durationText: '',
-              });
-            }
-          }
-        }
       }
 
-      // Filter results to ensure valid YouTube videoId
-      const validYouTubeResults = results.filter(
+      // Filter and limit to top 35 clean results
+      const validResults = finalResults.filter(
         (r) => r.videoId && typeof r.videoId === 'string' && r.videoId.length === 11
-      );
+      ).slice(0, 35);
 
-      const finalResults = validYouTubeResults.slice(0, 30);
-      if (finalResults.length > 0) {
-        searchCache.set(cacheKey, { time: Date.now(), results: finalResults });
+      if (validResults.length > 0) {
+        searchCache.set(cacheKey, { time: Date.now(), results: validResults });
       }
 
-      res.json({ results: finalResults });
+      res.json({ results: validResults, query });
     } catch (err: unknown) {
       console.error('Error during search:', err);
-      res.status(500).json({ error: 'Failed to search music' });
+      res.json({ results: [], query, error: 'Failed to complete search' });
     }
   });
 

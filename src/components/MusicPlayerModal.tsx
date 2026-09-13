@@ -172,17 +172,24 @@ export function extractYouTubeId(url: string): string | null {
   return null;
 }
 
-// Botones rápidos para buscar directamente artistas o géneros populares
+// Botones rápidos para buscar directamente artistas o géneros populares en YouTube
 const POPULAR_SEARCH_TAGS = [
   'Vicente Fernández',
   'Juan Gabriel',
-  'Salsa',
-  'Merengue',
-  'Frank Sinatra',
-  'Bachata',
-  'Boleros',
+  'Julio Iglesias',
+  'Marco Antonio Solís',
+  'Los Tigres del Norte',
+  'Shakira',
+  'Marc Anthony',
+  'Celia Cruz',
+  'Héctor Lavoe',
   'Joe Arroyo',
-  'Hector Lavoe',
+  'Romeo Santos',
+  'Frank Sinatra',
+  'Salsa Clásica',
+  'Merengues',
+  'Boleros de Oro',
+  'Bachatas',
 ];
 
 export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
@@ -371,10 +378,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-                Música en YouTube
+                Buscador General de Música en YouTube
               </h3>
               <p className="text-[11px] text-stone-400">
-                Escribe un artista o canción y aparecerán todas abajo
+                Busca y reproduce cualquier cantante, canción o género del mundo
               </p>
             </div>
           </div>
@@ -391,7 +398,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
         {/* Scrollable Container */}
         <div ref={modalScrollContainerRef} className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3.5">
-          {/* 1. BARRA DE BÚSQUEDA ARRIBA (Misma estructura exacta en celular y computadora) */}
+          {/* 1. BARRA DE BÚSQUEDA GENERAL ARRIBA (Misma estructura exacta en celular y computadora) */}
           <div ref={searchBarContainerRef} className="space-y-2.5">
             <form
               onSubmit={(e) => {
@@ -401,11 +408,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               }}
               className="flex flex-row items-center gap-2 w-full"
             >
-              {/* Etiqueta "Música" integrada */}
+              {/* Etiqueta "YouTube" integrada */}
               <div className="relative flex-1 min-w-0 flex items-center bg-stone-950 border border-stone-750 focus-within:border-amber-500 rounded-xl overflow-hidden shadow-inner transition-colors">
-                <div className="px-2.5 sm:px-3 py-2.5 bg-stone-900 border-r border-stone-800 flex items-center gap-1.5 text-amber-400 flex-shrink-0 select-none">
-                  <Music className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-stone-200">Música</span>
+                <div className="px-2.5 sm:px-3 py-2.5 bg-stone-900 border-r border-stone-800 flex items-center gap-1.5 text-red-400 flex-shrink-0 select-none">
+                  <Youtube className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-red-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-stone-200 hidden xs:inline">YouTube</span>
                 </div>
                 <input
                   ref={searchInputRef}
@@ -419,7 +426,14 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   spellCheck={false}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Canción o artista (ej: Vicente Fernández, Gabriel)..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      e.preventDefault();
+                      const term = searchInputRef.current?.value ?? searchQuery;
+                      handleSearchYouTube(term);
+                    }
+                  }}
+                  placeholder="Escribe cualquier cantante (ej: Vicente Fernández, Gabriel, Shakira)..."
                   className="w-full bg-transparent px-2.5 sm:px-3 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none min-h-[44px]"
                 />
                 {searchQuery && (
@@ -461,9 +475,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-stone-400 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Toca para buscar canciones de:
+                Cantantes populares (toca uno para buscar todas sus canciones en YouTube):
               </span>
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap max-h-32 overflow-y-auto pr-1">
                 {POPULAR_SEARCH_TAGS.map((tag) => {
                   const isCurrentTag = searchQuery.toLowerCase() === tag.toLowerCase();
                   return (
@@ -471,7 +485,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       key={tag}
                       type="button"
                       onClick={() => handleQuickTagClick(tag)}
-                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[40px] select-none ${
+                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[38px] select-none ${
                         isCurrentTag
                           ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-950/40'
                           : 'bg-stone-850 hover:bg-stone-800 active:bg-stone-750 text-stone-200 hover:text-amber-300 border-stone-750'
