@@ -790,8 +790,8 @@ export default function App() {
         />
       </main>
 
-      {/* Persistent Mini Music Player Bar when a track is chosen */}
-      {currentMusicTrack && (
+      {/* Persistent Mini Music Player Bar when a track is chosen (hidden when modal is open to avoid iframe audio collisions on mobile) */}
+      {currentMusicTrack && !isMusicModalOpen && (
         <MiniMusicPlayer
           track={currentMusicTrack}
           isPlaying={isMusicPlaying}

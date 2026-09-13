@@ -160,11 +160,8 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   };
 
   // Construct standard embed URL with JavaScript API enabled
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const embedUrl = ytVideoId
-    ? `https://www.youtube-nocookie.com/embed/${ytVideoId}?autoplay=1&playsinline=1&enablejsapi=1&version=3&origin=${encodeURIComponent(
-        origin
-      )}`
+    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=1&playsinline=1&enablejsapi=1&version=3`
     : '';
 
   return (

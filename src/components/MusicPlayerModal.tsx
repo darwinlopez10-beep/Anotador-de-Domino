@@ -12,6 +12,7 @@ import {
   ChevronUp,
   Tv,
   Globe,
+  Disc3,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 
@@ -181,6 +182,98 @@ const POPULAR_SEARCH_TAGS = [
   'Mix Dominó',
 ];
 
+// Canciones icónicas preconfiguradas para reproducción instantánea al tocar cada botón popular
+const POPULAR_QUICK_PICKS: Record<string, MusicTrack> = {
+  'Salsa Brava': {
+    id: 'yt_0nBFWzpWXuM',
+    videoId: '0nBFWzpWXuM',
+    title: 'La Vida Es Un Carnaval',
+    artist: 'Celia Cruz',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/0nBFWzpWXuM?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/0nBFWzpWXuM/hqdefault.jpg',
+    durationText: '4:38',
+  },
+  'Joe Arroyo': {
+    id: 'yt_2jR9f5hH9vI',
+    videoId: '2jR9f5hH9vI',
+    title: 'La Rebelión (No Le Pegue a la Negra)',
+    artist: 'Joe Arroyo',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/2jR9f5hH9vI?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/2jR9f5hH9vI/hqdefault.jpg',
+    durationText: '4:45',
+  },
+  'Hector Lavoe': {
+    id: 'yt_BNo0vkEYWRc',
+    videoId: 'BNo0vkEYWRc',
+    title: 'El Cantante',
+    artist: 'Héctor Lavoe',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/BNo0vkEYWRc?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/BNo0vkEYWRc/hqdefault.jpg',
+    durationText: '10:20',
+  },
+  'Frankie Ruiz': {
+    id: 'yt_0v4n4L1N_pM',
+    videoId: '0v4n4L1N_pM',
+    title: 'Tú Con Él',
+    artist: 'Frankie Ruiz',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/0v4n4L1N_pM?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/0v4n4L1N_pM/hqdefault.jpg',
+    durationText: '4:58',
+  },
+  'El Gran Combo': {
+    id: 'yt_8O_MwlZ2dEg',
+    videoId: '8O_MwlZ2dEg',
+    title: 'Brujería',
+    artist: 'El Gran Combo de Puerto Rico',
+    genre: 'Salsa Brava',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/8O_MwlZ2dEg?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/8O_MwlZ2dEg/hqdefault.jpg',
+    durationText: '4:18',
+  },
+  'Merengue Clásico': {
+    id: 'yt_Y1j_yqN1_7U',
+    videoId: 'Y1j_yqN1_7U',
+    title: 'La Dueña del Swing',
+    artist: 'Los Hermanos Rosario',
+    genre: 'Merengue',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/Y1j_yqN1_7U?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/Y1j_yqN1_7U/hqdefault.jpg',
+    durationText: '4:35',
+  },
+  'Bachata Sensual': {
+    id: 'yt_t5Jq636J4aA',
+    videoId: 't5Jq636J4aA',
+    title: 'Bachata Rosa',
+    artist: 'Juan Luis Guerra 4.40',
+    genre: 'Bachata',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/t5Jq636J4aA?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/t5Jq636J4aA/hqdefault.jpg',
+    durationText: '4:13',
+  },
+  'Mix Dominó': {
+    id: 'yt_BVYLOe4Xkg0',
+    videoId: 'BVYLOe4Xkg0',
+    title: 'Mix Salsa Clásica Brava para Bailar y Jugar',
+    artist: 'Salsa de Oro',
+    genre: 'Mixes Largos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/BVYLOe4Xkg0?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/BVYLOe4Xkg0/hqdefault.jpg',
+    durationText: '45:00',
+  },
+};
+
 export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   isOpen,
   onClose,
@@ -206,12 +299,21 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   // Active YouTube video ID
   const activeVideoId = currentTrack?.videoId || (currentTrack?.url ? extractYouTubeId(currentTrack.url) : null);
 
-  const handleSearchYouTube = async (termToSearch?: string) => {
-    const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
-    const query = (rawVal || '').trim();
-    if (!query) return;
+  const handleSelectAndScrollToPlayer = (track: MusicTrack) => {
+    onSelectTrack(track);
+    setIsVideoExpanded(true);
+    setTimeout(() => {
+      if (playerContainerRef.current) {
+        playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
 
-    // Sincronizar input y ocultar teclado táctil móvil para ver resultados
+  const handleSearchYouTube = async (termToSearch?: string, autoPlayFirst: boolean = true) => {
+    const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
+    const query = (rawVal || '').trim() || 'salsa';
+
+    // Sincronizar input y ocultar teclado táctil móvil para ver el reproductor
     setSearchQuery(query);
     if (searchInputRef.current) {
       searchInputRef.current.blur();
@@ -223,7 +325,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
 
       const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
@@ -239,6 +341,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       const data = await response.json();
       if (data && Array.isArray(data.results) && data.results.length > 0) {
         setSearchResults(data.results);
+        if (autoPlayFirst) {
+          handleSelectAndScrollToPlayer(data.results[0]);
+        }
       } else {
         const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
           (t) =>
@@ -247,40 +352,53 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         );
         if (localMatches.length > 0) {
           setSearchResults(localMatches);
+          if (autoPlayFirst) {
+            handleSelectAndScrollToPlayer(localMatches[0]);
+          }
         } else {
-          setSearchResults([]);
-          setSearchError(`No se encontraron resultados en internet para "${query}". Intenta con otro nombre de canción o artista.`);
+          setSearchResults(CURATED_DOMINO_YOUTUBE_TRACKS);
+          setSearchError(`No se encontraron resultados en internet para "${query}". Mostrando recomendaciones.`);
         }
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Error de conexión';
-      console.error('Error al buscar canciones en internet:', errMsg, err);
+      console.error('Búsqueda en internet falló, usando respaldo local:', err);
       const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
         (t) =>
           t.title.toLowerCase().includes(query.toLowerCase()) ||
           t.artist.toLowerCase().includes(query.toLowerCase())
       );
-      setSearchResults(localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS);
-      setSearchError('No se pudo conectar a la búsqueda en internet. Mostrando canciones recomendadas.');
+      const fallbackList = localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS;
+      setSearchResults(fallbackList);
+      if (autoPlayFirst && fallbackList.length > 0) {
+        handleSelectAndScrollToPlayer(fallbackList[0]);
+      }
     } finally {
       setIsSearching(false);
       setTimeout(() => {
-        searchResultsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (playerContainerRef.current) {
+          playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }, 100);
     }
   };
 
+  // Al presionar un botón pequeño (Salsa Brava, Joe Arroyo, Héctor Lavoe, etc.)
+  // ¡Se abre y reproduce la canción al instante y además se buscan más canciones en internet!
   const handleQuickTagClick = (tag: string) => {
     setSearchQuery(tag);
-    handleSearchYouTube(tag);
-  };
-
-  const handleSelectAndScrollToPlayer = (track: MusicTrack) => {
-    onSelectTrack(track);
-    setIsVideoExpanded(true);
-    if (playerContainerRef.current) {
-      playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (searchInputRef.current) {
+      searchInputRef.current.value = tag;
+      searchInputRef.current.blur();
     }
+
+    // 1. Abrir y reproducir la canción emblemática inmediatamente
+    const quickPick = POPULAR_QUICK_PICKS[tag];
+    if (quickPick) {
+      handleSelectAndScrollToPlayer(quickPick);
+    }
+
+    // 2. Y en segundo plano traer más opciones en internet para listar abajo
+    handleSearchYouTube(tag, !quickPick);
   };
 
   const handleMuteClick = () => {
@@ -297,11 +415,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
   if (!isOpen) return null;
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const embedUrl = activeVideoId
-    ? `https://www.youtube-nocookie.com/embed/${activeVideoId}?autoplay=1&playsinline=1&enablejsapi=1&rel=0&origin=${encodeURIComponent(
-        origin
-      )}`
+    ? `https://www.youtube.com/embed/${activeVideoId}?autoplay=1&playsinline=1&enablejsapi=1&rel=0`
     : '';
 
   return (
@@ -318,10 +433,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-                Buscar Canciones en Internet
+                Buscador de Música de Dominó
               </h3>
               <p className="text-[11px] text-stone-400">
-                Busca y reproduce música directamente en la app
+                Toca cualquier artista o busca tu canción favorita
               </p>
             </div>
           </div>
@@ -338,7 +453,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         {/* Scrollable Container */}
         <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-4">
           {/* Active Song Player (Structure matching Karaoke Pro) */}
-          {currentTrack && activeVideoId && (
+          {currentTrack && activeVideoId ? (
             <div
               ref={playerContainerRef}
               className="bg-stone-950 border border-stone-800 rounded-2xl p-3 shadow-lg flex flex-col gap-2.5 transition-all"
@@ -376,11 +491,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               {isVideoExpanded && (
                 <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-stone-800 shadow-md">
                   <iframe
+                    key={activeVideoId}
                     src={embedUrl}
                     title={currentTrack.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    className="w-full h-full"
+                    className="w-full h-full border-0"
                   />
                 </div>
               )}
@@ -449,17 +565,42 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
               </div>
             </div>
+          ) : (
+            /* Banner cuando aún no se ha seleccionado ninguna canción */
+            <div
+              ref={playerContainerRef}
+              className="bg-stone-950/80 border border-stone-800/80 rounded-2xl p-4 text-center flex flex-col items-center justify-center gap-2.5"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Disc3 className="w-6 h-6 animate-spin duration-3000" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-stone-100">
+                  ¿Listo para la partida de dominó?
+                </h4>
+                <p className="text-xs text-stone-400 max-w-sm mt-0.5">
+                  Toca abajo en <strong>Salsa Brava</strong>, <strong>Joe Arroyo</strong>, <strong>Héctor Lavoe</strong> o escribe cualquier canción para escucharla aquí.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleQuickTagClick('Salsa Brava')}
+                className="mt-1 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-black text-xs rounded-xl shadow-lg flex items-center gap-1.5 transition-all active:scale-95"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Poner Salsa Brava ahora</span>
+              </button>
+            </div>
           )}
 
           {/* Search Bar Form */}
           <div className="space-y-3">
             <form
-              action="#"
-              method="get"
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                handleSearchYouTube();
+                const term = searchInputRef.current?.value || searchQuery;
+                handleSearchYouTube(term, true);
               }}
               className="flex flex-col sm:flex-row gap-2"
             >
@@ -476,21 +617,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     spellCheck={false}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onSearch={(e) => {
-                      e.preventDefault();
-                      handleSearchYouTube();
-                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.keyCode === 13) {
                         e.preventDefault();
                         e.stopPropagation();
                         const val = (e.currentTarget.value || searchQuery).trim();
-                        if (val) {
-                          handleSearchYouTube(val);
-                        }
+                        handleSearchYouTube(val, true);
                       }
                     }}
-                    placeholder="Escribe una canción, artista o salsa para buscar en internet..."
+                    placeholder="Escribe una canción o artista (ej: Frankie Ruiz, Joe Arroyo)..."
                     className="w-full bg-stone-950 border border-stone-750 focus:border-amber-500 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
                   />
                   {searchQuery && (
@@ -499,9 +634,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       onClick={(e) => {
                         e.preventDefault();
                         setSearchQuery('');
+                        if (searchInputRef.current) {
+                          searchInputRef.current.value = '';
+                        }
                       }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-500 hover:text-stone-300 transition-colors"
-                      title="Borrar búsqueda"
+                      title="Borrar texto"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -511,22 +649,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSearching}
-                  onTouchStart={(e) => {
-                    const val = (searchInputRef.current?.value || searchQuery).trim();
-                    if (val && !isSearching) {
-                      e.preventDefault();
-                      handleSearchYouTube(val);
-                    }
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const val = (searchInputRef.current?.value || searchQuery).trim();
-                    if (val && !isSearching) {
-                      handleSearchYouTube(val);
-                    }
-                  }}
-                  className="px-3.5 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
+                  className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[42px] touch-manipulation"
                 >
                   {isSearching ? (
                     <Loader2 className="w-4 h-4 animate-spin text-stone-950" />
@@ -538,22 +661,35 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               </div>
             </form>
 
-            {/* Popular quick-tap search chips */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] text-stone-400 flex items-center gap-1 mr-1">
+            {/* Popular quick-tap search chips with instant play icons */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-stone-400 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Populares:
+                Toca para reproducir al instante:
               </span>
-              {POPULAR_SEARCH_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleQuickTagClick(tag)}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-stone-850 hover:bg-stone-800 active:bg-stone-700 text-stone-300 hover:text-amber-300 border border-stone-750 transition-colors cursor-pointer active:scale-95 touch-manipulation"
-                >
-                  {tag}
-                </button>
-              ))}
+              <div className="flex items-center gap-2 flex-wrap">
+                {POPULAR_SEARCH_TAGS.map((tag) => {
+                  const isCurrentTag =
+                    (currentTrack?.artist?.toLowerCase().includes(tag.toLowerCase()) ||
+                     currentTrack?.genre?.toLowerCase().includes(tag.toLowerCase()) ||
+                     searchQuery.toLowerCase() === tag.toLowerCase());
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleQuickTagClick(tag)}
+                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[38px] ${
+                        isCurrentTag
+                          ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-950/40'
+                          : 'bg-stone-850 hover:bg-stone-800 active:bg-stone-750 text-stone-200 hover:text-amber-300 border-stone-750'
+                      }`}
+                    >
+                      <Play className={`w-3 h-3 fill-current ${isCurrentTag ? 'text-stone-950' : 'text-amber-400'}`} />
+                      <span>{tag}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
