@@ -173,6 +173,7 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 const POPULAR_SEARCH_TAGS = [
+  'Frank Sinatra',
   'Salsa Brava',
   'Joe Arroyo',
   'Hector Lavoe',
@@ -185,6 +186,17 @@ const POPULAR_SEARCH_TAGS = [
 
 // Canciones icónicas preconfiguradas para reproducción instantánea al tocar cada botón popular
 const POPULAR_QUICK_PICKS: Record<string, MusicTrack> = {
+  'Frank Sinatra': {
+    id: 'yt_qQzdAsjWGPg',
+    videoId: 'qQzdAsjWGPg',
+    title: 'My Way',
+    artist: 'Frank Sinatra',
+    genre: 'Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/qQzdAsjWGPg?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/qQzdAsjWGPg/hqdefault.jpg',
+    durationText: '4:35',
+  },
   'Salsa Brava': {
     id: 'yt_0nBFWzpWXuM',
     videoId: '0nBFWzpWXuM',
@@ -393,12 +405,16 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     }
   };
 
-  // Al presionar un cuadro (Salsa Brava, Joe Arroyo, Héctor Lavoe, etc.)
+  // Al presionar un cuadro (Salsa Brava, Joe Arroyo, Héctor Lavoe, Frank Sinatra, etc.)
   const handleQuickTagClick = (tag: string) => {
     setSearchQuery(tag);
     if (searchInputRef.current) {
       searchInputRef.current.value = tag;
       searchInputRef.current.blur();
+    }
+    const quickPick = POPULAR_QUICK_PICKS[tag];
+    if (quickPick && (!currentTrack || currentTrack.id !== quickPick.id)) {
+      onSelectTrack(quickPick);
     }
     handleSearchYouTube(tag);
   };
@@ -435,168 +451,27 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-                Buscador de Música de Dominó
+                Música en YouTube
               </h3>
               <p className="text-[11px] text-stone-400">
-                Toca cualquier artista o busca tu canción favorita
+                Escribe un artista o canción y aparecerán todas abajo
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
-            title="Cerrar buscador"
+            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
+            title="Cerrar reproductor"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable Container */}
-        <div ref={modalScrollContainerRef} className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-4">
-          {/* Active Song Player (Structure matching Karaoke Pro) */}
-          {currentTrack && activeVideoId ? (
-            <div
-              ref={playerContainerRef}
-              className="bg-stone-950 border border-stone-800 rounded-2xl p-3 shadow-lg flex flex-col gap-2.5 transition-all"
-            >
-              {/* Header with song title & minimize toggle */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 truncate">
-                  <div className="p-1.5 bg-red-500/20 text-red-400 rounded-lg">
-                    <Tv className="w-4 h-4" />
-                  </div>
-                  <div className="truncate">
-                    <h4 className="text-xs sm:text-sm font-bold text-stone-100 truncate">
-                      {currentTrack.title}
-                    </h4>
-                    <p className="text-[11px] text-stone-400 truncate">
-                      {currentTrack.artist} {currentTrack.durationText ? `• ${currentTrack.durationText}` : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsVideoExpanded((prev) => !prev)}
-                    className="p-1.5 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-850 transition-colors text-xs font-semibold flex items-center gap-1"
-                    title={isVideoExpanded ? 'Minimizar video' : 'Ver video completo'}
-                  >
-                    <span className="text-[11px] hidden sm:inline">{isVideoExpanded ? 'Ocultar video' : 'Ver video'}</span>
-                    <ChevronUp className={`w-4 h-4 transition-transform ${isVideoExpanded ? '' : 'rotate-180'}`} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Embedded YouTube Video Player (Always visible when expanded for full mobile support) */}
-              {isVideoExpanded && (
-                <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-stone-800 shadow-md">
-                  <iframe
-                    key={activeVideoId}
-                    src={embedUrl}
-                    title={currentTrack.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full border-0"
-                  />
-                </div>
-              )}
-
-              {/* Player Controls */}
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-850">
-                <div className="flex items-center gap-2 text-xs text-stone-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] sm:text-xs text-stone-300 font-medium">
-                    {isPlaying ? 'Reproduciendo' : 'En pausa'}
-                  </span>
-                </div>
-
-                {/* In-App Audio Controls */}
-                <div className="flex items-center gap-2">
-                  {/* Volume */}
-                  <div className="flex items-center gap-1 bg-stone-900 px-2 py-1.5 rounded-xl border border-stone-800">
-                    <button
-                      type="button"
-                      onClick={handleMuteClick}
-                      title={volume === 0 ? 'Activar sonido' : 'Silenciar'}
-                      className="text-stone-400 hover:text-stone-200"
-                    >
-                      {volume === 0 ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onVolumeChange(Math.max(0, Math.round((volume - 0.1) * 100) / 100))}
-                      className="w-5 h-5 rounded bg-stone-800 hover:bg-stone-750 text-stone-300 flex items-center justify-center text-xs font-bold"
-                      title="Bajar volumen"
-                    >
-                      -
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onVolumeChange(Math.min(1, Math.round((volume + 0.1) * 100) / 100))}
-                      className="w-5 h-5 rounded bg-stone-800 hover:bg-stone-750 text-stone-300 flex items-center justify-center text-xs font-bold"
-                      title="Subir volumen"
-                    >
-                      +
-                    </button>
-                    <span className="font-mono text-[10px] text-amber-400 font-semibold w-7 text-right hidden sm:inline">
-                      {Math.round(volume * 100)}%
-                    </span>
-                  </div>
-
-                  {/* Play / Pause */}
-                  <button
-                    type="button"
-                    onClick={onTogglePlay}
-                    className="p-2 sm:px-3 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold shadow-md shadow-amber-950/30 transition-transform active:scale-95 flex items-center gap-1.5"
-                    title={isPlaying ? 'Pausar música' : 'Reanudar música'}
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Pause className="w-4 h-4 fill-current" />
-                        <span className="text-xs hidden sm:inline">Pausar</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
-                        <span className="text-xs hidden sm:inline">Reproducir</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Banner cuando aún no se ha seleccionado ninguna canción */
-            <div
-              ref={playerContainerRef}
-              className="bg-stone-950/80 border border-stone-800/80 rounded-2xl p-4 text-center flex flex-col items-center justify-center gap-2.5"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <Disc3 className="w-6 h-6 animate-spin duration-3000" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-stone-100">
-                  ¿Listo para la partida de dominó?
-                </h4>
-                <p className="text-xs text-stone-400 max-w-sm mt-0.5">
-                  Toca abajo en <strong>Salsa Brava</strong>, <strong>Joe Arroyo</strong>, <strong>Héctor Lavoe</strong> o escribe cualquier canción para escucharla aquí.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleQuickTagClick('Salsa Brava')}
-                className="mt-1 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-black text-xs rounded-xl shadow-lg flex items-center gap-1.5 transition-all active:scale-95"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Poner Salsa Brava ahora</span>
-              </button>
-            </div>
-          )}
-
-          {/* Search Bar Form (Identical structure on mobile and desktop) */}
-          <div ref={searchBarContainerRef} className="space-y-3">
+        <div ref={modalScrollContainerRef} className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3.5">
+          {/* 1. BARRA DE BÚSQUEDA ARRIBA (Misma estructura exacta en celular y computadora) */}
+          <div ref={searchBarContainerRef} className="space-y-2.5">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -606,7 +481,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               }}
               className="flex flex-row items-center gap-2 w-full"
             >
-              {/* Campo con etiqueta "Música" integrada */}
+              {/* Etiqueta "Música" integrada */}
               <div className="relative flex-1 min-w-0 flex items-center bg-stone-950 border border-stone-750 focus-within:border-amber-500 rounded-xl overflow-hidden shadow-inner transition-colors">
                 <div className="px-2.5 sm:px-3 py-2.5 bg-stone-900 border-r border-stone-800 flex items-center gap-1.5 text-amber-400 flex-shrink-0 select-none">
                   <Music className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-400" />
@@ -643,7 +518,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         searchInputRef.current.value = '';
                       }
                     }}
-                    className="p-1.5 sm:p-2 text-stone-500 hover:text-stone-300 transition-colors flex-shrink-0 mr-1"
+                    className="p-1.5 sm:p-2 text-stone-500 hover:text-stone-300 transition-colors flex-shrink-0 mr-1 cursor-pointer"
                     title="Borrar texto"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -677,13 +552,13 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               </button>
             </form>
 
-            {/* Popular quick-tap search chips */}
+            {/* 2. CUADROS PEQUEÑOS DE ARTISTAS POPULARES */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-stone-400 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 Toca para buscar canciones de:
               </span>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 {POPULAR_SEARCH_TAGS.map((tag) => {
                   const isCurrentTag = searchQuery.toLowerCase() === tag.toLowerCase();
                   return (
@@ -695,7 +570,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         e.preventDefault();
                         handleQuickTagClick(tag);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[38px] select-none ${
+                      className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[36px] select-none ${
                         isCurrentTag
                           ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-950/40'
                           : 'bg-stone-850 hover:bg-stone-800 active:bg-stone-750 text-stone-200 hover:text-amber-300 border-stone-750'
@@ -710,8 +585,90 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
           </div>
 
-          {/* Song Results Section */}
-          <div ref={songsListSectionRef} className="space-y-3 scroll-mt-2">
+          {/* 3. REPRODUCTOR COMPACTO SI HAY CANCIÓN SELECCIONADA */}
+          {currentTrack && activeVideoId && (
+            <div
+              ref={playerContainerRef}
+              className="bg-stone-950 border border-stone-800 rounded-xl p-3 shadow-md flex flex-col gap-2 transition-all"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 truncate flex-1">
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-stone-900 border border-stone-800 flex-shrink-0 flex items-center justify-center">
+                    {currentTrack.artworkUrl ? (
+                      <img
+                        src={currentTrack.artworkUrl}
+                        alt={currentTrack.title}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <Youtube className="w-5 h-5 text-red-500" />
+                    )}
+                  </div>
+                  <div className="truncate">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                      <h4 className="text-xs sm:text-sm font-bold text-stone-100 truncate">
+                        {currentTrack.title}
+                      </h4>
+                    </div>
+                    <p className="text-[11px] text-stone-400 truncate">
+                      {currentTrack.artist} {currentTrack.durationText ? `• ${currentTrack.durationText}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Play / Pause */}
+                  <button
+                    type="button"
+                    onClick={onTogglePlay}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-bold text-xs shadow transition-transform active:scale-95 flex items-center gap-1 cursor-pointer"
+                  >
+                    {isPlaying ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5 fill-current" />
+                        <span>Pausar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        <span>Sonar</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Toggle video display */}
+                  <button
+                    type="button"
+                    onClick={() => setIsVideoExpanded((prev) => !prev)}
+                    className="p-1.5 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-850 transition-colors text-xs flex items-center gap-1 cursor-pointer"
+                    title={isVideoExpanded ? 'Ocultar video' : 'Ver video'}
+                  >
+                    <Tv className="w-4 h-4 text-stone-400" />
+                    <ChevronUp className={`w-3.5 h-3.5 transition-transform ${isVideoExpanded ? '' : 'rotate-180'}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Video embebido si se expande */}
+              {isVideoExpanded && (
+                <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-stone-800 mt-1 shadow-md">
+                  <iframe
+                    key={activeVideoId}
+                    src={embedUrl}
+                    title={currentTrack.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. LISTA DE CANCIONES (JUSTO DEBAJO DE LA BÚSQUEDA) */}
+          <div ref={songsListSectionRef} className="space-y-2.5 scroll-mt-2">
             {/* Status indicator while searching */}
             {isSearching && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center gap-2.5 text-amber-300 animate-pulse">
@@ -730,7 +687,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSearchYouTube()}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap"
+                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer"
                   >
                     Reintentar búsqueda
                   </button>
@@ -739,14 +696,14 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             )}
 
             {/* Section Header */}
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+            <div className="flex items-center justify-between pt-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
                 <Youtube className="w-4 h-4 text-red-500" />
                 {hasSearched
                   ? searchResults.length > 0
-                    ? `Canciones en YouTube para "${searchQuery}" (${searchResults.length})`
+                    ? `Canciones de "${searchQuery}" (${searchResults.length})`
                     : `Sin resultados para "${searchQuery}"`
-                  : `Canciones Recomendadas para Dominó (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`}
+                  : `Canciones Recomendadas (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`}
               </h4>
 
               {hasSearched && (
@@ -759,7 +716,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     setSearchError(null);
                     if (searchInputRef.current) searchInputRef.current.value = '';
                   }}
-                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer"
                 >
                   Ver recomendadas
                 </button>
@@ -780,7 +737,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     setSearchResults([]);
                     if (searchInputRef.current) searchInputRef.current.value = '';
                   }}
-                  className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400"
+                  className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400 cursor-pointer"
                 >
                   Ver lista recomendada de dominó
                 </button>
@@ -798,8 +755,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     onClick={() => handleSelectAndScrollToPlayer(track)}
                     className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation ${
                       isThisPlaying
-                        ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-950/20'
-                        : 'bg-stone-850/80 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
+                        ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
+                        : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
                     }`}
                   >
                     {/* Left: Thumbnail & Details */}
