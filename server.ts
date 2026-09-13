@@ -229,6 +229,41 @@ async function fetchYouTubeTracks(query: string): Promise<any[]> {
     }
   }
 
+  // Layer 4: Invidious public mirror fallback
+  if (finalResults.length === 0) {
+    try {
+      const invRes = await fetch(
+        `https://invidious.flokinet.to/api/v1/search?q=${encodeURIComponent(cleanQuery)}&type=video`,
+        { signal: AbortSignal.timeout(3000) }
+      );
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        if (Array.isArray(invData) && invData.length > 0) {
+          for (const v of invData) {
+            if (v.videoId && !seenVideoIds.has(v.videoId)) {
+              seenVideoIds.add(v.videoId);
+              const dur = v.lengthSeconds || 0;
+              const m = Math.floor(dur / 60);
+              const s = dur % 60;
+              finalResults.push({
+                id: `yt_${v.videoId}`,
+                videoId: v.videoId,
+                title: v.title,
+                artist: v.author || cleanQuery,
+                sourceType: 'youtube',
+                url: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+                artworkUrl: `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`,
+                durationText: dur > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : '',
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
   // Filter and limit to top 35 clean results
   const validResults = finalResults.filter(
     (r) => r.videoId && typeof r.videoId === 'string' && r.videoId.length === 11

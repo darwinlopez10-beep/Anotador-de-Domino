@@ -163,7 +163,9 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   // Construct standard embed URL with JavaScript API enabled
   const embedUrl = ytVideoId
     ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3`
-    : '';
+    : (track.url && track.url.includes('embed')
+        ? track.url
+        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(track.artist + ' ' + track.title)}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3`);
 
   return (
     <div
@@ -172,7 +174,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     >
       <div className="bg-stone-900/95 backdrop-blur-md border border-stone-750/90 rounded-2xl shadow-2xl shadow-black/80 p-2.5 sm:p-3 flex flex-col gap-2">
         {/* Single persistent YouTube iframe element (prevents restarting song when toggling video) */}
-        {isYouTube && ytVideoId && (
+        {isYouTube && (ytVideoId || track.artist || track.url) && (
           <div
             className={`transition-all duration-300 overflow-hidden rounded-xl bg-black border border-stone-800 ${
               showVideo ? 'w-full aspect-video opacity-100 mb-1' : 'w-full h-1 opacity-0 pointer-events-none'
@@ -180,6 +182,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
           >
             <iframe
               ref={iframeRef}
+              key={ytVideoId || track.id}
               src={embedUrl}
               title={track.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

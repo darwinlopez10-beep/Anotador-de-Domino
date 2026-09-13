@@ -81,4 +81,5 @@ export interface MusicTrack {
   videoId?: string;
   addedByUser?: boolean;
   genre?: string;
+  previewUrl?: string;
 }

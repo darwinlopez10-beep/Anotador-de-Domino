@@ -48,6 +48,28 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
     durationText: '3:00',
   },
   {
+    id: 'yt_gfm2zSgQ8cQ',
+    videoId: 'gfm2zSgQ8cQ',
+    title: 'Por Tu Maldito Amor',
+    artist: 'Vicente Fernández',
+    genre: 'Ranchera / Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/gfm2zSgQ8cQ?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/gfm2zSgQ8cQ/hqdefault.jpg',
+    durationText: '3:55',
+  },
+  {
+    id: 'yt_-Z-r96yP_f0',
+    videoId: '-Z-r96yP_f0',
+    title: 'El Rey',
+    artist: 'Vicente Fernández',
+    genre: 'Ranchera / Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/-Z-r96yP_f0?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/-Z-r96yP_f0/hqdefault.jpg',
+    durationText: '2:28',
+  },
+  {
     id: 'yt_0A7t27nyAo8',
     videoId: '0A7t27nyAo8',
     title: 'Así Fue (En Vivo Bellas Artes)',
@@ -57,6 +79,72 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
     url: 'https://www.youtube.com/embed/0A7t27nyAo8?autoplay=1&playsinline=1&enablejsapi=1',
     artworkUrl: 'https://img.youtube.com/vi/0A7t27nyAo8/hqdefault.jpg',
     durationText: '7:20',
+  },
+  {
+    id: 'yt_gXlK1yC7Noc',
+    videoId: 'gXlK1yC7Noc',
+    title: 'Hasta Que Te Conocí',
+    artist: 'Juan Gabriel',
+    genre: 'Balada / Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/gXlK1yC7Noc?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/gXlK1yC7Noc/hqdefault.jpg',
+    durationText: '7:15',
+  },
+  {
+    id: 'yt_m7DqK_0mS5E',
+    videoId: 'm7DqK_0mS5E',
+    title: 'Si No Te Hubieras Ido',
+    artist: 'Marco Antonio Solís',
+    genre: 'Balada Romántica',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/m7DqK_0mS5E?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/m7DqK_0mS5E/hqdefault.jpg',
+    durationText: '4:49',
+  },
+  {
+    id: 'yt_L_f448K_3-8',
+    videoId: 'L_f448K_3-8',
+    title: 'Más Que Tu Amigo',
+    artist: 'Marco Antonio Solís',
+    genre: 'Cumbia / Fiesta',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/L_f448K_3-8?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/L_f448K_3-8/hqdefault.jpg',
+    durationText: '3:32',
+  },
+  {
+    id: 'yt_Kk9WvO9Zg5M',
+    videoId: 'Kk9WvO9Zg5M',
+    title: 'Me Olvidé de Vivir',
+    artist: 'Julio Iglesias',
+    genre: 'Balada / Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/Kk9WvO9Zg5M?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/Kk9WvO9Zg5M/hqdefault.jpg',
+    durationText: '4:52',
+  },
+  {
+    id: 'yt_d3_Fm8X6O-E',
+    videoId: 'd3_Fm8X6O-E',
+    title: 'Hey!',
+    artist: 'Julio Iglesias',
+    genre: 'Balada / Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/d3_Fm8X6O-E?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/d3_Fm8X6O-E/hqdefault.jpg',
+    durationText: '5:00',
+  },
+  {
+    id: 'yt_W0vK9G_Qz7I',
+    videoId: 'W0vK9G_Qz7I',
+    title: 'La Puerta Negra',
+    artist: 'Los Tigres del Norte',
+    genre: 'Norteño / Corrido',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/W0vK9G_Qz7I?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/W0vK9G_Qz7I/hqdefault.jpg',
+    durationText: '3:25',
   },
   {
     id: 'yt_8O_MwlZ2dEg',
@@ -103,26 +191,26 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
     durationText: '4:45',
   },
   {
-    id: 'yt_qQzdAsjWGPg',
-    videoId: 'qQzdAsjWGPg',
-    title: 'My Way',
-    artist: 'Frank Sinatra',
-    genre: 'Clásicos',
+    id: 'yt_0nBFWzpWXuM',
+    videoId: '0nBFWzpWXuM',
+    title: 'La Vida Es Un Carnaval',
+    artist: 'Celia Cruz',
+    genre: 'Salsa',
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/embed/qQzdAsjWGPg?autoplay=1&playsinline=1&enablejsapi=1',
-    artworkUrl: 'https://img.youtube.com/vi/qQzdAsjWGPg/hqdefault.jpg',
-    durationText: '4:35',
+    url: 'https://www.youtube.com/embed/0nBFWzpWXuM?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/0nBFWzpWXuM/hqdefault.jpg',
+    durationText: '4:38',
   },
   {
-    id: 'yt_BVYLOe4Xkg0',
-    videoId: 'BVYLOe4Xkg0',
-    title: 'Mix Salsa Clásica Brava para Bailar y Jugar',
-    artist: 'Salsa de Oro',
-    genre: 'Mixes',
+    id: 'yt_YXnjy5YlDwk',
+    videoId: 'YXnjy5YlDwk',
+    title: 'Vivir Mi Vida',
+    artist: 'Marc Anthony',
+    genre: 'Salsa',
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/embed/BVYLOe4Xkg0?autoplay=1&playsinline=1&enablejsapi=1',
-    artworkUrl: 'https://img.youtube.com/vi/BVYLOe4Xkg0/hqdefault.jpg',
-    durationText: '45:00',
+    url: 'https://www.youtube.com/embed/YXnjy5YlDwk?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/YXnjy5YlDwk/hqdefault.jpg',
+    durationText: '4:18',
   },
   {
     id: 'yt_t5Jq636J4aA',
@@ -147,15 +235,70 @@ export const CURATED_DOMINO_YOUTUBE_TRACKS: MusicTrack[] = [
     durationText: '4:16',
   },
   {
-    id: 'yt_0nBFWzpWXuM',
-    videoId: '0nBFWzpWXuM',
-    title: 'La Vida Es Un Carnaval',
-    artist: 'Celia Cruz',
-    genre: 'Salsa',
+    id: 'yt_ePZ9d_mO6z4',
+    videoId: 'ePZ9d_mO6z4',
+    title: 'La Bikina',
+    artist: 'Luis Miguel',
+    genre: 'Mariachi / Bolero',
     sourceType: 'youtube',
-    url: 'https://www.youtube.com/embed/0nBFWzpWXuM?autoplay=1&playsinline=1&enablejsapi=1',
-    artworkUrl: 'https://img.youtube.com/vi/0nBFWzpWXuM/hqdefault.jpg',
-    durationText: '4:38',
+    url: 'https://www.youtube.com/embed/ePZ9d_mO6z4?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/ePZ9d_mO6z4/hqdefault.jpg',
+    durationText: '3:05',
+  },
+  {
+    id: 'yt_E20G25SCAVU',
+    videoId: 'E20G25SCAVU',
+    title: 'El Triste',
+    artist: 'José José',
+    genre: 'Balada / Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/E20G25SCAVU?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/E20G25SCAVU/hqdefault.jpg',
+    durationText: '4:15',
+  },
+  {
+    id: 'yt_QFs3PIZb3js',
+    videoId: 'QFs3PIZb3js',
+    title: 'Propuesta Indecente',
+    artist: 'Romeo Santos',
+    genre: 'Bachata',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/QFs3PIZb3js?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/QFs3PIZb3js/hqdefault.jpg',
+    durationText: '4:15',
+  },
+  {
+    id: 'yt_DUT5rEU6pqM',
+    videoId: 'DUT5rEU6pqM',
+    title: "Hips Don't Lie",
+    artist: 'Shakira',
+    genre: 'Latino / Pop',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/DUT5rEU6pqM?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/DUT5rEU6pqM/hqdefault.jpg',
+    durationText: '3:38',
+  },
+  {
+    id: 'yt_qQzdAsjWGPg',
+    videoId: 'qQzdAsjWGPg',
+    title: 'My Way',
+    artist: 'Frank Sinatra',
+    genre: 'Clásicos',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/qQzdAsjWGPg?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/qQzdAsjWGPg/hqdefault.jpg',
+    durationText: '4:35',
+  },
+  {
+    id: 'yt_BVYLOe4Xkg0',
+    videoId: 'BVYLOe4Xkg0',
+    title: 'Mix Salsa Clásica Brava para Bailar y Jugar',
+    artist: 'Salsa de Oro',
+    genre: 'Mixes',
+    sourceType: 'youtube',
+    url: 'https://www.youtube.com/embed/BVYLOe4Xkg0?autoplay=1&playsinline=1&enablejsapi=1',
+    artworkUrl: 'https://img.youtube.com/vi/BVYLOe4Xkg0/hqdefault.jpg',
+    durationText: '45:00',
   },
 ];
 
@@ -180,16 +323,20 @@ const POPULAR_SEARCH_TAGS = [
   'Julio Iglesias',
   'Marco Antonio Solís',
   'Los Tigres del Norte',
-  'Shakira',
   'Marc Anthony',
   'Celia Cruz',
   'Héctor Lavoe',
   'Joe Arroyo',
+  'El Gran Combo',
+  'Los Hermanos Rosario',
+  'Juan Luis Guerra',
+  'Luis Miguel',
+  'José José',
   'Romeo Santos',
+  'Shakira',
   'Frank Sinatra',
   'Salsa Clásica',
   'Merengues',
-  'Boleros de Oro',
   'Bachatas',
 ];
 
@@ -267,12 +414,67 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   }, [volume]);
 
   // Selección manual de una canción (NUNCA automática)
-  const handleSelectSong = (track: MusicTrack) => {
+  const handleSelectSong = async (track: MusicTrack) => {
     onSelectTrack(track);
     setIsVideoExpanded(true);
+
+    // Si la canción no tiene videoId específico, resolverlo rápidamente en segundo plano para máxima compatibilidad
+    if (!track.videoId && track.sourceType === 'youtube') {
+      try {
+        const q = `${track.artist} ${track.title}`;
+        let resolvedId: string | null = null;
+
+        // 1. Catálogo local
+        const local = CURATED_DOMINO_YOUTUBE_TRACKS.find(
+          (c) =>
+            c.title.toLowerCase() === track.title.toLowerCase() ||
+            track.title.toLowerCase().includes(c.title.toLowerCase())
+        );
+        if (local?.videoId) resolvedId = local.videoId;
+
+        // 2. Servidor si está activo
+        if (!resolvedId) {
+          try {
+            const sRes = await fetch(`/api/music/search?q=${encodeURIComponent(q)}`, {
+              signal: AbortSignal.timeout(2000),
+            });
+            if (sRes.ok) {
+              const sData = await sRes.json();
+              if (sData.results?.[0]?.videoId) resolvedId = sData.results[0].videoId;
+            }
+          } catch {}
+        }
+
+        // 3. Invidious CORS
+        if (!resolvedId) {
+          try {
+            const invRes = await fetch(
+              `https://invidious.flokinet.to/api/v1/search?q=${encodeURIComponent(q)}&type=video`,
+              { signal: AbortSignal.timeout(2500) }
+            );
+            if (invRes.ok) {
+              const invData = await invRes.json();
+              if (invData?.[0]?.videoId) resolvedId = invData[0].videoId;
+            }
+          } catch {}
+        }
+
+        if (resolvedId) {
+          const updated: MusicTrack = {
+            ...track,
+            videoId: resolvedId,
+            url: `https://www.youtube.com/embed/${resolvedId}?autoplay=1&playsinline=1&enablejsapi=1`,
+            artworkUrl: track.artworkUrl || `https://img.youtube.com/vi/${resolvedId}/hqdefault.jpg`,
+          };
+          onSelectTrack(updated);
+        }
+      } catch {
+        // Mantiene la reproducción con listType=search
+      }
+    }
   };
 
-  // Función de búsqueda en YouTube resistente a caídas de red y bloqueadores de Android
+  // Protocolo Universal de Búsqueda Karaoke Pro (100% compatible con celulares Android y PC sin depender de backend)
   const handleSearchYouTube = async (termToSearch?: string) => {
     const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
     const query = (rawVal || '').trim();
@@ -315,75 +517,163 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setSearchError(null);
     setHasSearched(true);
 
-    // Timeout de seguridad en cliente (6 segundos) para que nunca se quede colgado en Android
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    // 1. Coincidencias instantáneas del catálogo local de dominó (0ms, offline y verificado)
+    const queryLower = query.toLowerCase();
+    const queryTokens = queryLower.split(/\s+/).filter(Boolean);
+    const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter((t) => {
+      const tStr = `${t.title} ${t.artist} ${t.genre || ''}`.toLowerCase();
+      return queryTokens.every((token) => tStr.includes(token)) || tStr.includes(queryLower);
+    });
 
-    let finalTracks: MusicTrack[] = [];
-    let fetchSucceeded = false;
-
-    // Probar primero con /api/music/search (inmune a bloqueadores de publicidad en Android)
-    try {
-      const response = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
-        signal: controller.signal,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data && Array.isArray(data.results) && data.results.length > 0) {
-          finalTracks = data.results;
-          fetchSucceeded = true;
-        }
-      }
-    } catch {
-      // Ignorar e intentar con la ruta secundaria
-    }
-
-    // Ruta secundaria de respaldo si la primera no respondió
-    if (!fetchSucceeded) {
+    // 2. Protocolo Karaoke Pro: Búsqueda universal directa en cliente mediante catálogo de Apple Music / iTunes
+    // Permite buscar CUALQUIER artista, canción o género en el mundo desde cualquier celular sin pasar por el servidor
+    const fetchClientCatalog = async (): Promise<MusicTrack[]> => {
       try {
-        const response2 = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
+        const res = await fetch(
+          `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=35`,
+          { signal: AbortSignal.timeout(4500) }
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (!data || !Array.isArray(data.results)) return [];
+
+        return data.results.map((item: any) => {
+          const durSec = Math.round((item.trackTimeMillis || 0) / 1000);
+          const m = Math.floor(durSec / 60);
+          const s = durSec % 60;
+          const art = item.artistName || 'Artista';
+          const tit = item.trackName || 'Sin título';
+
+          const matchedLocal = CURATED_DOMINO_YOUTUBE_TRACKS.find(
+            (c) => c.title.toLowerCase() === tit.toLowerCase() && c.artist.toLowerCase() === art.toLowerCase()
+          );
+
+          return {
+            id: `itunes_${item.trackId}`,
+            videoId: matchedLocal?.videoId,
+            title: tit,
+            artist: art,
+            sourceType: 'youtube' as const,
+            url: matchedLocal?.videoId
+              ? `https://www.youtube.com/embed/${matchedLocal.videoId}?autoplay=1&playsinline=1&enablejsapi=1`
+              : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(art + ' ' + tit)}&autoplay=1&playsinline=1&enablejsapi=1`,
+            artworkUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '300x300bb') : undefined,
+            durationSeconds: durSec,
+            durationText: durSec > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
+            genre: item.primaryGenreName,
+            previewUrl: item.previewUrl,
+          };
         });
-        if (response2.ok) {
-          const data2 = await response2.json();
-          if (data2 && Array.isArray(data2.results) && data2.results.length > 0) {
-            finalTracks = data2.results;
-            fetchSucceeded = true;
+      } catch {
+        return [];
+      }
+    };
+
+    // 3. Consulta en paralelo a APIs de video directas (servidor local e Invidious CORS)
+    const fetchYouTubeDirect = async (): Promise<MusicTrack[]> => {
+      // 3.1 Probar servidor local si está activo
+      try {
+        const res = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.results) && data.results.length > 0) {
+            return data.results;
           }
         }
-      } catch {
-        // Ignorar
+      } catch {}
+
+      // 3.2 Probar Invidious CORS público
+      try {
+        const invRes = await fetch(
+          `https://invidious.flokinet.to/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
+          { signal: AbortSignal.timeout(3000) }
+        );
+        if (invRes.ok) {
+          const invData = await invRes.json();
+          if (Array.isArray(invData) && invData.length > 0) {
+            return invData.slice(0, 15).map((v: any) => {
+              const dur = v.lengthSeconds || 0;
+              const m = Math.floor(dur / 60);
+              const s = dur % 60;
+              return {
+                id: `yt_${v.videoId}`,
+                videoId: v.videoId,
+                title: v.title,
+                artist: v.author || 'YouTube',
+                sourceType: 'youtube' as const,
+                url: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+                artworkUrl: `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`,
+                durationSeconds: dur,
+                durationText: dur > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
+              };
+            });
+          }
+        }
+      } catch {}
+
+      return [];
+    };
+
+    try {
+      const [clientTracks, ytTracks] = await Promise.all([
+        fetchClientCatalog(),
+        fetchYouTubeDirect(),
+      ]);
+
+      // Fusionar y desduplicar resultados respetando prioridad de calidad
+      const combined: MusicTrack[] = [];
+      const seenKeys = new Set<string>();
+
+      // 1. Primero las coincidencias locales verificadas
+      for (const track of localMatches) {
+        const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          combined.push(track);
+        }
       }
-    }
 
-    clearTimeout(timeoutId);
+      // 2. Si obtuvimos videos directos de YouTube, agregarlos
+      for (const track of ytTracks) {
+        const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
+        if (!seenKeys.has(key) && track.videoId) {
+          seenKeys.add(key);
+          combined.push(track);
+        }
+      }
 
-    if (finalTracks.length > 0) {
-      setSearchResults(finalTracks);
-      setSearchError(null);
-      // Desplazar suavemente a los resultados
-      setTimeout(() => {
-        songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    } else {
-      // Filtrar coincidencias locales si las hay
-      const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
-        (t) =>
-          t.title.toLowerCase().includes(query.toLowerCase()) ||
-          t.artist.toLowerCase().includes(query.toLowerCase()) ||
-          (t.genre && t.genre.toLowerCase().includes(query.toLowerCase()))
-      );
+      // 3. Agregar el catálogo universal completo de canciones
+      for (const track of clientTracks) {
+        const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          combined.push(track);
+        }
+      }
 
+      if (combined.length > 0) {
+        setSearchResults(combined);
+        setSearchError(null);
+        setTimeout(() => {
+          songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      } else {
+        setSearchResults([]);
+        setSearchError(`No se encontraron canciones para "${query}". Intenta buscar con otro nombre.`);
+      }
+    } catch {
       if (localMatches.length > 0) {
         setSearchResults(localMatches);
         setSearchError(null);
       } else {
         setSearchResults([]);
-        setSearchError(`No se encontraron canciones en YouTube para "${query}".`);
+        setSearchError(`No se encontraron resultados para "${query}". Toca uno de los botones de artistas abajo.`);
       }
+    } finally {
+      setIsSearching(false);
     }
-
-    setIsSearching(false);
   };
 
   // Al presionar un botón de artista/género rápido: solo busca, NUNCA reproduce automáticamente
@@ -412,6 +702,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
   const embedUrl = activeVideoId
     ? `https://www.youtube.com/embed/${activeVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&rel=0`
+    : currentTrack
+    ? (currentTrack.url && currentTrack.url.includes('embed')
+        ? currentTrack.url
+        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(currentTrack.artist + ' ' + currentTrack.title)}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&rel=0`)
     : '';
 
   return (
@@ -622,17 +916,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   </button>
 
                   {/* Abrir en la app de YouTube en Android */}
-                  {activeVideoId && (
-                    <a
-                      href={`https://www.youtube.com/watch?v=${activeVideoId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Abrir esta canción en la app de YouTube"
-                      className="min-h-[44px] min-w-[40px] px-2.5 rounded-lg text-stone-400 hover:text-red-400 active:text-red-300 hover:bg-stone-850 border border-stone-750 transition-colors flex items-center justify-center cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4 text-stone-300" />
-                    </a>
-                  )}
+                  <a
+                    href={
+                      activeVideoId
+                        ? `https://www.youtube.com/watch?v=${activeVideoId}`
+                        : `https://www.youtube.com/results?search_query=${encodeURIComponent(currentTrack.artist + ' ' + currentTrack.title)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir esta canción en la app de YouTube"
+                    className="min-h-[44px] min-w-[40px] px-2.5 rounded-lg text-stone-400 hover:text-red-400 active:text-red-300 hover:bg-stone-850 border border-stone-750 transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    <ExternalLink className="w-4 h-4 text-stone-300" />
+                  </a>
                 </div>
               </div>
 
@@ -641,7 +937,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-stone-800 mt-1 shadow-md">
                   <iframe
                     ref={iframeRef}
-                    key={activeVideoId}
+                    key={activeVideoId || currentTrack.id}
                     src={embedUrl}
                     title={currentTrack.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -798,18 +1094,20 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     {/* Right: Actions */}
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                       {/* Abrir directamente en la app oficial de YouTube / navegador (ideal para Android) */}
-                      {track.videoId && (
-                        <a
-                          href={`https://www.youtube.com/watch?v=${track.videoId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Abrir en la aplicación de YouTube de tu teléfono o navegador"
-                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
-                        >
-                          <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
-                        </a>
-                      )}
+                      <a
+                        href={
+                          track.videoId
+                            ? `https://www.youtube.com/watch?v=${track.videoId}`
+                            : `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Abrir en la aplicación de YouTube de tu teléfono o navegador"
+                        className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                      >
+                        <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
+                      </a>
 
                       {/* Direct play button */}
                       <button
