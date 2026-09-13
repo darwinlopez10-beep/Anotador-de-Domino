@@ -13,6 +13,7 @@ import {
   Plus,
   Minus,
   Sliders,
+  ExternalLink,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 import { extractYouTubeId } from './MusicPlayerModal';
@@ -325,6 +326,19 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
+
+            {/* Open in YouTube App (Android / Web) */}
+            {ytVideoId && (
+              <a
+                href={`https://www.youtube.com/watch?v=${ytVideoId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir en YouTube oficial"
+                className="p-1.5 rounded-lg text-stone-400 hover:text-red-400 hover:bg-stone-800 transition-colors flex items-center justify-center"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
 
             {/* Stop & Close */}
             <button

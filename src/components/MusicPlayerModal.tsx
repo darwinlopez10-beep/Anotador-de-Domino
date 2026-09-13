@@ -14,6 +14,7 @@ import {
   Globe,
   Disc3,
   Music,
+  ExternalLink,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 
@@ -563,6 +564,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     <Tv className="w-4 h-4 text-stone-400" />
                     <ChevronUp className={`w-3.5 h-3.5 transition-transform ${isVideoExpanded ? '' : 'rotate-180'}`} />
                   </button>
+
+                  {/* Abrir en la app de YouTube en Android */}
+                  {activeVideoId && (
+                    <a
+                      href={`https://www.youtube.com/watch?v=${activeVideoId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir esta canción en la app de YouTube"
+                      className="min-h-[44px] min-w-[40px] px-2.5 rounded-lg text-stone-400 hover:text-red-400 active:text-red-300 hover:bg-stone-850 border border-stone-750 transition-colors flex items-center justify-center cursor-pointer"
+                    >
+                      <ExternalLink className="w-4 h-4 text-stone-300" />
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -714,8 +728,23 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Right: Direct play button */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                      {/* Abrir directamente en la app oficial de YouTube / navegador (ideal para Android) */}
+                      {track.videoId && (
+                        <a
+                          href={`https://www.youtube.com/watch?v=${track.videoId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Abrir en la aplicación de YouTube de tu teléfono o navegador"
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
+                        </a>
+                      )}
+
+                      {/* Direct play button */}
                       <button
                         type="button"
                         onClick={(e) => {
