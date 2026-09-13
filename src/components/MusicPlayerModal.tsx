@@ -309,13 +309,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     }, 50);
   };
 
-  const handleSearchYouTube = async (termToSearch?: string, autoPlayFirst: boolean = true) => {
+  const handleSearchYouTube = async (termToSearch?: string) => {
     const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
-    const query = (rawVal || '').trim() || 'salsa';
+    const query = (rawVal || '').trim();
+    if (!query) return;
 
-    // Sincronizar input y ocultar teclado táctil móvil para ver el reproductor
+    // Sincronizar input y ocultar teclado táctil móvil para ver la lista de canciones abajo
     setSearchQuery(query);
     if (searchInputRef.current) {
+      searchInputRef.current.value = query;
       searchInputRef.current.blur();
     }
 
@@ -325,7 +327,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
@@ -341,9 +343,6 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       const data = await response.json();
       if (data && Array.isArray(data.results) && data.results.length > 0) {
         setSearchResults(data.results);
-        if (autoPlayFirst) {
-          handleSelectAndScrollToPlayer(data.results[0]);
-        }
       } else {
         const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
           (t) =>
@@ -352,12 +351,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         );
         if (localMatches.length > 0) {
           setSearchResults(localMatches);
-          if (autoPlayFirst) {
-            handleSelectAndScrollToPlayer(localMatches[0]);
-          }
         } else {
-          setSearchResults(CURATED_DOMINO_YOUTUBE_TRACKS);
-          setSearchError(`No se encontraron resultados en internet para "${query}". Mostrando recomendaciones.`);
+          setSearchResults([]);
+          setSearchError(`No se encontraron canciones en internet para "${query}".`);
         }
       }
     } catch (err: unknown) {
@@ -367,38 +363,25 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
           t.title.toLowerCase().includes(query.toLowerCase()) ||
           t.artist.toLowerCase().includes(query.toLowerCase())
       );
-      const fallbackList = localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS;
-      setSearchResults(fallbackList);
-      if (autoPlayFirst && fallbackList.length > 0) {
-        handleSelectAndScrollToPlayer(fallbackList[0]);
-      }
+      setSearchResults(localMatches.length > 0 ? localMatches : CURATED_DOMINO_YOUTUBE_TRACKS);
+      setSearchError(`Mostrando canciones recomendadas para "${query}".`);
     } finally {
       setIsSearching(false);
+      // En celular igual que en computadora: mostrar y posicionar la vista en la lista de canciones abajo
       setTimeout(() => {
-        if (playerContainerRef.current) {
-          playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
+        searchResultsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
     }
   };
 
-  // Al presionar un botón pequeño (Salsa Brava, Joe Arroyo, Héctor Lavoe, etc.)
-  // ¡Se abre y reproduce la canción al instante y además se buscan más canciones en internet!
+  // Al presionar un cuadro (Salsa Brava, Joe Arroyo, Héctor Lavoe, etc.)
+  // Pone todas las canciones de ese artista o género abajo en la lista
   const handleQuickTagClick = (tag: string) => {
     setSearchQuery(tag);
     if (searchInputRef.current) {
       searchInputRef.current.value = tag;
-      searchInputRef.current.blur();
     }
-
-    // 1. Abrir y reproducir la canción emblemática inmediatamente
-    const quickPick = POPULAR_QUICK_PICKS[tag];
-    if (quickPick) {
-      handleSelectAndScrollToPlayer(quickPick);
-    }
-
-    // 2. Y en segundo plano traer más opciones en internet para listar abajo
-    handleSearchYouTube(tag, !quickPick);
+    handleSearchYouTube(tag);
   };
 
   const handleMuteClick = () => {
@@ -600,7 +583,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
                 const term = searchInputRef.current?.value || searchQuery;
-                handleSearchYouTube(term, true);
+                handleSearchYouTube(term);
               }}
               className="flex flex-col sm:flex-row gap-2"
             >
@@ -622,10 +605,10 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         e.preventDefault();
                         e.stopPropagation();
                         const val = (e.currentTarget.value || searchQuery).trim();
-                        handleSearchYouTube(val, true);
+                        handleSearchYouTube(val);
                       }
                     }}
-                    placeholder="Escribe una canción o artista (ej: Frankie Ruiz, Joe Arroyo)..."
+                    placeholder="Escribe una canción o artista (ej: Frank Sinatra, Hector Lavoe)..."
                     className="w-full bg-stone-950 border border-stone-750 focus:border-amber-500 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none transition-colors"
                   />
                   {searchQuery && (
@@ -661,18 +644,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               </div>
             </form>
 
-            {/* Popular quick-tap search chips with instant play icons */}
+            {/* Popular quick-tap search chips */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-stone-400 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Toca para reproducir al instante:
+                Toca para buscar canciones de:
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 {POPULAR_SEARCH_TAGS.map((tag) => {
-                  const isCurrentTag =
-                    (currentTrack?.artist?.toLowerCase().includes(tag.toLowerCase()) ||
-                     currentTrack?.genre?.toLowerCase().includes(tag.toLowerCase()) ||
-                     searchQuery.toLowerCase() === tag.toLowerCase());
+                  const isCurrentTag = searchQuery.toLowerCase() === tag.toLowerCase();
                   return (
                     <button
                       key={tag}
@@ -684,7 +664,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                           : 'bg-stone-850 hover:bg-stone-800 active:bg-stone-750 text-stone-200 hover:text-amber-300 border-stone-750'
                       }`}
                     >
-                      <Play className={`w-3 h-3 fill-current ${isCurrentTag ? 'text-stone-950' : 'text-amber-400'}`} />
+                      <Search className={`w-3 h-3 ${isCurrentTag ? 'text-stone-950' : 'text-amber-400'}`} />
                       <span>{tag}</span>
                     </button>
                   );
