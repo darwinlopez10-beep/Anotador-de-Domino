@@ -186,8 +186,15 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
               {isTwoTeams && (
                 <button
                   type="button"
-                  onClick={() => setIsEditingNames(!isEditingNames)}
-                  className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium transition-colors"
+                  onClick={() => {
+                    const next = !isEditingNames;
+                    setIsEditingNames(next);
+                    if (next) {
+                      if (/^jugador\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
+                      if (/^jugador\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
+                    }
+                  }}
+                  className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium transition-colors cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>{isEditingNames ? 'Cerrar edición' : 'Agregar / Editar nombres'}</span>
@@ -223,6 +230,10 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                       type="text"
                       value={editPlayer1Name}
                       onChange={(e) => setEditPlayer1Name(e.target.value)}
+                      onFocus={(e) => {
+                        if (/^jugador\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
+                        e.target.select();
+                      }}
                       placeholder="Jugador 1"
                       className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                     />
@@ -237,6 +248,10 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                       type="text"
                       value={editPlayer2Name}
                       onChange={(e) => setEditPlayer2Name(e.target.value)}
+                      onFocus={(e) => {
+                        if (/^jugador\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
+                        e.target.select();
+                      }}
                       placeholder="Jugador 2"
                       className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                     />

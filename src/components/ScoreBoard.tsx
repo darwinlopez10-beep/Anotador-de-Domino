@@ -24,16 +24,21 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
 
   const startEdit = (player: PlayerScore) => {
     setEditingPlayerId(player.id);
-    setEditingName(player.name);
+    // Limpiar automáticamente si tiene el nombre por defecto ("Jugador 1", "Jugador 2", etc.)
+    const isDefault = /^jugador\s*\d*$/i.test(player.name.trim());
+    if (isDefault) {
+      setEditingName('');
+    } else {
+      setEditingName(player.name);
+    }
   };
 
-  const saveEdit = (playerId: string) => {
+  const saveEdit = (playerId: string, defaultName: string) => {
     const trimmed = editingName.trim();
-    if (trimmed) {
-      onUpdatePlayerName(playerId, trimmed);
-      if (onUpdatePlayerMembers) {
-        onUpdatePlayerMembers(playerId, [trimmed]);
-      }
+    const finalName = trimmed || defaultName;
+    onUpdatePlayerName(playerId, finalName);
+    if (onUpdatePlayerMembers) {
+      onUpdatePlayerMembers(playerId, [finalName]);
     }
     setEditingPlayerId(null);
   };
@@ -83,26 +88,35 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     />
                     {editingPlayerId === player.id ? (
                       <div className="flex items-center gap-1 sm:gap-1.5 flex-1">
-                        <input
-                          type="text"
-                          value={editingName}
-                          maxLength={25}
-                          autoFocus
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveEdit(player.id);
-                            if (e.key === 'Escape') setEditingPlayerId(null);
-                          }}
-                          className="bg-stone-900 border border-amber-500/60 rounded-lg px-2 py-0.5 text-base sm:text-xl text-stone-100 focus:outline-none w-full font-black"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => saveEdit(player.id)}
-                          className="p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs flex-shrink-0 cursor-pointer"
-                          title="Guardar nombre"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
+                        {(() => {
+                          const defaultFallback = player.id === 'team_1' ? 'Jugador 1' : player.id === 'team_2' ? 'Jugador 2' : (player.name || 'Jugador');
+                          return (
+                            <>
+                              <input
+                                type="text"
+                                value={editingName}
+                                placeholder={defaultFallback}
+                                maxLength={25}
+                                autoFocus
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEdit(player.id, defaultFallback);
+                                  if (e.key === 'Escape') setEditingPlayerId(null);
+                                }}
+                                className="bg-stone-900 border border-amber-500/60 rounded-lg px-2 py-0.5 text-base sm:text-xl text-stone-100 placeholder:text-stone-500 focus:outline-none w-full font-black"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => saveEdit(player.id, defaultFallback)}
+                                className="p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs flex-shrink-0 cursor-pointer"
+                                title="Guardar nombre"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5 group cursor-pointer min-w-0" onClick={() => startEdit(player)}>

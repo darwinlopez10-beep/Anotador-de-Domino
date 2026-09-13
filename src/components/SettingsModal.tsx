@@ -232,6 +232,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         value={player1Name}
                         maxLength={20}
                         onChange={(e) => setPlayer1Name(e.target.value)}
+                        onFocus={(e) => {
+                          if (/^jugador\s*1$/i.test(player1Name.trim())) setPlayer1Name('');
+                          e.target.select();
+                        }}
                         className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                         placeholder="Jugador 1"
                       />
@@ -252,6 +256,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         value={player2Name}
                         maxLength={20}
                         onChange={(e) => setPlayer2Name(e.target.value)}
+                        onFocus={(e) => {
+                          if (/^jugador\s*2$/i.test(player2Name.trim())) setPlayer2Name('');
+                          e.target.select();
+                        }}
                         className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                         placeholder="Jugador 2"
                       />
