@@ -49,6 +49,8 @@ import {
   recordSongPlay,
   deleteSongFromHistory,
   clearMusicHistory,
+  loadMusicAutoplay,
+  saveMusicAutoplay,
   ActiveGameState,
 } from './utils/storage';
 import {
@@ -199,10 +201,16 @@ export default function App() {
   const [musicDuration, setMusicDuration] = useState(0);
   const [customTracks, setCustomTracks] = useState<MusicTrack[]>(() => loadCustomTracks());
   const [musicHistory, setMusicHistory] = useState<MusicHistoryItem[]>(() => loadMusicHistory());
+  const [isMusicAutoplay, setIsMusicAutoplay] = useState<boolean>(() => loadMusicAutoplay());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playNextTrackRef = useRef<() => void>(() => {});
+  const isAutoplayRef = useRef<boolean>(isMusicAutoplay);
+
+  useEffect(() => {
+    isAutoplayRef.current = isMusicAutoplay;
+  }, [isMusicAutoplay]);
 
   // Initialize and manage audio element
   useEffect(() => {
@@ -216,8 +224,12 @@ export default function App() {
 
     const onEnded = () => {
       setMusicCurrentTime(0);
-      // Auto-reproducir la siguiente canción automáticamente
-      playNextTrackRef.current();
+      // Auto-reproducir la siguiente canción automáticamente si Autoplay está activo
+      if (isAutoplayRef.current) {
+        playNextTrackRef.current();
+      } else {
+        setIsMusicPlaying(false);
+      }
     };
 
     const onError = () => {
@@ -765,6 +777,23 @@ export default function App() {
     );
   };
 
+  const handleToggleAutoplay = useCallback(() => {
+    setIsMusicAutoplay((prev) => {
+      const next = !prev;
+      saveMusicAutoplay(next);
+      setToastMessage(
+        lang === 'es'
+          ? next
+            ? 'Autoplay activado: Pasa automáticamente a la siguiente canción solo en el celular.'
+            : 'Autoplay desactivado: La música se detendrá al terminar la canción.'
+          : next
+            ? 'Autoplay ON: Plays next song automatically on mobile.'
+            : 'Autoplay OFF: Playback stops when track finishes.'
+      );
+      return next;
+    });
+  }, [lang]);
+
   const handleToggleMusicPlay = useCallback(() => {
     if (!currentMusicTrack) {
       setIsMusicModalOpen(true);
@@ -953,6 +982,8 @@ export default function App() {
           onClosePlayer={handleCloseMusicPlayer}
           onNextTrack={handlePlayNextTrack}
           onPrevTrack={handlePlayPrevTrack}
+          isAutoplay={isMusicAutoplay}
+          onToggleAutoplay={handleToggleAutoplay}
           isModalOpen={isMusicModalOpen}
           lang={lang}
         />
@@ -1079,6 +1110,8 @@ export default function App() {
         onToggleMute={handleToggleMute}
         onPlayNext={handlePlayNextTrack}
         onPlayPrev={handlePlayPrevTrack}
+        isAutoplay={isMusicAutoplay}
+        onToggleAutoplay={handleToggleAutoplay}
         customTracks={customTracks}
         onAddCustomTrack={handleAddCustomTrack}
         onDeleteCustomTrack={handleDeleteCustomTrack}

@@ -306,3 +306,29 @@ export function clearMusicHistory(): void {
   }
 }
 
+/**
+ * Carga la preferencia de reproducción automática continua (Autoplay)
+ */
+export function loadMusicAutoplay(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const val = localStorage.getItem('domino_music_autoplay');
+    if (val === null) return true;
+    return val === 'true';
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Guarda la preferencia de reproducción automática continua (Autoplay)
+ */
+export function saveMusicAutoplay(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('domino_music_autoplay', enabled ? 'true' : 'false');
+  } catch {
+    // Ignore
+  }
+}
+

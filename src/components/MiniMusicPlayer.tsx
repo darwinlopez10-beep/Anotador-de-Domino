@@ -36,6 +36,8 @@ interface MiniMusicPlayerProps {
   onClosePlayer: () => void;
   onNextTrack?: () => void;
   onPrevTrack?: () => void;
+  isAutoplay?: boolean;
+  onToggleAutoplay?: () => void;
   isModalOpen?: boolean;
   lang?: AppLanguage;
 }
@@ -53,6 +55,8 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   onClosePlayer,
   onNextTrack,
   onPrevTrack,
+  isAutoplay = true,
+  onToggleAutoplay,
   isModalOpen = false,
   lang = 'es',
 }) => {
@@ -162,6 +166,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
 
   // Guard against duplicate triggers of next track for the same song
   const hasTriggeredNextRef = useRef(false);
+  const prevLoadedVideoIdRef = useRef<string | null>(ytVideoId || track.id || null);
 
   // Reset trigger flag when track changes
   useEffect(() => {
@@ -169,12 +174,20 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   }, [track.id, track.videoId]);
 
   const triggerNextTrack = useCallback(() => {
+    // If Autoplay is disabled, pause instead of skipping automatically
+    if (!isAutoplay) {
+      if (isPlaying) {
+        onTogglePlay();
+      }
+      return;
+    }
+
     if (hasTriggeredNextRef.current) return;
     hasTriggeredNextRef.current = true;
     if (onNextTrack) {
       onNextTrack();
     }
-  }, [onNextTrack]);
+  }, [isAutoplay, isPlaying, onTogglePlay, onNextTrack]);
 
   // Listen to YouTube postMessage events (onStateChange: 0 means ENDED, infoDelivery playerState: 0)
   useEffect(() => {
@@ -235,6 +248,51 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     return () => clearInterval(interval);
   }, [isYouTube, isPlaying, iframeLoaded]);
 
+  // Construct standard embed URL with JavaScript API enabled and origin
+  const originParam =
+    typeof window !== 'undefined' && window.location.origin
+      ? `&origin=${encodeURIComponent(window.location.origin)}`
+      : '';
+
+  const embedUrl = ytVideoId
+    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
+    : track.url && track.url.includes('embed')
+    ? `${track.url}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
+    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
+        track.artist + ' ' + track.title
+      )}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`;
+
+  // Handle seamless track transition in existing iframe on mobile
+  // Mobile browsers block autoplay if a new iframe DOM element is mounted,
+  // but allow loadVideoById on an already activated iframe!
+  useEffect(() => {
+    if (!isYouTube || !iframeLoaded) return;
+
+    const currentKey = ytVideoId || track.id || track.url;
+    if (prevLoadedVideoIdRef.current === currentKey) return;
+    prevLoadedVideoIdRef.current = currentKey;
+
+    if (ytVideoId) {
+      sendYouTubeCommand('loadVideoById', [ytVideoId, 0]);
+      sendYouTubeCommand('setVolume', [Math.round(volume * 100)]);
+      if (volume === 0) {
+        sendYouTubeCommand('mute');
+      } else {
+        sendYouTubeCommand('unMute');
+      }
+      sendYouTubeCommand('playVideo');
+      const t1 = setTimeout(() => sendYouTubeCommand('playVideo'), 200);
+      const t2 = setTimeout(() => sendYouTubeCommand('playVideo'), 600);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    } else if (track.url) {
+      sendYouTubeCommand('loadVideoByUrl', [embedUrl]);
+      sendYouTubeCommand('playVideo');
+    }
+  }, [ytVideoId, track.id, track.url, isYouTube, iframeLoaded, volume, embedUrl]);
+
   // When YouTube iframe finishes loading, initialize its state
   const handleIframeLoad = () => {
     setIframeLoaded(true);
@@ -265,20 +323,6 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     onVolumeChange(next);
   };
 
-  // Construct standard embed URL with JavaScript API enabled and origin
-  const originParam =
-    typeof window !== 'undefined' && window.location.origin
-      ? `&origin=${encodeURIComponent(window.location.origin)}`
-      : '';
-
-  const embedUrl = ytVideoId
-    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
-    : track.url && track.url.includes('embed')
-    ? `${track.url}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
-    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
-        track.artist + ' ' + track.title
-      )}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`;
-
   return (
     <div
       id="mini-music-player-container"
@@ -298,7 +342,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
           >
             <iframe
               ref={iframeRef}
-              key={ytVideoId || track.id}
+              id="persistent-domino-youtube-iframe"
               src={embedUrl}
               title={track.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -319,7 +363,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
           </div>
         )}
 
-        {/* Header indicator: Segundo Plano activo & Auto Siguiente */}
+        {/* Header indicator: Segundo Plano activo & Auto Siguiente / Autoplay */}
         <div className="flex items-center justify-between text-[10px] text-stone-400 px-0.5">
           <div className="flex items-center gap-1.5 flex-wrap">
             <div
@@ -336,19 +380,50 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
               </span>
             </div>
 
-            <div
-              className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full"
-              title={
-                lang === 'es'
-                  ? 'Reproducción continua automática: Al terminar la canción se reproduce la siguiente.'
-                  : 'Continuous auto-play: Next track plays automatically when current finishes.'
-              }
-            >
-              <Repeat className="w-2.5 h-2.5" />
-              <span className="font-semibold tracking-wide uppercase text-[9px]">
-                {lang === 'es' ? 'Auto-Siguiente' : 'Auto-Next'}
-              </span>
-            </div>
+            {onToggleAutoplay ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleAutoplay();
+                }}
+                className={`flex items-center gap-1 border px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                  isAutoplay
+                    ? 'text-amber-300 bg-amber-500/20 border-amber-500/45 hover:bg-amber-500/30'
+                    : 'text-stone-400 bg-stone-850 border-stone-700 hover:text-stone-200'
+                }`}
+                title={
+                  lang === 'es'
+                    ? isAutoplay
+                      ? 'Autoplay activado: Pasa automáticamente a la siguiente canción solo en el celular. Toca para desactivar.'
+                      : 'Autoplay desactivado: Se detendrá al terminar la canción. Toca para activar.'
+                    : isAutoplay
+                      ? 'Autoplay enabled: Advances automatically on mobile. Tap to disable.'
+                      : 'Autoplay disabled: Stops when track finishes. Tap to enable.'
+                }
+              >
+                <Repeat className={`w-2.5 h-2.5 ${isAutoplay ? 'text-amber-400' : 'text-stone-500'}`} />
+                <span className="font-semibold tracking-wide uppercase text-[9px]">
+                  {isAutoplay
+                    ? (lang === 'es' ? 'Autoplay: Activado' : 'Autoplay: ON')
+                    : (lang === 'es' ? 'Autoplay: Desactivado' : 'Autoplay: OFF')}
+                </span>
+              </button>
+            ) : (
+              <div
+                className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full"
+                title={
+                  lang === 'es'
+                    ? 'Reproducción continua automática: Al terminar la canción se reproduce la siguiente.'
+                    : 'Continuous auto-play: Next track plays automatically when current finishes.'
+                }
+              >
+                <Repeat className="w-2.5 h-2.5" />
+                <span className="font-semibold tracking-wide uppercase text-[9px]">
+                  {lang === 'es' ? 'Autoplay: Activado' : 'Autoplay: ON'}
+                </span>
+              </div>
+            )}
           </div>
 
           <span className="text-stone-500 text-[10px] hidden sm:inline">

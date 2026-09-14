@@ -53,6 +53,8 @@ interface MusicPlayerModalProps {
   onToggleMute?: () => void;
   onPlayNext?: () => void;
   onPlayPrev?: () => void;
+  isAutoplay?: boolean;
+  onToggleAutoplay?: () => void;
   customTracks?: MusicTrack[];
   onAddCustomTrack?: (track: MusicTrack) => void;
   onDeleteCustomTrack?: (trackId: string) => void;
@@ -381,6 +383,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   onToggleMute,
   onPlayNext,
   onPlayPrev,
+  isAutoplay = true,
+  onToggleAutoplay,
   lang,
   musicHistory,
   onDeleteHistoryItem,
@@ -990,12 +994,41 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       {lang === 'es' ? 'Segundo Plano' : 'Background Active'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full">
-                    <Repeat className="w-2.5 h-2.5" />
-                    <span className="font-semibold uppercase text-[9px] tracking-wide">
-                      {lang === 'es' ? 'Auto-Siguiente Activo' : 'Auto-Next'}
-                    </span>
-                  </div>
+
+                  {onToggleAutoplay ? (
+                    <button
+                      type="button"
+                      onClick={onToggleAutoplay}
+                      className={`flex items-center gap-1 border px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                        isAutoplay
+                          ? 'text-amber-300 bg-amber-500/20 border-amber-500/40 hover:bg-amber-500/30'
+                          : 'text-stone-400 bg-stone-850 border-stone-700 hover:text-stone-200'
+                      }`}
+                      title={
+                        lang === 'es'
+                          ? isAutoplay
+                            ? 'Autoplay activado: Pasa automáticamente a la siguiente canción en el celular. Toca para desactivar.'
+                            : 'Autoplay desactivado: Se detendrá al terminar. Toca para activar.'
+                          : isAutoplay
+                            ? 'Autoplay enabled: Advances automatically on mobile. Tap to disable.'
+                            : 'Autoplay disabled: Stops when track finishes. Tap to enable.'
+                      }
+                    >
+                      <Repeat className={`w-2.5 h-2.5 ${isAutoplay ? 'text-amber-400' : 'text-stone-500'}`} />
+                      <span className="font-semibold uppercase text-[9px] tracking-wide">
+                        {isAutoplay
+                          ? (lang === 'es' ? 'Autoplay: Activado' : 'Autoplay: ON')
+                          : (lang === 'es' ? 'Autoplay: Desactivado' : 'Autoplay: OFF')}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full">
+                      <Repeat className="w-2.5 h-2.5" />
+                      <span className="font-semibold uppercase text-[9px] tracking-wide">
+                        {lang === 'es' ? 'Auto-Siguiente Activo' : 'Auto-Next'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <span className="text-[10px] text-stone-400 hidden sm:inline">
                   {lang === 'es' ? 'Suena al salir o apagar la pantalla' : 'Plays when leaving app or locked'}
@@ -1077,6 +1110,33 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       className="min-h-[44px] min-w-[40px] p-2 rounded-lg text-stone-300 hover:text-white hover:bg-stone-850 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
                     >
                       <SkipForward className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Autoplay Toggle Button */}
+                  {onToggleAutoplay && (
+                    <button
+                      type="button"
+                      onClick={onToggleAutoplay}
+                      title={
+                        lang === 'es'
+                          ? isAutoplay
+                            ? 'Autoplay activado: Pasa automáticamente a la siguiente canción en el celular. Toca para desactivar.'
+                            : 'Autoplay desactivado: Se detendrá al terminar. Toca para activar.'
+                          : isAutoplay
+                            ? 'Autoplay on: Advances automatically on mobile. Tap to turn off.'
+                            : 'Autoplay off: Stops at song end. Tap to turn on.'
+                      }
+                      className={`min-h-[44px] min-w-[40px] px-2.5 rounded-lg border transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 ${
+                        isAutoplay
+                          ? 'text-amber-300 bg-amber-500/20 border-amber-500/40 hover:bg-amber-500/30'
+                          : 'text-stone-400 bg-stone-850 border-stone-750 hover:text-stone-200'
+                      }`}
+                    >
+                      <Repeat className={`w-3.5 h-3.5 ${isAutoplay ? 'text-amber-400' : 'text-stone-500'}`} />
+                      <span className="text-[10px] font-bold uppercase hidden md:inline">
+                        {isAutoplay ? 'Autoplay' : 'Manual'}
+                      </span>
                     </button>
                   )}
 
