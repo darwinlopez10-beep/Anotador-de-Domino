@@ -14,8 +14,12 @@ import {
   Minus,
   Sliders,
   ExternalLink,
+  SkipBack,
+  SkipForward,
+  Radio,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
+import { AppLanguage } from '../utils/i18n';
 import { extractYouTubeId } from './MusicPlayerModal';
 
 interface MiniMusicPlayerProps {
@@ -29,6 +33,10 @@ interface MiniMusicPlayerProps {
   onToggleMute?: () => void;
   onOpenFullPlayer: () => void;
   onClosePlayer: () => void;
+  onNextTrack?: () => void;
+  onPrevTrack?: () => void;
+  isModalOpen?: boolean;
+  lang?: AppLanguage;
 }
 
 export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
@@ -42,6 +50,10 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   onToggleMute,
   onOpenFullPlayer,
   onClosePlayer,
+  onNextTrack,
+  onPrevTrack,
+  isModalOpen = false,
+  lang = 'es',
 }) => {
   const [showVideo, setShowVideo] = useState(true);
   const [showVolumeControls, setShowVolumeControls] = useState(true);
@@ -76,13 +88,6 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   // Calculate percentage for progress bar
   const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
-  const formatTime = (secs: number) => {
-    if (isNaN(secs) || secs < 0) return '0:00';
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   // Helper to send commands to YouTube IFrame API
   const sendYouTubeCommand = (func: string, args: (string | number)[] = []) => {
     if (!iframeRef.current?.contentWindow) return;
@@ -104,7 +109,6 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
 
     if (isPlaying) {
       sendYouTubeCommand('playVideo');
-      // Retry once after 100ms in case iframe was just un-paused
       const t = setTimeout(() => sendYouTubeCommand('playVideo'), 100);
       return () => clearTimeout(t);
     } else {
@@ -129,12 +133,36 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     }
   }, [volume, isYouTube, iframeLoaded]);
 
+  // Protección y resistencia para reproducción en segundo plano:
+  // Cuando el usuario cambia de app (WhatsApp, navegador, etc.) o bloquea la pantalla,
+  // los navegadores móviles pueden intentar pausar videos en iframes.
+  // Enviamos inmediatamente el comando playVideo para evitar la pausa automática.
+  useEffect(() => {
+    if (!isYouTube) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && isPlaying) {
+        sendYouTubeCommand('playVideo');
+        setTimeout(() => sendYouTubeCommand('playVideo'), 150);
+        setTimeout(() => sendYouTubeCommand('playVideo'), 450);
+        setTimeout(() => sendYouTubeCommand('playVideo'), 1200);
+      } else if (document.visibilityState === 'visible' && isPlaying) {
+        sendYouTubeCommand('playVideo');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handleVisibilityChange);
+    };
+  }, [isYouTube, isPlaying]);
+
   // When YouTube iframe finishes loading, initialize its state
   const handleIframeLoad = () => {
     setIframeLoaded(true);
-    // Tell YouTube API we are listening
     sendYouTubeCommand('listening');
-    // Set initial volume
     sendYouTubeCommand('setVolume', [Math.round(volume * 100)]);
 
     if (volume === 0) {
@@ -170,10 +198,14 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   return (
     <div
       id="mini-music-player-container"
-      className="fixed bottom-16 sm:bottom-6 landscape:bottom-2 left-2 right-2 sm:left-auto sm:right-6 landscape:left-auto landscape:right-3 sm:w-96 landscape:w-84 z-40 animate-in slide-in-from-bottom-3 duration-200"
+      className={`transition-all duration-300 ${
+        isModalOpen
+          ? 'opacity-0 pointer-events-none fixed -bottom-96 -right-96 z-0'
+          : 'fixed bottom-16 sm:bottom-6 landscape:bottom-2 left-2 right-2 sm:left-auto sm:right-6 landscape:left-auto landscape:right-3 sm:w-96 landscape:w-84 z-40 animate-in slide-in-from-bottom-3 duration-200'
+      }`}
     >
       <div className="bg-stone-900/95 backdrop-blur-md border border-stone-750/90 rounded-2xl shadow-2xl shadow-black/80 p-2.5 sm:p-3 flex flex-col gap-2">
-        {/* Single persistent YouTube iframe element (prevents restarting song when toggling video) */}
+        {/* Persistent YouTube iframe element (keeps playing in background even if modal is open) */}
         {isYouTube && (ytVideoId || track.artist || track.url) && (
           <div
             className={`transition-all duration-300 overflow-hidden rounded-xl bg-black border border-stone-800 ${
@@ -203,15 +235,36 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
           </div>
         )}
 
+        {/* Header indicator: Segundo Plano activo */}
+        <div className="flex items-center justify-between text-[10px] text-stone-400 px-0.5">
+          <div
+            className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full"
+            title={
+              lang === 'es'
+                ? 'Sonando en segundo plano: Puedes salir de la app o apagar la pantalla y la música continuará sonando.'
+                : 'Playing in background: Music continues playing when leaving app or turning off screen.'
+            }
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-semibold tracking-wide uppercase text-[9px]">
+              {lang === 'es' ? 'Segundo Plano Activo' : 'Background Active'}
+            </span>
+          </div>
+
+          <span className="text-stone-500 text-[10px]">
+            {lang === 'es' ? 'Controles en notificaciones' : 'Lock screen controls'}
+          </span>
+        </div>
+
         {/* Main Track Info & Primary Controls */}
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center justify-between gap-2">
           {/* Track Cover & Info */}
           <div
             onClick={onOpenFullPlayer}
             className="flex items-center gap-2.5 truncate cursor-pointer group flex-1"
-            title="Abrir buscador y lista completa"
+            title={lang === 'es' ? 'Abrir buscador y lista completa' : 'Open full player and search'}
           >
-            <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-stone-800 border border-stone-700/80 flex-shrink-0 flex items-center justify-center shadow-inner">
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-stone-800 border border-stone-700/80 flex-shrink-0 flex items-center justify-center shadow-inner">
               {track.artworkUrl ? (
                 <img
                   src={track.artworkUrl}
@@ -255,7 +308,13 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
                 <span className="truncate">{track.artist}</span>
                 <span className="text-stone-600">•</span>
                 <span className="font-mono text-[10px] font-semibold text-amber-400/90">
-                  {isPlaying ? 'Reproduciendo' : 'En Pausa'}
+                  {isPlaying
+                    ? lang === 'es'
+                      ? 'Reproduciendo'
+                      : 'Playing'
+                    : lang === 'es'
+                    ? 'En Pausa'
+                    : 'Paused'}
                 </span>
                 {track.durationText && (
                   <>
@@ -271,12 +330,71 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Previous Track Button */}
+            {onPrevTrack && (
+              <button
+                type="button"
+                onClick={onPrevTrack}
+                title={lang === 'es' ? 'Canción anterior' : 'Previous song'}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors active:scale-95"
+              >
+                <SkipBack className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Play / Pause Toggle Button */}
+            <button
+              id="btn-mini-play-pause"
+              type="button"
+              onClick={onTogglePlay}
+              title={
+                isPlaying
+                  ? lang === 'es'
+                    ? 'Pausar música'
+                    : 'Pause'
+                  : lang === 'es'
+                  ? 'Reanudar música'
+                  : 'Play'
+              }
+              className={`p-2 rounded-xl active:scale-95 font-bold shadow-md transition-all flex items-center justify-center ${
+                isPlaying
+                  ? 'bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-amber-950/40 ring-2 ring-amber-400/50'
+                  : 'bg-stone-750 hover:bg-amber-500 hover:text-stone-950 text-stone-100 border border-stone-600'
+              }`}
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 fill-current" />
+              ) : (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              )}
+            </button>
+
+            {/* Next Track Button */}
+            {onNextTrack && (
+              <button
+                type="button"
+                onClick={onNextTrack}
+                title={lang === 'es' ? 'Siguiente canción' : 'Next song'}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors active:scale-95"
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+              </button>
+            )}
+
             {/* Toggle Video Frame (if YouTube) */}
             {isYouTube && (
               <button
                 type="button"
                 onClick={() => setShowVideo((prev) => !prev)}
-                title={showVideo ? 'Ocultar video' : 'Ver video de YouTube'}
+                title={
+                  showVideo
+                    ? lang === 'es'
+                      ? 'Ocultar video'
+                      : 'Hide video'
+                    : lang === 'es'
+                    ? 'Ver video de YouTube'
+                    : 'Show video'
+                }
                 className={`p-1.5 rounded-lg transition-colors ${
                   showVideo
                     ? 'text-red-400 bg-red-500/20 border border-red-500/40'
@@ -291,7 +409,15 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
             <button
               type="button"
               onClick={() => setShowVolumeControls((prev) => !prev)}
-              title={showVolumeControls ? 'Ocultar barra de volumen' : 'Mostrar controles de volumen'}
+              title={
+                showVolumeControls
+                  ? lang === 'es'
+                    ? 'Ocultar controles de volumen'
+                    : 'Hide volume'
+                  : lang === 'es'
+                  ? 'Mostrar volumen'
+                  : 'Show volume'
+              }
               className={`p-1.5 rounded-lg transition-colors ${
                 showVolumeControls
                   ? 'text-amber-400 bg-amber-500/15'
@@ -301,30 +427,11 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
               <Sliders className="w-3.5 h-3.5" />
             </button>
 
-            {/* Play / Pause Toggle Button */}
-            <button
-              id="btn-mini-play-pause"
-              type="button"
-              onClick={onTogglePlay}
-              title={isPlaying ? 'Pausar música' : 'Reanudar música'}
-              className={`p-2 rounded-xl active:scale-95 font-bold shadow-md transition-all flex items-center justify-center ${
-                isPlaying
-                  ? 'bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-amber-950/40 ring-2 ring-amber-400/50'
-                  : 'bg-stone-750 hover:bg-amber-500 hover:text-stone-950 text-stone-100 border border-stone-600'
-              }`}
-            >
-              {isPlaying ? (
-                <Pause className="w-4 h-4 fill-current" />
-              ) : (
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              )}
-            </button>
-
             {/* Expand / Open Modal */}
             <button
               type="button"
               onClick={onOpenFullPlayer}
-              title="Buscar más música"
+              title={lang === 'es' ? 'Buscar más música' : 'Search more music'}
               className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -336,7 +443,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
                 href={`https://www.youtube.com/watch?v=${ytVideoId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Abrir en YouTube oficial"
+                title={lang === 'es' ? 'Abrir en YouTube oficial' : 'Open in official YouTube'}
                 className="p-1.5 rounded-lg text-stone-400 hover:text-red-400 hover:bg-stone-800 transition-colors flex items-center justify-center"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -347,7 +454,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
             <button
               type="button"
               onClick={onClosePlayer}
-              title="Cerrar reproductor"
+              title={lang === 'es' ? 'Cerrar reproductor' : 'Close player'}
               className="p-1.5 rounded-lg text-stone-400 hover:text-red-400 hover:bg-stone-800 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
@@ -362,7 +469,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
             <button
               type="button"
               onClick={handleMuteClick}
-              title={volume === 0 ? 'Activar sonido' : 'Silenciar'}
+              title={volume === 0 ? (lang === 'es' ? 'Activar sonido' : 'Unmute') : (lang === 'es' ? 'Silenciar' : 'Mute')}
               className="p-1 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors flex-shrink-0"
             >
               {volume === 0 ? (
@@ -379,7 +486,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
               type="button"
               onClick={handleDecreaseVolume}
               disabled={volume <= 0}
-              title="Bajar volumen (-10%)"
+              title={lang === 'es' ? 'Bajar volumen (-10%)' : 'Decrease volume'}
               className="p-1 rounded-lg bg-stone-800 hover:bg-stone-750 active:scale-95 disabled:opacity-40 text-stone-300 hover:text-white border border-stone-700 transition-all flex items-center justify-center flex-shrink-0"
             >
               <Minus className="w-3.5 h-3.5" />
@@ -405,7 +512,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
               type="button"
               onClick={handleIncreaseVolume}
               disabled={volume >= 1}
-              title="Subir volumen (+10%)"
+              title={lang === 'es' ? 'Subir volumen (+10%)' : 'Increase volume'}
               className="p-1 rounded-lg bg-stone-800 hover:bg-stone-750 active:scale-95 disabled:opacity-40 text-stone-300 hover:text-white border border-stone-700 transition-all flex items-center justify-center flex-shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />

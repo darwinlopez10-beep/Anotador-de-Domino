@@ -8,8 +8,14 @@ import { TurnTimerModal } from './components/TurnTimerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MatchHistoryModal } from './components/MatchHistoryModal';
 import { VictoryModal } from './components/VictoryModal';
-import { MusicPlayerModal } from './components/MusicPlayerModal';
+import { MusicPlayerModal, CURATED_DOMINO_YOUTUBE_TRACKS } from './components/MusicPlayerModal';
 import { MiniMusicPlayer } from './components/MiniMusicPlayer';
+import {
+  SILENT_AUDIO_DATA_URI,
+  syncMediaSession,
+  getNextTrack,
+  getPrevTrack,
+} from './utils/backgroundAudio';
 import {
   AppLanguage,
   TRANSLATIONS,
@@ -670,7 +676,7 @@ export default function App() {
   };
 
   // Music Handlers
-  const handleSelectMusicTrack = (track: MusicTrack) => {
+  const handleSelectMusicTrack = useCallback((track: MusicTrack) => {
     setCurrentMusicTrack(track);
 
     // Grabar automáticamente la canción que se va escuchando en el historial
@@ -679,11 +685,16 @@ export default function App() {
 
     if (track.sourceType === 'youtube') {
       if (audioRef.current) {
-        audioRef.current.pause();
+        // Reproducir carrier de audio silencioso para mantener activa la sesión multimedia del sistema operativo
+        // Esto previene que Android o iOS suspendan o detengan el proceso web cuando se cambia de app o se bloquea la pantalla.
+        audioRef.current.src = SILENT_AUDIO_DATA_URI;
+        audioRef.current.loop = true;
+        audioRef.current.play().catch(() => {});
       }
       setIsMusicPlaying(true);
     } else {
       if (audioRef.current) {
+        audioRef.current.loop = false;
         audioRef.current.src = track.url;
         audioRef.current
           .play()
@@ -694,7 +705,35 @@ export default function App() {
           });
       }
     }
-  };
+  }, []);
+
+  const handlePlayNextTrack = useCallback(() => {
+    const next = getNextTrack(currentMusicTrack, musicHistory, CURATED_DOMINO_YOUTUBE_TRACKS);
+    if (next) {
+      handleSelectMusicTrack(next);
+    }
+  }, [currentMusicTrack, musicHistory, handleSelectMusicTrack]);
+
+  const handlePlayPrevTrack = useCallback(() => {
+    const prev = getPrevTrack(currentMusicTrack, musicHistory, CURATED_DOMINO_YOUTUBE_TRACKS);
+    if (prev) {
+      handleSelectMusicTrack(prev);
+    }
+  }, [currentMusicTrack, musicHistory, handleSelectMusicTrack]);
+
+  const handleCloseMusicPlayer = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsMusicPlaying(false);
+    setCurrentMusicTrack(null);
+    if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.metadata = null;
+      } catch {}
+    }
+  }, []);
 
   const handleDeleteMusicHistoryItem = (songId: string) => {
     const updated = deleteSongFromHistory(songId);
@@ -709,14 +748,28 @@ export default function App() {
     );
   };
 
-  const handleToggleMusicPlay = () => {
+  const handleToggleMusicPlay = useCallback(() => {
     if (!currentMusicTrack) {
       setIsMusicModalOpen(true);
       return;
     }
 
     if (currentMusicTrack.sourceType === 'youtube') {
-      setIsMusicPlaying((prev) => !prev);
+      setIsMusicPlaying((prev) => {
+        const nextState = !prev;
+        if (nextState) {
+          if (audioRef.current) {
+            audioRef.current.src = SILENT_AUDIO_DATA_URI;
+            audioRef.current.loop = true;
+            audioRef.current.play().catch(() => {});
+          }
+        } else {
+          if (audioRef.current) {
+            audioRef.current.pause();
+          }
+        }
+        return nextState;
+      });
     } else if (audioRef.current) {
       if (isMusicPlaying) {
         audioRef.current.pause();
@@ -728,7 +781,27 @@ export default function App() {
           .catch((err) => console.warn(err));
       }
     }
-  };
+  }, [currentMusicTrack, isMusicPlaying]);
+
+  // Sincronizar con la API Media Session del sistema operativo (pantalla de bloqueo, barra de notificaciones de Android/iOS)
+  useEffect(() => {
+    syncMediaSession({
+      track: currentMusicTrack,
+      isPlaying: isMusicPlaying,
+      onPlay: handleToggleMusicPlay,
+      onPause: handleToggleMusicPlay,
+      onNext: handlePlayNextTrack,
+      onPrev: handlePlayPrevTrack,
+      onStop: handleCloseMusicPlayer,
+    });
+  }, [
+    currentMusicTrack,
+    isMusicPlaying,
+    handleToggleMusicPlay,
+    handlePlayNextTrack,
+    handlePlayPrevTrack,
+    handleCloseMusicPlayer,
+  ]);
 
   const handleMusicVolumeChange = (newVol: number) => {
     const clamped = Math.max(0, Math.min(1, Math.round(newVol * 100) / 100));
@@ -769,14 +842,6 @@ export default function App() {
     const updated = customTracks.filter((t) => t.id !== trackId);
     setCustomTracks(updated);
     saveCustomTracks(updated);
-  };
-
-  const handleCloseMusicPlayer = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    setIsMusicPlaying(false);
-    setCurrentMusicTrack(null);
   };
 
   return (
@@ -856,8 +921,8 @@ export default function App() {
         />
       </main>
 
-      {/* Persistent Mini Music Player Bar when a track is chosen (hidden when modal is open to avoid iframe audio collisions on mobile) */}
-      {currentMusicTrack && !isMusicModalOpen && (
+      {/* Persistent Mini Music Player Bar when a track is chosen (kept mounted so audio never restarts or stops) */}
+      {currentMusicTrack && (
         <MiniMusicPlayer
           track={currentMusicTrack}
           isPlaying={isMusicPlaying}
@@ -869,6 +934,10 @@ export default function App() {
           onToggleMute={handleToggleMute}
           onOpenFullPlayer={() => setIsMusicModalOpen(true)}
           onClosePlayer={handleCloseMusicPlayer}
+          onNextTrack={handlePlayNextTrack}
+          onPrevTrack={handlePlayPrevTrack}
+          isModalOpen={isMusicModalOpen}
+          lang={lang}
         />
       )}
 
@@ -991,6 +1060,8 @@ export default function App() {
         onTogglePlay={handleToggleMusicPlay}
         onVolumeChange={handleMusicVolumeChange}
         onToggleMute={handleToggleMute}
+        onPlayNext={handlePlayNextTrack}
+        onPlayPrev={handlePlayPrevTrack}
         customTracks={customTracks}
         onAddCustomTrack={handleAddCustomTrack}
         onDeleteCustomTrack={handleDeleteCustomTrack}

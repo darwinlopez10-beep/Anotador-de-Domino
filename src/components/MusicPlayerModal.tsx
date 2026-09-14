@@ -5,6 +5,7 @@ import {
   Pause,
   Volume2,
   VolumeX,
+  Volume1,
   Sparkles,
   Loader2,
   Youtube,
@@ -23,6 +24,12 @@ import {
   Headphones,
   ListMusic,
   Check,
+  SkipBack,
+  SkipForward,
+  Sliders,
+  Plus,
+  Minus,
+  Radio,
 } from 'lucide-react';
 import { MusicHistoryItem, MusicTrack } from '../types';
 import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
@@ -43,6 +50,8 @@ interface MusicPlayerModalProps {
   onTogglePlay: () => void;
   onVolumeChange: (newVol: number) => void;
   onToggleMute?: () => void;
+  onPlayNext?: () => void;
+  onPlayPrev?: () => void;
   customTracks?: MusicTrack[];
   onAddCustomTrack?: (track: MusicTrack) => void;
   onDeleteCustomTrack?: (trackId: string) => void;
@@ -369,6 +378,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   onTogglePlay,
   onVolumeChange,
   onToggleMute,
+  onPlayNext,
+  onPlayPrev,
   lang,
   musicHistory,
   onDeleteHistoryItem,
@@ -963,15 +974,29 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
           </div>
 
-          {/* 3. REPRODUCTOR COMPACTO INTEGRADO (Solo visible cuando hay una canción seleccionada) */}
-          {currentTrack && activeVideoId && (
+          {/* 3. REPRODUCTOR INTEGRADO CON ESTADO DE SEGUNDO PLANO Y CONTROLES */}
+          {currentTrack && (
             <div
               ref={playerContainerRef}
-              className="bg-stone-950 border border-stone-800 rounded-xl p-3 shadow-md flex flex-col gap-2 transition-all"
+              className="bg-stone-950 border border-stone-800 rounded-xl p-3 sm:p-3.5 shadow-md flex flex-col gap-2.5 transition-all"
             >
-              <div className="flex items-center justify-between gap-2">
+              {/* Segundo plano pill */}
+              <div className="flex items-center justify-between text-[11px] pb-1 border-b border-stone-850">
+                <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-semibold uppercase text-[9px] tracking-wide">
+                    {lang === 'es' ? 'Segundo Plano Activo' : 'Background Active'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-stone-400">
+                  {lang === 'es' ? 'Suena al salir de la app o bloquear pantalla' : 'Plays when leaving app or locked'}
+                </span>
+              </div>
+
+              {/* Cover & Info & Main controls */}
+              <div className="flex items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2.5 truncate flex-1">
-                  <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-stone-900 border border-stone-800 flex-shrink-0 flex items-center justify-center">
+                  <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-800 flex-shrink-0 flex items-center justify-center">
                     {currentTrack.artworkUrl ? (
                       <img
                         src={currentTrack.artworkUrl}
@@ -982,10 +1007,16 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     ) : (
                       <Youtube className="w-5 h-5 text-red-500" />
                     )}
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+                      {isPlaying ? (
+                        <span className="w-2.5 h-2.5 rounded-full animate-ping bg-amber-400" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-stone-400 opacity-70" />
+                      )}
+                    </div>
                   </div>
                   <div className="truncate">
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-stone-500'} flex-shrink-0`} />
                       <h4 className="text-xs sm:text-sm font-bold text-stone-100 truncate">
                         {currentTrack.title}
                       </h4>
@@ -996,7 +1027,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Prev */}
+                  {onPlayPrev && (
+                    <button
+                      type="button"
+                      onClick={onPlayPrev}
+                      title={lang === 'es' ? 'Canción anterior' : 'Previous song'}
+                      className="min-h-[44px] min-w-[40px] p-2 rounded-lg text-stone-300 hover:text-white hover:bg-stone-850 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {/* Play / Pause */}
                   <button
                     type="button"
@@ -1016,26 +1059,19 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     )}
                   </button>
 
-                  {/* Toggle video display */}
-                  <button
-                    type="button"
-                    onClick={() => setIsVideoExpanded((prev) => !prev)}
-                    className="min-h-[44px] p-2 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-850 transition-colors text-xs flex items-center gap-1 cursor-pointer"
-                    title={
-                      isVideoExpanded
-                        ? lang === 'es'
-                          ? 'Ocultar video'
-                          : 'Hide video'
-                        : lang === 'es'
-                        ? 'Ver video'
-                        : 'Show video'
-                    }
-                  >
-                    <Tv className="w-4 h-4 text-stone-400" />
-                    <ChevronUp className={`w-3.5 h-3.5 transition-transform ${isVideoExpanded ? '' : 'rotate-180'}`} />
-                  </button>
+                  {/* Next */}
+                  {onPlayNext && (
+                    <button
+                      type="button"
+                      onClick={onPlayNext}
+                      title={lang === 'es' ? 'Siguiente canción' : 'Next song'}
+                      className="min-h-[44px] min-w-[40px] p-2 rounded-lg text-stone-300 hover:text-white hover:bg-stone-850 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  )}
 
-                  {/* Abrir en la app de YouTube en Android */}
+                  {/* Open in YouTube App */}
                   <a
                     href={
                       activeVideoId
@@ -1056,20 +1092,59 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 </div>
               </div>
 
-              {/* Video embebido en el mismo modal */}
-              {isVideoExpanded && (
-                <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-stone-800 mt-1 shadow-md">
-                  <iframe
-                    ref={iframeRef}
-                    key={activeVideoId || currentTrack.id}
-                    src={embedUrl}
-                    title={currentTrack.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="w-full h-full border-0"
+              {/* Volume Slider & Controls */}
+              <div className="pt-1 flex items-center justify-between gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={onToggleMute}
+                  title={volume === 0 ? (lang === 'es' ? 'Activar sonido' : 'Unmute') : (lang === 'es' ? 'Silenciar' : 'Mute')}
+                  className="p-1 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors flex-shrink-0"
+                >
+                  {volume === 0 ? (
+                    <VolumeX className="w-4 h-4 text-red-400" />
+                  ) : volume < 0.5 ? (
+                    <Volume1 className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-amber-400" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onVolumeChange(Math.max(0, Math.round((volume - 0.1) * 100) / 100))}
+                  disabled={volume <= 0}
+                  className="p-1 rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-750 transition-all flex items-center justify-center flex-shrink-0"
+                  title={lang === 'es' ? 'Bajar volumen' : 'Decrease volume'}
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+
+                <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={volume}
+                    onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                    className="w-full accent-amber-500 h-1.5 bg-stone-800 rounded-lg cursor-pointer transition-all"
                   />
                 </div>
-              )}
+
+                <button
+                  type="button"
+                  onClick={() => onVolumeChange(Math.min(1, Math.round((volume + 0.1) * 100) / 100))}
+                  disabled={volume >= 1}
+                  className="p-1 rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-750 transition-all flex items-center justify-center flex-shrink-0"
+                  title={lang === 'es' ? 'Subir volumen' : 'Increase volume'}
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+
+                <span className="font-mono text-[11px] font-bold text-amber-400 w-9 text-right flex-shrink-0">
+                  {Math.round(volume * 100)}%
+                </span>
+              </div>
             </div>
           )}
 
