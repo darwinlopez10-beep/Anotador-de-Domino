@@ -276,35 +276,13 @@ async function fetchYouTubeTracks(query: string): Promise<any[]> {
   return validResults;
 }
 
-// Background pre-warming of top Latin / party artists so searches return in 0ms
-const POPULAR_PREWARM_TERMS = [
-  'Vicente Fernández',
-  'Juan Gabriel',
-  'Julio Iglesias',
-  'Marco Antonio Solís',
-  'Los Tigres del Norte',
-  'Shakira',
-  'Marc Anthony',
-  'Celia Cruz',
-  'Héctor Lavoe',
-  'Joe Arroyo',
-  'Romeo Santos',
-  'Frank Sinatra',
-  'Salsa',
-  'Merengue',
-  'Bachata',
-];
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
 
-async function prewarmSearchCache() {
-  for (const term of POPULAR_PREWARM_TERMS) {
-    try {
-      await fetchYouTubeTracks(term);
-      await new Promise((r) => setTimeout(r, 600)); // Politeness delay
-    } catch {
-      // Ignore prewarm error
-    }
-  }
-}
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
 
 async function startServer() {
   const app = express();
@@ -377,7 +355,6 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Domino Scoreboard server running on http://0.0.0.0:${PORT}`);
-    prewarmSearchCache().catch(() => {});
   });
 }
 

@@ -10,6 +10,15 @@ import { MatchHistoryModal } from './components/MatchHistoryModal';
 import { VictoryModal } from './components/VictoryModal';
 import { MusicPlayerModal } from './components/MusicPlayerModal';
 import { MiniMusicPlayer } from './components/MiniMusicPlayer';
+import { PWAInstallModal } from './components/PWAInstallModal';
+import { usePWAInstall } from './utils/usePWAInstall';
+import {
+  AppLanguage,
+  TRANSLATIONS,
+  resolveActiveLanguage,
+  saveLanguageSetting,
+  formatPlayerDisplayName,
+} from './utils/i18n';
 import {
   GameSettings,
   PlayerScore,
@@ -87,6 +96,41 @@ function createInitialPlayers(settings: GameSettings): PlayerScore[] {
 
 export default function App() {
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
+  const { isInstalled, isInstallable } = usePWAInstall();
+
+  // Language state initialized with automatic phone/device language detection
+  const [lang, setLang] = useState<AppLanguage>(() => {
+    const currentSettings = loadSettings();
+    return resolveActiveLanguage(currentSettings.languageSetting);
+  });
+  const t = TRANSLATIONS[lang];
+
+  // Synchronize document lang attribute for accessibility and SEO
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
+
+  const handleLanguageChange = useCallback((newLang: AppLanguage) => {
+    setLang(newLang);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = newLang;
+    }
+  }, []);
+
+  const handleToggleLanguage = useCallback(() => {
+    const nextLang: AppLanguage = lang === 'es' ? 'en' : 'es';
+    setLang(nextLang);
+    saveLanguageSetting(nextLang);
+    setSettings((prev) => ({ ...prev, languageSetting: nextLang }));
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = nextLang;
+    }
+    setToastMessage(nextLang === 'es' ? 'Idioma cambiado a Español 🇪🇸' : 'Language switched to English 🇺🇸');
+    setTimeout(() => setToastMessage(null), 2500);
+  }, [lang]);
+
   const [players, setPlayers] = useState<PlayerScore[]>(() => {
     const saved = loadActiveGame();
     const currentSettings = loadSettings();
@@ -148,6 +192,7 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const [musicModalTab, setMusicModalTab] = useState<'search' | 'curated' | 'add' | 'stations'>('search');
 
@@ -440,7 +485,11 @@ export default function App() {
     setPlayers(freshPlayers);
 
     setIsResetConfirmOpen(false);
-    setToastMessage('Partida reiniciada: nombres y puntos a cero');
+    setToastMessage(
+      lang === 'es'
+        ? 'Partida reiniciada: nombres y puntos a cero'
+        : 'Game reset: names and scores to zero'
+    );
   };
 
   // Rematch after victory
@@ -566,7 +615,11 @@ export default function App() {
   // History Handlers
   const handleManualSaveMatch = () => {
     if (rounds.length === 0) {
-      setToastMessage('Anota al menos una mano para poder archivar la partida.');
+      setToastMessage(
+        lang === 'es'
+          ? 'Anota al menos una mano para poder archivar la partida.'
+          : 'Score at least one hand to archive the match.'
+      );
       return;
     }
 
@@ -585,7 +638,7 @@ export default function App() {
 
     const pastMatch: PastMatch = {
       id: `match_${Date.now()}`,
-      date: new Date().toLocaleDateString('es-ES', {
+      date: new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {
         day: '2-digit',
         month: 'short',
         hour: '2-digit',
@@ -606,7 +659,11 @@ export default function App() {
 
     savePastMatch(pastMatch);
     setPastMatches((prev) => [pastMatch, ...prev.filter((m) => m.id !== pastMatch.id)]);
-    setToastMessage('¡Partida archivada con éxito en el historial!');
+    setToastMessage(
+      lang === 'es'
+        ? '¡Partida archivada con éxito en el historial!'
+        : 'Match archived to history successfully!'
+    );
   };
 
   const handleDeletePastMatch = (matchId: string) => {
@@ -724,7 +781,11 @@ export default function App() {
         gameMode={settings.gameMode}
         soundEnabled={settings.soundEnabled}
         isMusicPlaying={isMusicPlaying}
+        lang={lang}
         onToggleSound={handleToggleSound}
+        onToggleLanguage={handleToggleLanguage}
+        onOpenInstall={() => setIsInstallModalOpen(true)}
+        isInstalled={isInstalled}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenTrancaCalc={() => setIsTrancaCalcOpen(true)}
         onOpenTimer={() => setIsTimerOpen(true)}
@@ -744,6 +805,7 @@ export default function App() {
           key={startTime}
           players={players}
           targetScore={settings.targetScore}
+          lang={lang}
           onAddRoundForPlayer={handleOpenAddRoundForPlayer}
           onUpdatePlayerName={handleUpdatePlayerName}
           onUpdatePlayerMembers={handleUpdatePlayerMembers}
@@ -755,11 +817,11 @@ export default function App() {
           <button
             id="btn-quick-tranca"
             onClick={() => setIsTrancaCalcOpen(true)}
-            title="Calcular Tranca / Cierre"
+            title={t.trancaCalc}
             className="py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white rounded-xl sm:rounded-2xl border border-stone-750 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer"
           >
             <Calculator className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span>Calculadora Tranca</span>
+            <span>{t.trancaCalc}</span>
           </button>
 
           {/* Botón Música */}
@@ -769,7 +831,7 @@ export default function App() {
               setMusicModalTab('curated');
               setIsMusicModalOpen(true);
             }}
-            title="Música y radio para la partida"
+            title={t.music}
             className={`py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer ${
               isMusicPlaying
                 ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-amber-950/40'
@@ -777,7 +839,7 @@ export default function App() {
             }`}
           >
             <Music className={`w-4 h-4 text-amber-400 flex-shrink-0 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-            <span>{isMusicPlaying ? 'Música Activa' : 'Música'}</span>
+            <span>{isMusicPlaying ? (lang === 'es' ? 'Música Activa' : 'Music Playing') : t.music}</span>
           </button>
         </div>
 
@@ -785,6 +847,7 @@ export default function App() {
         <RoundHistory
           rounds={rounds}
           players={players}
+          lang={lang}
           onUndoLastRound={handleUndoLastRound}
           onDeleteRound={handleDeleteRound}
         />
@@ -813,28 +876,28 @@ export default function App() {
             setActiveAddRoundPlayerId(undefined);
             setIsAddRoundOpen(true);
           }}
-          className="flex flex-col items-center gap-1 text-amber-400"
+          className="flex flex-col items-center gap-1 text-amber-400 cursor-pointer"
         >
           <div className="w-8 h-8 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center shadow-md">
             <Plus className="w-5 h-5 stroke-[3]" />
           </div>
-          <span className="text-[10px] font-bold">Anotar</span>
+          <span className="text-[10px] font-bold">{t.addScore}</span>
         </button>
 
         <button
           onClick={() => setIsTrancaCalcOpen(true)}
-          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200"
+          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 cursor-pointer"
         >
           <Calculator className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Tranca</span>
+          <span className="text-[10px] font-medium">{t.trancaCalc}</span>
         </button>
 
         <button
           onClick={() => setIsTimerOpen(true)}
-          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200"
+          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 cursor-pointer"
         >
           <Timer className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Reloj</span>
+          <span className="text-[10px] font-medium">{t.turnTimer}</span>
         </button>
 
         <button
@@ -842,20 +905,20 @@ export default function App() {
             setMusicModalTab('curated');
             setIsMusicModalOpen(true);
           }}
-          className={`flex flex-col items-center gap-1 ${
+          className={`flex flex-col items-center gap-1 cursor-pointer ${
             isMusicPlaying ? 'text-amber-400' : 'text-stone-400 hover:text-stone-200'
           }`}
         >
           <Music className={`w-5 h-5 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-          <span className="text-[10px] font-medium">Música</span>
+          <span className="text-[10px] font-medium">{t.music}</span>
         </button>
 
         <button
           onClick={() => setIsHistoryOpen(true)}
-          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200"
+          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 cursor-pointer"
         >
           <Trophy className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Partidas</span>
+          <span className="text-[10px] font-medium">{t.matchHistory}</span>
         </button>
       </nav>
 
@@ -869,6 +932,7 @@ export default function App() {
         capicuaBonus={settings.capicuaBonus}
         soundEnabled={settings.soundEnabled}
         vibrationEnabled={settings.vibrationEnabled}
+        lang={lang}
         onSaveRound={handleSaveRound}
         onUpdatePlayerMembers={handleUpdatePlayerMembers}
         onUpdatePlayerName={handleUpdatePlayerName}
@@ -882,6 +946,7 @@ export default function App() {
         soundEnabled={settings.soundEnabled}
         vibrationEnabled={settings.vibrationEnabled}
         onApplyTrancaPoints={handleApplyTrancaPoints}
+        lang={lang}
       />
 
       <TurnTimerModal
@@ -890,6 +955,7 @@ export default function App() {
         defaultSeconds={settings.timerDurationSeconds}
         soundEnabled={settings.soundEnabled}
         vibrationEnabled={settings.vibrationEnabled}
+        lang={lang}
       />
 
       <SettingsModal
@@ -897,6 +963,8 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         currentSettings={settings}
         onSaveSettings={handleSaveSettings}
+        lang={lang}
+        onLanguageChange={handleLanguageChange}
       />
 
       <MatchHistoryModal
@@ -907,6 +975,7 @@ export default function App() {
         onClearHistory={handleClearMatchHistory}
         canSaveCurrentGame={rounds.length > 0}
         onSaveCurrentGame={handleManualSaveMatch}
+        lang={lang}
       />
 
       <MusicPlayerModal
@@ -923,6 +992,7 @@ export default function App() {
         onAddCustomTrack={handleAddCustomTrack}
         onDeleteCustomTrack={handleDeleteCustomTrack}
         initialTab={musicModalTab}
+        lang={lang}
       />
 
       <VictoryModal
@@ -937,6 +1007,13 @@ export default function App() {
         onRematch={handleRematch}
         onNewGameSetup={handleNewGameSetup}
         onResetGame={handleNewGame}
+        lang={lang}
+      />
+
+      <PWAInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        lang={lang}
       />
 
       {/* Reset Game Confirmation Dialog */}
@@ -953,20 +1030,36 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-stone-100">
-                  ¿Reiniciar partida?
+                  {lang === 'es' ? '¿Reiniciar partida?' : 'Reset match?'}
                 </h3>
                 <p className="text-xs text-stone-400">
-                  Esta acción borrará tanto los nombres como los puntos a cero.
+                  {lang === 'es'
+                    ? 'Esta acción borrará tanto los nombres como los puntos a cero.'
+                    : 'This action will reset both player names and scores to zero.'}
                 </p>
               </div>
             </div>
 
             <div className="p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 text-xs text-stone-300 space-y-1.5">
-              <p className="font-semibold text-amber-400">Se restablecerá:</p>
+              <p className="font-semibold text-amber-400">
+                {lang === 'es' ? 'Se restablecerá:' : 'Will be reset:'}
+              </p>
               <ul className="list-disc list-inside space-y-0.5 text-stone-400 text-[11px]">
-                <li>Puntos y manos ganadas vuelven a 0</li>
-                <li>Nombres se restablecen a &quot;Jugador 1&quot; y &quot;Jugador 2&quot;</li>
-                <li>Se borran las rondas anotadas</li>
+                <li>
+                  {lang === 'es'
+                    ? 'Puntos y manos ganadas vuelven a 0'
+                    : 'Points and hands won return to 0'}
+                </li>
+                <li>
+                  {lang === 'es'
+                    ? 'Nombres se restablecen a "Jugador 1" y "Jugador 2"'
+                    : 'Names reset to "Player 1" and "Player 2"'}
+                </li>
+                <li>
+                  {lang === 'es'
+                    ? 'Se borran las rondas anotadas'
+                    : 'Recorded rounds are cleared'}
+                </li>
               </ul>
             </div>
 
@@ -976,7 +1069,7 @@ export default function App() {
                 onClick={() => setIsResetConfirmOpen(false)}
                 className="flex-1 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-300 font-bold text-xs border border-stone-700 transition-all cursor-pointer"
               >
-                Cancelar
+                {t.cancel}
               </button>
               <button
                 type="button"
@@ -985,7 +1078,7 @@ export default function App() {
                 className="flex-1 py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-black text-xs transition-all shadow-lg shadow-amber-950/40 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Sí, reiniciar</span>
+                <span>{lang === 'es' ? 'Sí, reiniciar' : 'Yes, reset'}</span>
               </button>
             </div>
           </div>

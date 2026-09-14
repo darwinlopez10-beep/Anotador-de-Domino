@@ -1,10 +1,12 @@
 import React from 'react';
 import { RotateCcw, Trash2, Sparkles, Lock, ShieldAlert, CheckCircle2, User } from 'lucide-react';
 import { PlayerScore, Round } from '../types';
+import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
 interface RoundHistoryProps {
   rounds: Round[];
   players: PlayerScore[];
+  lang: AppLanguage;
   onUndoLastRound: () => void;
   onDeleteRound: (roundId: string) => void;
 }
@@ -12,10 +14,12 @@ interface RoundHistoryProps {
 export const RoundHistory: React.FC<RoundHistoryProps> = ({
   rounds,
   players,
+  lang,
   onUndoLastRound,
   onDeleteRound,
 }) => {
   const isTwoTeams = players.length === 2;
+  const t = TRANSLATIONS[lang];
 
   const getBadgeForReason = (reason: string) => {
     switch (reason) {
@@ -23,28 +27,28 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
             <Lock className="w-2.5 h-2.5" />
-            Tranca
+            {t.reasonTranca}
           </span>
         );
       case 'capicua':
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
             <Sparkles className="w-2.5 h-2.5" />
-            Capicúa
+            {t.reasonCapicua}
           </span>
         );
       case 'penalizacion':
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-500/15 text-red-300 border border-red-500/30">
             <ShieldAlert className="w-2.5 h-2.5" />
-            Falta
+            {t.reasonPenalizacion}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
             <CheckCircle2 className="w-2.5 h-2.5" />
-            Dominó
+            {t.reasonNormal}
           </span>
         );
     }
@@ -56,10 +60,17 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
       <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-stone-800 bg-stone-900/60">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-stone-100 font-display text-sm sm:text-base">
-            Libreta de Anotaciones
+            {t.roundsHistory}
           </h3>
           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-stone-800 text-stone-300 border border-stone-700">
-            {rounds.length} {rounds.length === 1 ? 'mano' : 'manos'}
+            {rounds.length}{' '}
+            {rounds.length === 1
+              ? lang === 'es'
+                ? 'mano'
+                : 'hand'
+              : lang === 'es'
+              ? 'manos'
+              : 'hands'}
           </span>
         </div>
 
@@ -67,20 +78,22 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
           <button
             id="btn-undo-last-round"
             onClick={onUndoLastRound}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold border border-stone-700 transition-all active:scale-95"
-            title="Deshacer última mano anotada"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold border border-stone-700 transition-all active:scale-95 cursor-pointer"
+            title={t.undoLastHand}
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-            <span>Deshacer última</span>
+            <span>{t.undoLastHand}</span>
           </button>
         )}
       </div>
 
       {rounds.length === 0 ? (
         <div className="p-8 text-center text-stone-500">
-          <p className="text-sm font-medium">Aún no hay manos registradas en esta partida.</p>
+          <p className="text-sm font-medium">{t.noRoundsYet}</p>
           <p className="text-xs text-stone-600 mt-1">
-            Usa el botón &quot;+ Anotar Mano&quot; para registrar la primera jugada.
+            {lang === 'es'
+              ? 'Usa el botón "+ Anotar Mano" para registrar la primera jugada.'
+              : 'Use the "+ Record Hand" button to log the first round.'}
           </p>
         </div>
       ) : isTwoTeams ? (
@@ -95,8 +108,12 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                   style={{ color: players[0].color }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold tracking-tight">{players[0].name}</span>
-                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">Acumulado</span>
+                    <span className="text-sm font-extrabold tracking-tight">
+                      {formatPlayerDisplayName(players[0].name, lang)}
+                    </span>
+                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">
+                      {lang === 'es' ? 'Acumulado' : 'Total'}
+                    </span>
                   </div>
                 </th>
                 <th
@@ -104,8 +121,12 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                   style={{ color: players[1].color }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold tracking-tight">{players[1].name}</span>
-                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">Acumulado</span>
+                    <span className="text-sm font-extrabold tracking-tight">
+                      {formatPlayerDisplayName(players[1].name, lang)}
+                    </span>
+                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">
+                      {lang === 'es' ? 'Acumulado' : 'Total'}
+                    </span>
                   </div>
                 </th>
                 <th className="py-2.5 px-3 w-10 text-center font-normal text-stone-500"></th>
@@ -142,7 +163,10 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                             {round.winnerPlayerName && (
                               <div className="flex items-center gap-1 text-[11px] font-sans font-medium text-emerald-300/90">
                                 <User className="w-3 h-3 text-emerald-400" />
-                                <span>Salió: <strong>{round.winnerPlayerName}</strong></span>
+                                <span>
+                                  {lang === 'es' ? 'Salió: ' : 'Out: '}
+                                  <strong>{formatPlayerDisplayName(round.winnerPlayerName, lang)}</strong>
+                                </span>
                               </div>
                             )}
                           </div>
@@ -172,7 +196,10 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                             {round.winnerPlayerName && (
                               <div className="flex items-center gap-1 text-[11px] font-sans font-medium text-amber-300/90">
                                 <User className="w-3 h-3 text-amber-400" />
-                                <span>Salió: <strong>{round.winnerPlayerName}</strong></span>
+                                <span>
+                                  {lang === 'es' ? 'Salió: ' : 'Out: '}
+                                  <strong>{formatPlayerDisplayName(round.winnerPlayerName, lang)}</strong>
+                                </span>
                               </div>
                             )}
                           </div>
@@ -192,8 +219,8 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                     <td className="py-3 px-2 text-center">
                       <button
                         onClick={() => onDeleteRound(round.id)}
-                        className="opacity-0 group-hover:opacity-100 text-stone-500 hover:text-red-400 p-1 rounded transition-opacity"
-                        title="Eliminar esta mano"
+                        className="opacity-0 group-hover:opacity-100 text-stone-500 hover:text-red-400 p-1 rounded transition-opacity cursor-pointer"
+                        title={lang === 'es' ? 'Eliminar esta mano' : 'Delete this hand'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -211,12 +238,16 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
             <thead>
               <tr className="border-b border-stone-800 bg-stone-900/40 text-stone-400 text-xs">
                 <th className="py-2.5 px-3 text-center w-12 font-bold">#</th>
-                <th className="py-2.5 px-4 font-bold text-stone-300">Ganador de Mano</th>
-                <th className="py-2.5 px-3 font-bold text-center">Puntos</th>
-                <th className="py-2.5 px-3 font-bold text-center">Tipo</th>
+                <th className="py-2.5 px-4 font-bold text-stone-300">
+                  {lang === 'es' ? 'Ganador de Mano' : 'Hand Winner'}
+                </th>
+                <th className="py-2.5 px-3 font-bold text-center">{t.points}</th>
+                <th className="py-2.5 px-3 font-bold text-center">
+                  {lang === 'es' ? 'Tipo' : 'Type'}
+                </th>
                 {players.map((p) => (
                   <th key={p.id} className="py-2.5 px-3 font-bold text-right" style={{ color: p.color }}>
-                    {p.name}
+                    {formatPlayerDisplayName(p.name, lang)}
                   </th>
                 ))}
                 <th className="py-2.5 px-2 w-10"></th>
@@ -237,11 +268,12 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                             className="w-2 h-2 rounded-full flex-shrink-0"
                             style={{ backgroundColor: winnerPlayer?.color }}
                           />
-                          {winnerPlayer?.name}
+                          {winnerPlayer?.name ? formatPlayerDisplayName(winnerPlayer.name, lang) : ''}
                         </span>
                         {round.winnerPlayerName && round.winnerPlayerName !== winnerPlayer?.name && (
                           <span className="text-[11px] text-stone-400 pl-3.5">
-                            Salió: <strong>{round.winnerPlayerName}</strong>
+                            {lang === 'es' ? 'Salió: ' : 'Out: '}
+                            <strong>{formatPlayerDisplayName(round.winnerPlayerName, lang)}</strong>
                           </span>
                         )}
                       </span>
@@ -260,8 +292,8 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                     <td className="py-3 px-2 text-center">
                       <button
                         onClick={() => onDeleteRound(round.id)}
-                        className="opacity-0 group-hover:opacity-100 text-stone-500 hover:text-red-400 p-1 rounded transition-opacity"
-                        title="Eliminar esta mano"
+                        className="opacity-0 group-hover:opacity-100 text-stone-500 hover:text-red-400 p-1 rounded transition-opacity cursor-pointer"
+                        title={lang === 'es' ? 'Eliminar esta mano' : 'Delete this hand'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

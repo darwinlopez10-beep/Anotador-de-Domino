@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   timerDurationSeconds: 25,
+  languageSetting: 'auto',
 };
 
 export interface ActiveGameState {

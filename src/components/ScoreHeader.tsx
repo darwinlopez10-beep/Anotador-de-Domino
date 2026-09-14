@@ -8,15 +8,19 @@ import {
   Volume2,
   VolumeX,
   Music,
+  Download,
+  Languages,
 } from 'lucide-react';
 import { DominoTileIcon } from './DominoTileIcon';
 import { GameMode } from '../types';
+import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
 
 interface ScoreHeaderProps {
   targetScore: number;
   gameMode: GameMode;
   soundEnabled: boolean;
   isMusicPlaying?: boolean;
+  lang: AppLanguage;
   onToggleSound: () => void;
   onOpenSettings: () => void;
   onOpenTrancaCalc: () => void;
@@ -24,6 +28,9 @@ interface ScoreHeaderProps {
   onOpenHistory: () => void;
   onOpenMusic: () => void;
   onNewGame: () => void;
+  onOpenInstall?: () => void;
+  onToggleLanguage?: () => void;
+  isInstalled?: boolean;
   roundsCount: number;
 }
 
@@ -32,6 +39,7 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
   gameMode,
   soundEnabled,
   isMusicPlaying,
+  lang,
   onToggleSound,
   onOpenSettings,
   onOpenTrancaCalc,
@@ -39,8 +47,13 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
   onOpenHistory,
   onOpenMusic,
   onNewGame,
+  onOpenInstall,
+  onToggleLanguage,
+  isInstalled,
   roundsCount,
 }) => {
+  const t = TRANSLATIONS[lang];
+
   return (
     <header className="bg-stone-900/95 backdrop-blur-md border-b border-stone-800 sticky top-0 z-20 px-2 sm:px-6 py-2.5 sm:py-3 transition-colors">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
@@ -53,38 +66,68 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="text-sm sm:text-lg font-bold tracking-tight text-stone-100 font-display truncate">
-                Anotador
+                {t.appName}
               </h1>
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex-shrink-0">
-                Meta: {targetScore} pts
+                {t.targetScore}: {targetScore} {t.pts}
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-stone-400 flex items-center gap-1 truncate">
-              <span>{gameMode === 'teams' ? 'Por Parejas' : 'Individual'}</span>
+              <span>{gameMode === 'teams' ? t.modeTeams : t.modeIndividual}</span>
               <span>•</span>
-              <span>{roundsCount === 0 ? 'Sin manos' : `${roundsCount} ${roundsCount === 1 ? 'mano' : 'manos'}`}</span>
+              <span>
+                {roundsCount === 0
+                  ? (lang === 'es' ? 'Sin manos' : 'No hands yet')
+                  : `${roundsCount} ${roundsCount === 1 ? (lang === 'es' ? 'mano' : 'hand') : (lang === 'es' ? 'manos' : 'hands')}`}
+              </span>
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          {/* Language Toggle Badge */}
+          {onToggleLanguage && (
+            <button
+              id="btn-toggle-language"
+              onClick={onToggleLanguage}
+              title={lang === 'es' ? 'Cambiar a English' : 'Cambiar a Español'}
+              className="flex items-center gap-1 px-2 py-1 sm:py-1.5 rounded-lg bg-stone-800/90 hover:bg-stone-700 active:bg-stone-600 text-stone-200 border border-stone-700 text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[38px] flex-shrink-0"
+            >
+              <Languages className="w-3.5 h-3.5 text-amber-400" />
+              <span className="uppercase text-[11px] font-mono tracking-wider">{lang}</span>
+            </button>
+          )}
+
+          {/* Install / Download PWA Button */}
+          {onOpenInstall && !isInstalled && (
+            <button
+              id="btn-open-install"
+              onClick={onOpenInstall}
+              title={t.installPrompt}
+              className="flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-200 hover:text-white text-xs font-semibold border border-amber-500/40 text-amber-300 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center shadow-sm shadow-amber-950/30"
+            >
+              <Download className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span className="hidden md:inline">{t.installApp}</span>
+            </button>
+          )}
+
           {/* Quick Tranca Calculator */}
           <button
             id="btn-open-tranca-calc"
             onClick={onOpenTrancaCalc}
-            title="Calculadora de Tranca / Cierre"
+            title={t.trancaTitle}
             className="flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-200 hover:text-white text-xs font-medium border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center"
           >
             <Calculator className="w-4 h-4 text-amber-400" />
-            <span className="hidden lg:inline">Tranca</span>
+            <span className="hidden lg:inline">{t.trancaCalculator}</span>
           </button>
 
           {/* Turn Timer */}
           <button
             id="btn-open-timer"
             onClick={onOpenTimer}
-            title="Temporizador de jugada"
+            title={t.timerTitle}
             className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
           >
             <Timer className="w-4 h-4 text-emerald-400" />
@@ -94,7 +137,7 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
           <button
             id="btn-open-music"
             onClick={onOpenMusic}
-            title={isMusicPlaying ? 'Música activa (toca para ver)' : 'Buscar y reproducir música'}
+            title={t.musicTitle}
             className={`flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-medium transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center ${
               isMusicPlaying
                 ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm shadow-amber-950/40'
@@ -102,14 +145,14 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
             }`}
           >
             <Music className={`w-4 h-4 text-amber-400 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-            <span className="hidden lg:inline">Música</span>
+            <span className="hidden lg:inline">{t.music}</span>
           </button>
 
           {/* Match History */}
           <button
             id="btn-open-history"
             onClick={onOpenHistory}
-            title="Historial de partidas"
+            title={t.history}
             className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
           >
             <Trophy className="w-4 h-4 text-yellow-400" />
@@ -119,7 +162,7 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
           <button
             id="btn-toggle-sound"
             onClick={onToggleSound}
-            title={soundEnabled ? 'Silenciar sonidos' : 'Activar sonidos'}
+            title={soundEnabled ? (lang === 'es' ? 'Silenciar sonidos' : 'Mute sounds') : (lang === 'es' ? 'Activar sonidos' : 'Enable sounds')}
             className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
           >
             {soundEnabled ? (
@@ -133,7 +176,7 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
           <button
             id="btn-open-settings"
             onClick={onOpenSettings}
-            title="Configuración de la partida"
+            title={t.settings}
             className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
           >
             <Settings className="w-4 h-4" />
@@ -143,11 +186,11 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
           <button
             id="btn-new-game"
             onClick={onNewGame}
-            title="Reiniciar partida (borrar nombres y puntos a cero)"
+            title={t.confirmNewMatch}
             className="flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all active:scale-95 flex-shrink-0 cursor-pointer select-none"
           >
             <RotateCcw className="w-4 h-4 flex-shrink-0 stroke-[2.5]" />
-            <span className="font-extrabold text-xs sm:text-sm">Reiniciar</span>
+            <span className="font-extrabold text-xs sm:text-sm">{lang === 'es' ? 'Reiniciar' : 'Reset'}</span>
           </button>
         </div>
       </div>

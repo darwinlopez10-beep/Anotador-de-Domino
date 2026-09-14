@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, RotateCcw, Volume2, VolumeX, UserCheck } from 'lucide-react';
 import { playTimerTickSound, triggerVibration } from '../utils/sound';
+import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
 
 interface TurnTimerModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface TurnTimerModalProps {
   defaultSeconds: number;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  lang: AppLanguage;
 }
 
 export const TurnTimerModal: React.FC<TurnTimerModalProps> = ({
@@ -16,7 +18,9 @@ export const TurnTimerModal: React.FC<TurnTimerModalProps> = ({
   defaultSeconds,
   soundEnabled,
   vibrationEnabled,
+  lang,
 }) => {
+  const t = TRANSLATIONS[lang];
   const [duration, setDuration] = useState<number>(defaultSeconds || 25);
   const [timeLeft, setTimeLeft] = useState<number>(duration);
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -90,19 +94,19 @@ export const TurnTimerModal: React.FC<TurnTimerModalProps> = ({
         {/* Header */}
         <div className="w-full flex items-center justify-between pb-3 border-b border-stone-800">
           <h3 className="font-bold text-stone-100 font-display text-base">
-            Temporizador de Jugada
+            {t.timer}
           </h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setMuteSound(!muteSound)}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200"
-              title={muteSound ? 'Activar sonido de reloj' : 'Silenciar sonido de reloj'}
+              className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 cursor-pointer"
+              title={muteSound ? (lang === 'es' ? 'Activar sonido de reloj' : 'Unmute timer sound') : (lang === 'es' ? 'Silenciar sonido de reloj' : 'Mute timer sound')}
             >
               {muteSound ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200"
+              className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -150,7 +154,7 @@ export const TurnTimerModal: React.FC<TurnTimerModalProps> = ({
               {timeLeft}
             </span>
             <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mt-1">
-              {isTimeUp ? '¡Tiempo agotado!' : 'segundos'}
+              {isTimeUp ? t.timeUp : t.seconds}
             </span>
           </div>
         </div>
@@ -161,22 +165,22 @@ export const TurnTimerModal: React.FC<TurnTimerModalProps> = ({
           className="w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-stone-950 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer mb-3"
         >
           <UserCheck className="w-5 h-5 stroke-[2.5]" />
-          <span>Siguiente Jugador (Reiniciar)</span>
+          <span>{t.nextPlayer}</span>
         </button>
 
         {/* Controls: Play/Pause & Reset */}
         <div className="flex items-center justify-center gap-2 w-full mb-4">
           <button
             onClick={() => setIsRunning(!isRunning)}
-            className="flex-1 py-2 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 rounded-xl font-semibold text-xs border border-stone-700 flex items-center justify-center gap-1.5 transition-all"
+            className="flex-1 py-2 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 rounded-xl font-semibold text-xs border border-stone-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
           >
             {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            <span>{isRunning ? 'Pausar' : 'Reanudar'}</span>
+            <span>{isRunning ? t.pause : t.resume}</span>
           </button>
           <button
             onClick={handleReset}
-            className="py-2 px-3 bg-stone-800 hover:bg-stone-750 text-stone-300 rounded-xl font-semibold text-xs border border-stone-700 flex items-center justify-center gap-1.5 transition-all"
-            title="Reiniciar tiempo"
+            className="py-2 px-3 bg-stone-800 hover:bg-stone-750 text-stone-300 rounded-xl font-semibold text-xs border border-stone-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            title={lang === 'es' ? 'Reiniciar tiempo' : 'Reset timer'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -185,14 +189,14 @@ export const TurnTimerModal: React.FC<TurnTimerModalProps> = ({
         {/* Preset Selectors */}
         <div className="w-full">
           <div className="text-[11px] font-semibold text-stone-400 text-center mb-1.5">
-            Duración por jugada
+            {lang === 'es' ? 'Duración por jugada' : 'Turn duration'}
           </div>
           <div className="grid grid-cols-5 gap-1.5">
             {[15, 20, 25, 30, 45].map((sec) => (
               <button
                 key={sec}
                 onClick={() => handleSelectPreset(sec)}
-                className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                className={`py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                   duration === sec
                     ? 'bg-amber-500/20 border-amber-500 text-amber-300'
                     : 'bg-stone-850 border-stone-800 text-stone-400 hover:text-stone-200'

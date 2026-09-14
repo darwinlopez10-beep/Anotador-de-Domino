@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Trophy, Award, RotateCcw, ArrowRight, Clock, Target } from 'lucide-react';
 import { PlayerScore, Round } from '../types';
 import { playVictorySound } from '../utils/sound';
+import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
 interface VictoryModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface VictoryModalProps {
   onRematch: () => void;
   onNewGameSetup: () => void;
   onResetGame?: () => void;
+  lang: AppLanguage;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -30,7 +32,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onRematch,
   onNewGameSetup,
   onResetGame,
+  lang,
 }) => {
+  const t = TRANSLATIONS[lang];
+
   useEffect(() => {
     if (!isOpen || !winner) return;
 
@@ -98,14 +103,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
         {/* Victory Announcement */}
         <div className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-1">
-          ¡Partida Finalizada!
+          {lang === 'es' ? '¡Partida Finalizada!' : 'Match Finished!'}
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-stone-100 font-display mb-2">
-          ¡Victoria para {winner.name}!
+          {lang === 'es'
+            ? `¡Victoria para ${formatPlayerDisplayName(winner.name, lang)}!`
+            : `Victory for ${formatPlayerDisplayName(winner.name, lang)}!`}
         </h2>
         <p className="text-sm text-stone-400 mb-5">
-          Alcanzó la meta de {targetScore} puntos con un marcador final de{' '}
-          <strong className="text-amber-300 font-mono">{winner.score} pts</strong>.
+          {lang === 'es'
+            ? `Alcanzó la meta de ${targetScore} puntos con un marcador final de `
+            : `Reached the target of ${targetScore} points with a final score of `}
+          <strong className="text-amber-300 font-mono">{winner.score} {t.pts}</strong>.
         </p>
 
         {/* Final Standings / Scores */}
@@ -126,15 +135,19 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: p.color }}
                   />
-                  <span>{p.name}</span>
-                  {isW && <span className="text-xs text-amber-400 font-semibold">(Ganador)</span>}
+                  <span>{formatPlayerDisplayName(p.name, lang)}</span>
+                  {isW && (
+                    <span className="text-xs text-amber-400 font-semibold">
+                      ({lang === 'es' ? 'Ganador' : 'Winner'})
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-stone-400 font-normal">
-                    {p.handsWon} manos
+                    {p.handsWon} {p.handsWon === 1 ? (lang === 'es' ? 'mano' : 'hand') : (lang === 'es' ? 'manos' : 'hands')}
                   </span>
                   <span className="text-lg font-black font-display font-mono">
-                    {p.score} pts
+                    {p.score} {t.pts}
                   </span>
                 </div>
               </div>
@@ -146,7 +159,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         <div className="grid grid-cols-3 gap-2 bg-stone-950/80 p-3 rounded-2xl border border-stone-800 text-center mb-6">
           <div>
             <div className="text-[10px] uppercase font-bold text-stone-500 flex items-center justify-center gap-1">
-              <Target className="w-3 h-3" /> Manos
+              <Target className="w-3 h-3" /> {t.hands}
             </div>
             <div className="text-base font-black font-display text-stone-200 mt-0.5">
               {totalRounds}
@@ -154,7 +167,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           </div>
           <div>
             <div className="text-[10px] uppercase font-bold text-stone-500 flex items-center justify-center gap-1">
-              <Award className="w-3 h-3" /> Mayor Mano
+              <Award className="w-3 h-3" /> {lang === 'es' ? 'Mayor Mano' : 'Highest Hand'}
             </div>
             <div className="text-base font-black font-display text-amber-400 mt-0.5">
               +{highestRoundPts}
@@ -162,7 +175,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           </div>
           <div>
             <div className="text-[10px] uppercase font-bold text-stone-500 flex items-center justify-center gap-1">
-              <Clock className="w-3 h-3" /> Duración
+              <Clock className="w-3 h-3" /> {lang === 'es' ? 'Duración' : 'Duration'}
             </div>
             <div className="text-base font-black font-display text-stone-200 mt-0.5">
               {totalDurationMinutes}m
@@ -177,7 +190,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             className="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-xl shadow-lg shadow-amber-950/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 stroke-[2.5]" />
-            <span>Revancha (Mismos Equipos)</span>
+            <span>{lang === 'es' ? 'Revancha (Mismos Equipos)' : 'Rematch (Same Teams)'}</span>
           </button>
           <div className="flex items-center gap-2">
             {onResetGame && (
@@ -188,20 +201,20 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 }}
                 className="flex-1 py-2.5 px-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 font-semibold rounded-xl text-xs border border-amber-500/40 transition-all cursor-pointer"
               >
-                Reiniciar Puntos y Nombres
+                {lang === 'es' ? 'Reiniciar Puntos y Nombres' : 'Reset Points & Names'}
               </button>
             )}
             <button
               onClick={onNewGameSetup}
               className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 font-semibold rounded-xl text-xs border border-stone-700 transition-all cursor-pointer"
             >
-              Ajustes
+              {t.settings}
             </button>
             <button
               onClick={onClose}
               className="py-2.5 px-4 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-stone-200 font-semibold rounded-xl text-xs border border-stone-800 transition-all cursor-pointer"
             >
-              Cerrar
+              {t.close}
             </button>
           </div>
         </div>

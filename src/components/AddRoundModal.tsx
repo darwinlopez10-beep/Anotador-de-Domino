@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Delete, Sparkles, Plus, Users, User, Edit3, Check } from 'lucide-react';
 import { PlayerScore, WinReason } from '../types';
 import { playTileClickSound, triggerVibration } from '../utils/sound';
+import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
 interface AddRoundModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface AddRoundModalProps {
   capicuaBonus: number;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  lang: AppLanguage;
   onSaveRound: (
     winnerId: string,
     points: number,
@@ -32,10 +34,12 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
   capicuaBonus,
   soundEnabled,
   vibrationEnabled,
+  lang,
   onSaveRound,
   onUpdatePlayerMembers,
   onUpdatePlayerName,
 }) => {
+  const t = TRANSLATIONS[lang];
   const [selectedWinnerId, setSelectedWinnerId] = useState<string>(
     defaultWinnerId || (players[0]?.id ?? '')
   );
@@ -162,15 +166,17 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-800 bg-stone-850">
           <div>
             <h3 className="text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-              <span>Anotar Mano #{roundNumber}</span>
+              <span>{t.recordHand} #{roundNumber}</span>
             </h3>
             <p className="text-xs text-stone-400">
-              Registra los puntos y el jugador que salió en la mano
+              {lang === 'es'
+                ? 'Registra los puntos y el jugador que salió en la mano'
+                : 'Record points and the player who won the hand'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -181,7 +187,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-stone-400">
-                ¿Quién ganó la mano?
+                {lang === 'es' ? '¿Quién ganó la mano?' : 'Who won the hand?'}
               </label>
               {isTwoTeams && (
                 <button
@@ -190,14 +196,18 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                     const next = !isEditingNames;
                     setIsEditingNames(next);
                     if (next) {
-                      if (/^jugador\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
-                      if (/^jugador\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
+                      if (/^(jugador|player)\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
+                      if (/^(jugador|player)\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
                     }
                   }}
                   className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium transition-colors cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  <span>{isEditingNames ? 'Cerrar edición' : 'Agregar / Editar nombres'}</span>
+                  <span>
+                    {isEditingNames
+                      ? (lang === 'es' ? 'Cerrar edición' : 'Close editing')
+                      : (lang === 'es' ? 'Agregar / Editar nombres' : 'Add / Edit names')}
+                  </span>
                 </button>
               )}
             </div>
@@ -208,7 +218,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" />
-                    Editar Nombres de Jugadores
+                    {lang === 'es' ? 'Editar Nombres de Jugadores' : 'Edit Player Names'}
                   </span>
                   <button
                     type="button"
@@ -216,7 +226,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                     className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>Guardar nombres</span>
+                    <span>{lang === 'es' ? 'Guardar nombres' : 'Save names'}</span>
                   </button>
                 </div>
 
@@ -224,17 +234,17 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                   {/* Jugador 1 */}
                   <div className="p-2.5 bg-stone-900 rounded-xl border border-stone-800 space-y-1.5">
                     <label className="text-[11px] font-bold text-emerald-400 block">
-                      Jugador 1
+                      {lang === 'es' ? 'Jugador 1' : 'Player 1'}
                     </label>
                     <input
                       type="text"
                       value={editPlayer1Name}
                       onChange={(e) => setEditPlayer1Name(e.target.value)}
                       onFocus={(e) => {
-                        if (/^jugador\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
+                        if (/^(jugador|player)\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
                         e.target.select();
                       }}
-                      placeholder="Jugador 1"
+                      placeholder={lang === 'es' ? 'Jugador 1' : 'Player 1'}
                       className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -242,17 +252,17 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                   {/* Jugador 2 */}
                   <div className="p-2.5 bg-stone-900 rounded-xl border border-stone-800 space-y-1.5">
                     <label className="text-[11px] font-bold text-amber-400 block">
-                      Jugador 2
+                      {lang === 'es' ? 'Jugador 2' : 'Player 2'}
                     </label>
                     <input
                       type="text"
                       value={editPlayer2Name}
                       onChange={(e) => setEditPlayer2Name(e.target.value)}
                       onFocus={(e) => {
-                        if (/^jugador\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
+                        if (/^(jugador|player)\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
                         e.target.select();
                       }}
-                      placeholder="Jugador 2"
+                      placeholder={lang === 'es' ? 'Jugador 2' : 'Player 2'}
                       className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -264,6 +274,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
             <div className={`grid gap-2.5 sm:gap-3 ${isTwoTeams ? 'grid-cols-2' : players.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
               {players.map((player) => {
                 const isSelected = selectedWinnerId === player.id;
+                const displayName = formatPlayerDisplayName(player.name, lang);
                 return (
                   <button
                     key={player.id}
@@ -288,7 +299,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                           }}
                         />
                         <span className="text-sm sm:text-base font-black truncate">
-                          {player.name}
+                          {displayName}
                         </span>
                       </div>
                       {isSelected && (
@@ -297,7 +308,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                     </div>
                     {isSelected && (
                       <span className="text-[10px] font-black uppercase tracking-wider mt-1 bg-stone-950/20 px-2 py-0.5 rounded-md self-start">
-                        Ganó la mano
+                        {t.wonHand}
                       </span>
                     )}
                   </button>
@@ -307,15 +318,17 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
 
             {/* Selected winner summary badge */}
             <div className="mt-2.5 px-3 py-1.5 bg-stone-950/70 border border-stone-800/80 rounded-xl flex items-center justify-between text-xs">
-              <span className="text-stone-400">Mano a favor de:</span>
+              <span className="text-stone-400">{lang === 'es' ? 'Mano a favor de:' : 'Hand awarded to:'}</span>
               <div className="flex items-center gap-1.5 font-bold">
                 <span style={{ color: selectedPlayerObj?.color || '#f59e0b' }}>
-                  {selectedPlayerObj?.name || 'Jugador'}
+                  {formatPlayerDisplayName(selectedPlayerObj?.name || '', lang)}
                 </span>
                 {selectedPlayerName && selectedPlayerName !== selectedPlayerObj?.name && (
                   <>
                     <span className="text-stone-600">•</span>
-                    <span className="text-amber-400">Salió: {selectedPlayerName}</span>
+                    <span className="text-amber-400">
+                      {lang === 'es' ? `Salió: ${selectedPlayerName}` : `Played: ${selectedPlayerName}`}
+                    </span>
                   </>
                 )}
               </div>
@@ -325,14 +338,14 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           {/* Win Type Selector */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">
-              Tipo de victoria
+              {lang === 'es' ? 'Tipo de victoria' : 'Win Type'}
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {[
-                { id: 'normal', label: 'Dominó' },
-                { id: 'tranca', label: 'Tranca / Cierre' },
-                { id: 'capicua', label: 'Capicúa' },
-                { id: 'penalizacion', label: 'Penalización' },
+                { id: 'normal', label: t.reasonDomino },
+                { id: 'tranca', label: t.reasonTranca },
+                { id: 'capicua', label: t.reasonCapicua },
+                { id: 'penalizacion', label: t.reasonPenalization },
               ].map((item) => {
                 const active = reason === item.id;
                 return (
@@ -343,7 +356,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                       setReason(item.id as WinReason);
                       playTileClickSound(soundEnabled);
                     }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
                       active
                         ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
                         : 'bg-stone-850 border-stone-800 text-stone-400 hover:text-stone-200'
@@ -361,7 +374,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
                   <span className="text-xs text-amber-300">
-                    Bonificación de Capicúa: <strong>+{capicuaBonus} pts</strong>
+                    {lang === 'es' ? `Bonificación de Capicúa: +${capicuaBonus} pts` : `Capicúa Bonus: +${capicuaBonus} pts`}
                   </span>
                 </div>
                 <label className="flex items-center gap-1.5 cursor-pointer">
@@ -371,7 +384,9 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                     onChange={(e) => setIncludeBonus(e.target.checked)}
                     className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
                   />
-                  <span className="text-xs text-stone-300 font-medium">Aplicar</span>
+                  <span className="text-xs text-stone-300 font-medium">
+                    {lang === 'es' ? 'Aplicar' : 'Apply'}
+                  </span>
                 </label>
               </div>
             )}
@@ -380,17 +395,17 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           {/* Points Display */}
           <div className="bg-stone-950 p-3.5 rounded-2xl border border-stone-800 text-center">
             <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1">
-              Puntos a anotar
+              {lang === 'es' ? 'Puntos a anotar' : 'Points to record'}
             </div>
             <div className="flex items-center justify-center gap-2">
               <span className="text-5xl font-black font-display tracking-tight text-amber-400">
                 {totalPointsToSave}
               </span>
-              <span className="text-base text-stone-400 font-semibold">pts</span>
+              <span className="text-base text-stone-400 font-semibold">{t.pts}</span>
             </div>
             {reason === 'capicua' && includeBonus && (
               <p className="text-xs text-stone-400 mt-1">
-                ({currentPoints} fichas + {capicuaBonus} bono capicúa)
+                ({currentPoints} {lang === 'es' ? 'fichas' : 'tiles'} + {capicuaBonus} {lang === 'es' ? 'bono capicúa' : 'capicúa bonus'})
               </p>
             )}
           </div>
@@ -398,8 +413,10 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           {/* Quick Preset Buttons */}
           <div>
             <div className="text-xs text-stone-400 mb-1.5 flex items-center justify-between">
-              <span>Suma rápida</span>
-              <span className="text-[11px] text-stone-500">Toca para sumar</span>
+              <span>{lang === 'es' ? 'Suma rápida' : 'Quick Add'}</span>
+              <span className="text-[11px] text-stone-500">
+                {lang === 'es' ? 'Toca para sumar' : 'Tap to add'}
+              </span>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
               {[5, 10, 15, 20, 25, 30].map((preset) => (
@@ -407,7 +424,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                   key={preset}
                   type="button"
                   onClick={() => handleAddPreset(preset)}
-                  className="py-1.5 px-2 bg-stone-800 hover:bg-stone-750 text-stone-200 border border-stone-700/60 rounded-xl text-xs font-bold transition-all active:scale-95"
+                  className="py-1.5 px-2 bg-stone-800 hover:bg-stone-750 text-stone-200 border border-stone-700/60 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
                 >
                   +{preset}
                 </button>
@@ -423,7 +440,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                   key={digit}
                   type="button"
                   onClick={() => handleKeypadPress(digit)}
-                  className="py-3 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-xl font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95"
+                  className="py-3 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-xl font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
                   {digit}
                 </button>
@@ -431,22 +448,22 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="py-3 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-red-400 text-sm font-bold rounded-xl border border-stone-800 transition-all active:scale-95"
+                className="py-3 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-red-400 text-sm font-bold rounded-xl border border-stone-800 transition-all active:scale-95 cursor-pointer"
               >
                 C
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress('0')}
-                className="py-3 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-xl font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95"
+                className="py-3 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-xl font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95 cursor-pointer"
               >
                 0
               </button>
               <button
                 type="button"
                 onClick={handleBackspace}
-                className="py-3 bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center rounded-xl border border-stone-800 transition-all active:scale-95"
-                title="Borrar último dígito"
+                className="py-3 bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center rounded-xl border border-stone-800 transition-all active:scale-95 cursor-pointer"
+                title={lang === 'es' ? 'Borrar último dígito' : 'Delete last digit'}
               >
                 <Delete className="w-5 h-5" />
               </button>
@@ -457,7 +474,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           <div>
             <input
               type="text"
-              placeholder="Nota opcional (ej. Tranca con la cochina / doble 6)"
+              placeholder={lang === 'es' ? 'Nota opcional (ej. Tranca con la cochina / doble 6)' : 'Optional note (e.g. Block with double 6)'}
               value={notes}
               maxLength={40}
               onChange={(e) => setNotes(e.target.value)}
@@ -480,8 +497,8 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
               <Plus className="w-5 h-5 stroke-[2.5]" />
               <span>
                 {totalPointsToSave > 0
-                  ? `Guardar Mano (+${totalPointsToSave} pts)`
-                  : 'Ingresa los puntos para guardar'}
+                  ? (lang === 'es' ? `Guardar Mano (+${totalPointsToSave} pts)` : `Save Hand (+${totalPointsToSave} pts)`)
+                  : (lang === 'es' ? 'Ingresa los puntos para guardar' : 'Enter points to save')}
               </span>
             </button>
           </div>

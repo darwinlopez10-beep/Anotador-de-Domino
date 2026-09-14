@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
+import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
 
 interface MusicPlayerModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ interface MusicPlayerModalProps {
   onAddCustomTrack?: (track: MusicTrack) => void;
   onDeleteCustomTrack?: (trackId: string) => void;
   initialTab?: string;
+  lang: AppLanguage;
 }
 
 // Lista inicial recomendada para dominó con artistas y géneros variados
@@ -350,7 +352,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   onTogglePlay,
   onVolumeChange,
   onToggleMute,
+  lang,
 }) => {
+  const t = TRANSLATIONS[lang];
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MusicTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -661,7 +665,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         }, 100);
       } else {
         setSearchResults([]);
-        setSearchError(`No se encontraron canciones para "${query}". Intenta buscar con otro nombre.`);
+        setSearchError(
+          lang === 'es'
+            ? `No se encontraron canciones para "${query}". Intenta buscar con otro nombre.`
+            : `No songs found for "${query}". Try searching with another name.`
+        );
       }
     } catch {
       if (localMatches.length > 0) {
@@ -669,7 +677,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
         setSearchError(null);
       } else {
         setSearchResults([]);
-        setSearchError(`No se encontraron resultados para "${query}". Toca uno de los botones de artistas abajo.`);
+        setSearchError(
+          lang === 'es'
+            ? `No se encontraron resultados para "${query}". Toca uno de los botones de artistas abajo.`
+            : `No results found for "${query}". Tap one of the artist buttons below.`
+        );
       }
     } finally {
       setIsSearching(false);
@@ -722,10 +734,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-                Buscador General de Música en YouTube
+                {lang === 'es' ? 'Buscador de Música en YouTube' : 'YouTube Music Search'}
               </h3>
               <p className="text-[11px] text-stone-400">
-                Busca y reproduce cualquier cantante, canción o género del mundo
+                {lang === 'es'
+                  ? 'Busca y reproduce cualquier cantante, canción o género del mundo'
+                  : 'Search and play any artist, song, or genre'}
               </p>
             </div>
           </div>
@@ -734,7 +748,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
-            title="Cerrar reproductor"
+            title={t.close}
           >
             <X className="w-5 h-5" />
           </button>
@@ -779,7 +793,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       handleSearchYouTube(term);
                     }
                   }}
-                  placeholder="Escribe cualquier cantante (ej: Vicente Fernández, Gabriel, Shakira)..."
+                  placeholder={
+                    lang === 'es'
+                      ? 'Escribe cualquier cantante (ej: Vicente Fernández, Gabriel, Shakira)...'
+                      : 'Type any artist or song (e.g. Queen, Frank Sinatra, Shakira)...'
+                  }
                   className="w-full bg-transparent px-2.5 sm:px-3 py-2.5 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none min-h-[44px]"
                 />
                 {searchQuery && (
@@ -794,7 +812,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       }
                     }}
                     className="p-2 text-stone-500 hover:text-stone-300 transition-colors flex-shrink-0 mr-1 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
-                    title="Borrar texto"
+                    title={lang === 'es' ? 'Borrar texto' : 'Clear text'}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -818,7 +836,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 ) : (
                   <Search className="w-4 h-4 text-stone-950 stroke-[2.5]" />
                 )}
-                <span>Buscar</span>
+                <span>{t.search}</span>
               </button>
             </form>
 
@@ -826,7 +844,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-stone-400 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Cantantes populares (toca uno para buscar todas sus canciones en YouTube):
+                {lang === 'es'
+                  ? 'Cantantes populares (toca uno para buscar todas sus canciones en YouTube):'
+                  : 'Popular artists (tap one to search all songs on YouTube):'}
               </span>
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap max-h-32 overflow-y-auto pr-1">
                 {POPULAR_SEARCH_TAGS.map((tag) => {
@@ -894,12 +914,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     {isPlaying ? (
                       <>
                         <Pause className="w-3.5 h-3.5 fill-current" />
-                        <span>Pausar</span>
+                        <span>{t.pause}</span>
                       </>
                     ) : (
                       <>
                         <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                        <span>Sonar</span>
+                        <span>{t.play}</span>
                       </>
                     )}
                   </button>
@@ -909,7 +929,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     type="button"
                     onClick={() => setIsVideoExpanded((prev) => !prev)}
                     className="min-h-[44px] p-2 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-850 transition-colors text-xs flex items-center gap-1 cursor-pointer"
-                    title={isVideoExpanded ? 'Ocultar video' : 'Ver video'}
+                    title={
+                      isVideoExpanded
+                        ? lang === 'es'
+                          ? 'Ocultar video'
+                          : 'Hide video'
+                        : lang === 'es'
+                        ? 'Ver video'
+                        : 'Show video'
+                    }
                   >
                     <Tv className="w-4 h-4 text-stone-400" />
                     <ChevronUp className={`w-3.5 h-3.5 transition-transform ${isVideoExpanded ? '' : 'rotate-180'}`} />
@@ -924,7 +952,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Abrir esta canción en la app de YouTube"
+                    title={
+                      lang === 'es'
+                        ? 'Abrir esta canción en la app de YouTube'
+                        : 'Open this song in YouTube app'
+                    }
                     className="min-h-[44px] min-w-[40px] px-2.5 rounded-lg text-stone-400 hover:text-red-400 active:text-red-300 hover:bg-stone-850 border border-stone-750 transition-colors flex items-center justify-center cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4 text-stone-300" />
@@ -956,7 +988,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center gap-2.5 text-amber-300 animate-pulse">
                 <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
                 <span className="text-xs font-bold">
-                  Buscando canciones en YouTube para &quot;{searchQuery || 'música'}&quot;...
+                  {lang === 'es'
+                    ? `Buscando canciones en YouTube para "${searchQuery || 'música'}"...`
+                    : `Searching songs on YouTube for "${searchQuery || 'music'}"...`}
                 </span>
               </div>
             )}
@@ -971,7 +1005,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     onClick={() => handleSearchYouTube()}
                     className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px]"
                   >
-                    Reintentar
+                    {lang === 'es' ? 'Reintentar' : 'Retry'}
                   </button>
                   {searchQuery && (
                     <a
@@ -981,7 +1015,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                       className="px-3 py-1.5 rounded-lg bg-red-600/30 hover:bg-red-600/40 text-red-200 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px] flex items-center gap-1.5 border border-red-500/40"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Abrir en YouTube</span>
+                      <span>{lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}</span>
                     </a>
                   )}
                 </div>
@@ -994,9 +1028,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <Youtube className="w-4 h-4 text-red-500" />
                 {hasSearched
                   ? searchResults.length > 0
-                    ? `Canciones de "${searchQuery}" (${searchResults.length})`
-                    : `Sin resultados para "${searchQuery}"`
-                  : `Canciones Recomendadas (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`}
+                    ? lang === 'es'
+                      ? `Canciones de "${searchQuery}" (${searchResults.length})`
+                      : `Songs for "${searchQuery}" (${searchResults.length})`
+                    : lang === 'es'
+                    ? `Sin resultados para "${searchQuery}"`
+                    : `No results for "${searchQuery}"`
+                  : lang === 'es'
+                  ? `Canciones Recomendadas (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`
+                  : `Recommended Songs (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`}
               </h4>
 
               {hasSearched && (
@@ -1011,7 +1051,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   }}
                   className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer py-1"
                 >
-                  Ver recomendadas
+                  {lang === 'es' ? 'Ver recomendadas' : 'View recommended'}
                 </button>
               )}
             </div>
@@ -1020,7 +1060,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             {hasSearched && !isSearching && searchResults.length === 0 && (
               <div className="p-6 text-center bg-stone-850/60 rounded-xl border border-stone-750/60 space-y-2">
                 <p className="text-xs text-stone-300">
-                  No se encontraron canciones para &quot;{searchQuery}&quot;.
+                  {lang === 'es'
+                    ? `No se encontraron canciones para "${searchQuery}".`
+                    : `No songs found for "${searchQuery}".`}
                 </p>
                 <button
                   type="button"
@@ -1032,7 +1074,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   }}
                   className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400 cursor-pointer min-h-[44px]"
                 >
-                  Ver lista recomendada de dominó
+                  {lang === 'es'
+                    ? 'Ver lista recomendada de dominó'
+                    : 'View recommended domino playlist'}
                 </button>
               </div>
             )}
@@ -1103,7 +1147,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        title="Abrir en la aplicación de YouTube de tu teléfono o navegador"
+                        title={
+                          lang === 'es'
+                            ? 'Abrir en la aplicación de YouTube de tu teléfono o navegador'
+                            : 'Open in YouTube app or browser'
+                        }
                         className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
                       >
                         <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
@@ -1120,7 +1168,15 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                             handleSelectSong(track);
                           }
                         }}
-                        title={isThisPlaying ? 'Pausar canción' : 'Reproducir canción'}
+                        title={
+                          isThisPlaying
+                            ? lang === 'es'
+                              ? 'Pausar canción'
+                              : 'Pause song'
+                            : lang === 'es'
+                            ? 'Reproducir canción'
+                            : 'Play song'
+                        }
                         className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
                           isThisPlaying
                             ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
@@ -1130,12 +1186,12 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                         {isThisPlaying ? (
                           <>
                             <Pause className="w-4 h-4 fill-current" />
-                            <span className="hidden xs:inline">Pausar</span>
+                            <span className="hidden xs:inline">{t.pause}</span>
                           </>
                         ) : (
                           <>
                             <Play className="w-4 h-4 fill-current ml-0.5" />
-                            <span className="hidden xs:inline">Reproducir</span>
+                            <span className="hidden xs:inline">{t.play}</span>
                           </>
                         )}
                       </button>

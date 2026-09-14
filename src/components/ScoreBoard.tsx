@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Check, Flame, Award, Users, User } from 'lucide-react';
 import { PlayerScore } from '../types';
+import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
 interface ScoreBoardProps {
   players: PlayerScore[];
   targetScore: number;
+  lang: AppLanguage;
   onAddRoundForPlayer: (playerId: string) => void;
   onUpdatePlayerName: (playerId: string, newName: string) => void;
   onUpdatePlayerMembers?: (playerId: string, members: string[]) => void;
@@ -13,19 +15,21 @@ interface ScoreBoardProps {
 export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   players,
   targetScore,
+  lang,
   onAddRoundForPlayer,
   onUpdatePlayerName,
   onUpdatePlayerMembers,
 }) => {
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
+  const t = TRANSLATIONS[lang];
 
   const highestScore = Math.max(...players.map((p) => p.score), 0);
 
   const startEdit = (player: PlayerScore) => {
     setEditingPlayerId(player.id);
-    // Limpiar automáticamente si tiene el nombre por defecto ("Jugador 1", "Jugador 2", etc.)
-    const isDefault = /^jugador\s*\d*$/i.test(player.name.trim());
+    // Limpiar automáticamente si tiene el nombre por defecto ("Jugador 1", "Player 1", etc.)
+    const isDefault = /^(jugador|player)\s*\d*$/i.test(player.name.trim());
     if (isDefault) {
       setEditingName('');
     } else {
@@ -60,7 +64,8 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
           const progressPercent = Math.min(100, Math.round((player.score / targetScore) * 100));
           const pointsRemaining = Math.max(0, targetScore - player.score);
           const isLeader = player.score > 0 && player.score === highestScore;
-          const isAtLeyDe = pointsRemaining > 0 && pointsRemaining <= 25; // "A ley de..." popular domino term!
+          const isAtLeyDe = pointsRemaining > 0 && pointsRemaining <= 25; // Domino term!
+          const displayName = formatPlayerDisplayName(player.name, lang);
 
           return (
             <div
@@ -89,7 +94,11 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     {editingPlayerId === player.id ? (
                       <div className="flex items-center gap-1 sm:gap-1.5 flex-1">
                         {(() => {
-                          const defaultFallback = player.id === 'team_1' ? 'Jugador 1' : player.id === 'team_2' ? 'Jugador 2' : (player.name || 'Jugador');
+                          const defaultFallback = player.id === 'team_1'
+                            ? (lang === 'es' ? 'Jugador 1' : 'Player 1')
+                            : player.id === 'team_2'
+                            ? (lang === 'es' ? 'Jugador 2' : 'Player 2')
+                            : displayName;
                           return (
                             <>
                               <input
@@ -110,7 +119,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                                 type="button"
                                 onClick={() => saveEdit(player.id, defaultFallback)}
                                 className="p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs flex-shrink-0 cursor-pointer"
-                                title="Guardar nombre"
+                                title={lang === 'es' ? 'Guardar nombre' : 'Save name'}
                               >
                                 <Check className="w-4 h-4" />
                               </button>
@@ -121,12 +130,12 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     ) : (
                       <div className="flex items-center gap-1.5 group cursor-pointer min-w-0" onClick={() => startEdit(player)}>
                         <h2 className="text-xl sm:text-3xl landscape:text-2xl font-black text-stone-50 truncate tracking-tight">
-                          {player.name}
+                          {displayName}
                         </h2>
                         <button
                           type="button"
                           className="text-stone-400 hover:text-stone-200 opacity-80 group-hover:opacity-100 transition-opacity p-0.5 flex-shrink-0"
-                          title="Editar nombre"
+                          title={lang === 'es' ? 'Editar nombre' : 'Edit name'}
                         >
                           <Edit2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                         </button>
@@ -138,7 +147,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                   {isLeader && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap flex-shrink-0 shadow-sm">
                       <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-                      <span>Líder</span>
+                      <span>{t.leading}</span>
                     </span>
                   )}
                 </div>
@@ -157,23 +166,30 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     </span>
                   </div>
 
-                  {/* Status / A ley de... */}
+                  {/* Status / Points to win */}
                   <div className="mt-1 sm:mt-1.5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[10px] sm:text-xs leading-tight">
                     {pointsRemaining === 0 ? (
-                      <span className="font-extrabold text-emerald-400">¡Meta lograda!</span>
+                      <span className="font-extrabold text-emerald-400">
+                        {lang === 'es' ? '¡Meta lograda!' : 'Target reached!'}
+                      </span>
                     ) : isAtLeyDe ? (
                       <span className="font-extrabold text-amber-400 animate-pulse">
-                        ¡A ley de {pointsRemaining}!
+                        {lang === 'es' ? `¡A ley de ${pointsRemaining}!` : `${pointsRemaining} ${t.pointsToWin}!`}
                       </span>
                     ) : (
                       <span className="text-stone-300 font-semibold">
-                        Faltan {pointsRemaining}
+                        {lang === 'es' ? `Faltan ${pointsRemaining}` : `${pointsRemaining} ${t.pointsToWin}`}
                       </span>
                     )}
                     <span className="text-stone-600">•</span>
                     <span className="text-stone-300 font-medium flex items-center gap-0.5">
                       <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-stone-400 flex-shrink-0" />
-                      <span>{player.handsWon} {player.handsWon === 1 ? 'mano' : 'manos'}</span>
+                      <span>
+                        {player.handsWon}{' '}
+                        {player.handsWon === 1
+                          ? (lang === 'es' ? 'mano' : 'hand')
+                          : (lang === 'es' ? 'manos' : 'hands')}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -181,7 +197,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 {/* Progress Bar */}
                 <div className="space-y-0.5 sm:space-y-1 mb-1.5 sm:mb-4 landscape:mb-2">
                   <div className="flex justify-between text-[9px] sm:text-[11px] text-stone-400">
-                    <span>Progreso</span>
+                    <span>{lang === 'es' ? 'Progreso' : 'Progress'}</span>
                     <span className="font-mono font-medium">{progressPercent}%</span>
                   </div>
                   <div className="h-1 sm:h-2 w-full bg-stone-900 rounded-full overflow-hidden p-0.5 border border-stone-800">
@@ -205,8 +221,12 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                   }}
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[2.5] flex-shrink-0" />
-                  <span className="hidden sm:inline">Anotar Mano para {player.name}</span>
-                  <span className="sm:hidden font-bold truncate">Anotar mano</span>
+                  <span className="hidden sm:inline">
+                    {lang === 'es' ? `Anotar Mano para ${displayName}` : `Record Hand for ${displayName}`}
+                  </span>
+                  <span className="sm:hidden font-bold truncate">
+                    {t.addPoints}
+                  </span>
                 </button>
               </div>
             </div>

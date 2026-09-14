@@ -1,20 +1,34 @@
 import React, { useState } from 'react';
-import { X, Settings, Users, Target, Shield, Sparkles, Volume2, Check } from 'lucide-react';
-import { GameMode, GameSettings, TrancaRule } from '../types';
+import { X, Settings, Users, Target, Shield, Sparkles, Volume2, Check, Globe } from 'lucide-react';
+import { GameMode, GameSettings, LanguageSetting, TrancaRule } from '../types';
+import { AppLanguage, TRANSLATIONS, resolveActiveLanguage, saveLanguageSetting } from '../utils/i18n';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentSettings: GameSettings;
+  lang?: AppLanguage;
+  activeLang?: AppLanguage;
   onSaveSettings: (newSettings: GameSettings, shouldResetGame: boolean) => void;
+  onLanguageChange?: (newLang: AppLanguage) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   currentSettings,
+  lang,
+  activeLang,
   onSaveSettings,
+  onLanguageChange,
 }) => {
+  const [languageSetting, setLanguageSetting] = useState<LanguageSetting>(
+    currentSettings.languageSetting || 'auto'
+  );
+  
+  const effectiveLang: AppLanguage = resolveActiveLanguage(languageSetting);
+  const t = TRANSLATIONS[effectiveLang];
+
   const [targetScore, setTargetScore] = useState<number>(currentSettings.targetScore);
   const [customTarget, setCustomTarget] = useState<string>('');
   const [isCustomTarget, setIsCustomTarget] = useState<boolean>(
@@ -23,15 +37,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [gameMode, setGameMode] = useState<GameMode>(currentSettings.gameMode);
   const [player1Name, setPlayer1Name] = useState<string>(() => {
-    let n = currentSettings.team1Members?.[0] || currentSettings.team1Name || 'Jugador 1';
+    let n = currentSettings.team1Members?.[0] || currentSettings.team1Name || (effectiveLang === 'es' ? 'Jugador 1' : 'Player 1');
     if (n.includes('&')) n = n.split('&')[0].trim();
-    return n || 'Jugador 1';
+    return n || (effectiveLang === 'es' ? 'Jugador 1' : 'Player 1');
   });
   const [player2Name, setPlayer2Name] = useState<string>(() => {
-    let n = currentSettings.team2Members?.[0] || currentSettings.team2Name || 'Jugador 2';
+    let n = currentSettings.team2Members?.[0] || currentSettings.team2Name || (effectiveLang === 'es' ? 'Jugador 2' : 'Player 2');
     if (n.includes('&')) n = n.split('&')[0].trim();
-    if (n === 'Jugador 3' || n === 'Jugador 4') n = 'Jugador 2';
-    return n || 'Jugador 2';
+    if (n === 'Jugador 3' || n === 'Jugador 4' || n === 'Player 3' || n === 'Player 4') {
+      n = effectiveLang === 'es' ? 'Jugador 2' : 'Player 2';
+    }
+    return n || (effectiveLang === 'es' ? 'Jugador 2' : 'Player 2');
   });
   const [individualNames, setIndividualNames] = useState<string[]>(
     currentSettings.individualPlayerNames
@@ -71,16 +87,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIndividualNames(updated);
   };
 
+  const handleSelectLanguage = (newSetting: LanguageSetting) => {
+    setLanguageSetting(newSetting);
+    saveLanguageSetting(newSetting);
+    const resolved = resolveActiveLanguage(newSetting);
+    if (onLanguageChange) {
+      onLanguageChange(resolved);
+    }
+  };
+
   const handleSave = (resetGame: boolean) => {
+    saveLanguageSetting(languageSetting);
+    const resolved = resolveActiveLanguage(languageSetting);
+    if (onLanguageChange) {
+      onLanguageChange(resolved);
+    }
+
     const activeScore = isCustomTarget && customTarget ? parseInt(customTarget, 10) : targetScore;
 
     const trimmedIndividual = individualNames.slice(0, individualCount).map((n, i) => {
-      const t = n.trim();
-      return t || `Jugador ${i + 1}`;
+      const trimmed = n.trim();
+      return trimmed || (effectiveLang === 'es' ? `Jugador ${i + 1}` : `Player ${i + 1}`);
     });
 
-    const p1 = player1Name.trim() || 'Jugador 1';
-    const p2 = player2Name.trim() || 'Jugador 2';
+    const defaultP1 = effectiveLang === 'es' ? 'Jugador 1' : 'Player 1';
+    const defaultP2 = effectiveLang === 'es' ? 'Jugador 2' : 'Player 2';
+    const p1 = player1Name.trim() || defaultP1;
+    const p2 = player2Name.trim() || defaultP2;
 
     const newSettings: GameSettings = {
       targetScore: Math.max(10, activeScore || 100),
@@ -95,6 +128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       soundEnabled,
       vibrationEnabled,
       timerDurationSeconds,
+      languageSetting,
     };
 
     onSaveSettings(newSettings, resetGame);
@@ -114,12 +148,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Settings className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-bold text-stone-100 font-display">
-              Ajustes de la Partida
+              {t.settings}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -127,11 +161,66 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Form Body */}
         <div className="p-5 overflow-y-auto space-y-6 text-sm">
+          {/* Language Selector (Bilingual Auto Detection) */}
+          <div className="p-3.5 bg-stone-850/80 rounded-2xl border border-stone-800">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2.5 flex items-center gap-1.5">
+              <Globe className="w-4 h-4 text-amber-400" />
+              <span>{t.languageSection}</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage('auto')}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                  languageSetting === 'auto'
+                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
+                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700'
+                }`}
+              >
+                <div>{t.languageAuto}</div>
+                <div className="text-[10px] opacity-80 mt-0.5">{t.languageDesc}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage('es')}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                  languageSetting === 'es'
+                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
+                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700'
+                }`}
+              >
+                <div>🇪🇸 Español</div>
+                <div className="text-[10px] opacity-80 mt-0.5">Spanish</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage('en')}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                  languageSetting === 'en'
+                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
+                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700'
+                }`}
+              >
+                <div>🇺🇸 English</div>
+                <div className="text-[10px] opacity-80 mt-0.5">Inglés</div>
+              </button>
+            </div>
+            <p className="text-[11px] text-stone-400 mt-2">
+              {languageSetting === 'auto'
+                ? effectiveLang === 'es'
+                  ? 'Detectado automáticamente en Español según el idioma del celular.'
+                  : 'Automatically detected in English from your device settings.'
+                : effectiveLang === 'es'
+                ? 'Idioma configurado manualmente en Español.'
+                : 'Language manually configured to English.'}
+            </p>
+          </div>
+
           {/* Target Score */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2 flex items-center gap-1.5">
               <Target className="w-4 h-4 text-amber-400" />
-              <span>Meta de Puntos para Ganar</span>
+              <span>{t.targetScore}</span>
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-2">
               {[50, 100, 150, 200, 500].map((pts) => (
@@ -145,7 +234,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       : 'bg-stone-850 border-stone-800 text-stone-300 hover:border-stone-700'
                   }`}
                 >
-                  {pts} pts
+                  {pts} {t.pts}
                 </button>
               ))}
               <button
@@ -157,7 +246,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-stone-850 border-stone-800 text-stone-300 hover:border-stone-700'
                 }`}
               >
-                Otro
+                {effectiveLang === 'es' ? 'Otro' : 'Other'}
               </button>
             </div>
             {isCustomTarget && (
@@ -171,7 +260,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="bg-stone-950 border border-stone-700 rounded-xl px-3 py-2 text-sm text-stone-100 w-full focus:outline-none focus:border-amber-500"
                 />
                 <span className="text-xs text-stone-400 font-semibold whitespace-nowrap">
-                  puntos
+                  {t.pts}
                 </span>
               </div>
             )}
@@ -181,7 +270,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2 flex items-center gap-1.5">
               <Users className="w-4 h-4 text-emerald-400" />
-              <span>Modalidad de Juego</span>
+              <span>{t.gameMode}</span>
             </label>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
@@ -193,9 +282,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-stone-850 border-stone-800 text-stone-400'
                 }`}
               >
-                <div className="font-bold text-stone-100">2 Jugadores / Lados</div>
+                <div className="font-bold text-stone-100">{t.modeTeams}</div>
                 <div className="text-[11px] text-stone-400 mt-0.5">
-                  Marcador clásico frente a frente
+                  {activeLang === 'es' ? 'Marcador clásico frente a frente' : 'Classic head-to-head score'}
                 </div>
               </button>
               <button
@@ -207,9 +296,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-stone-850 border-stone-800 text-stone-400'
                 }`}
               >
-                <div className="font-bold text-stone-100">Individual (3 ó 4)</div>
+                <div className="font-bold text-stone-100">{t.modeIndividual}</div>
                 <div className="text-[11px] text-stone-400 mt-0.5">
-                  De 3 a 4 jugadores
+                  {activeLang === 'es' ? 'De 3 a 4 jugadores' : '3 or 4 separate players'}
                 </div>
               </button>
             </div>
@@ -223,7 +312,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-1.5 pb-1 border-b border-stone-800">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                       <label className="text-xs text-stone-200 font-bold block">
-                        Jugador 1
+                        {activeLang === 'es' ? 'Jugador 1' : 'Player 1'}
                       </label>
                     </div>
                     <div>
@@ -233,11 +322,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         maxLength={20}
                         onChange={(e) => setPlayer1Name(e.target.value)}
                         onFocus={(e) => {
-                          if (/^jugador\s*1$/i.test(player1Name.trim())) setPlayer1Name('');
+                          if (/^(jugador|player)\s*1$/i.test(player1Name.trim())) setPlayer1Name('');
                           e.target.select();
                         }}
                         className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
-                        placeholder="Jugador 1"
+                        placeholder={activeLang === 'es' ? 'Jugador 1' : 'Player 1'}
                       />
                     </div>
                   </div>
@@ -247,7 +336,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-1.5 pb-1 border-b border-stone-800">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                       <label className="text-xs text-stone-200 font-bold block">
-                        Jugador 2
+                        {activeLang === 'es' ? 'Jugador 2' : 'Player 2'}
                       </label>
                     </div>
                     <div>
@@ -257,11 +346,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         maxLength={20}
                         onChange={(e) => setPlayer2Name(e.target.value)}
                         onFocus={(e) => {
-                          if (/^jugador\s*2$/i.test(player2Name.trim())) setPlayer2Name('');
+                          if (/^(jugador|player)\s*2$/i.test(player2Name.trim())) setPlayer2Name('');
                           e.target.select();
                         }}
                         className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
-                        placeholder="Jugador 2"
+                        placeholder={activeLang === 'es' ? 'Jugador 2' : 'Player 2'}
                       />
                     </div>
                   </div>
@@ -271,7 +360,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="space-y-3 p-3 bg-stone-850 rounded-xl border border-stone-800">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-stone-400 font-semibold">
-                    Número de jugadores:
+                    {activeLang === 'es' ? 'Número de jugadores:' : 'Number of players:'}
                   </span>
                   <div className="flex items-center gap-1">
                     {[2, 3, 4].map((count) => (
@@ -296,7 +385,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div key={idx}>
                       <input
                         type="text"
-                        placeholder={`Jugador ${idx + 1}`}
+                        placeholder={activeLang === 'es' ? `Jugador ${idx + 1}` : `Player ${idx + 1}`}
                         value={individualNames[idx] || ''}
                         maxLength={20}
                         onChange={(e) => handleIndividualNameChange(idx, e.target.value)}
@@ -314,22 +403,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2 flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-blue-400" />
-                <span>Regla de Tranca</span>
+                <span>{t.trancaRule}</span>
               </label>
               <select
                 value={trancaRule}
                 onChange={(e) => setTrancaRule(e.target.value as TrancaRule)}
                 className="w-full bg-stone-850 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-amber-500"
               >
-                <option value="sum_opponent">Suma del Rival (tradicional)</option>
-                <option value="point_difference">Diferencia de Puntos</option>
+                <option value="sum_opponent">
+                  {activeLang === 'es' ? 'Suma del Rival (tradicional)' : "Opponent's Sum (traditional)"}
+                </option>
+                <option value="point_difference">
+                  {activeLang === 'es' ? 'Diferencia de Puntos' : 'Point Difference'}
+                </option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Bono de Capicúa</span>
+                <span>{t.capicuaBonusLabel}</span>
               </label>
               <div className="flex items-center gap-1.5">
                 {[0, 25, 50, 100].map((b) => (
@@ -343,7 +436,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         : 'bg-stone-850 border-stone-800 text-stone-400'
                     }`}
                   >
-                    {b === 0 ? 'Sin bono' : `+${b}`}
+                    {b === 0 ? (effectiveLang === 'es' ? 'Sin bono' : 'No bonus') : `+${b}`}
                   </button>
                 ))}
               </div>
@@ -355,7 +448,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs text-stone-300 font-medium flex items-center gap-2">
                 <Volume2 className="w-4 h-4 text-stone-400" />
-                Efectos de sonido (fichas y victorias)
+                {t.soundEffects}
               </span>
               <input
                 type="checkbox"
@@ -366,7 +459,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-stone-300 font-medium">
-                Vibración háptica al pulsar
+                {t.hapticVibration}
               </span>
               <input
                 type="checkbox"
@@ -384,13 +477,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Guardar y Continuar Partida Actual</span>
+              <span>{effectiveLang === 'es' ? 'Guardar y Continuar Partida Actual' : 'Save and Continue Current Match'}</span>
             </button>
             <button
               onClick={() => handleSave(true)}
               className="w-full py-2.5 px-4 bg-stone-800 hover:bg-stone-750 text-stone-300 hover:text-white font-medium rounded-xl text-xs border border-stone-750 transition-all cursor-pointer"
             >
-              Guardar y Reiniciar Nueva Partida desde 0 pts
+              {effectiveLang === 'es' ? 'Guardar y Reiniciar Nueva Partida desde 0 pts' : 'Save and Restart Match at 0 pts'}
             </button>
           </div>
         </div>

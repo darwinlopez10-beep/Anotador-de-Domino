@@ -1,5 +1,7 @@
 export type GameMode = 'teams' | 'individual';
 
+export type LanguageSetting = 'auto' | 'es' | 'en';
+
 export type TrancaRule = 'sum_opponent' | 'point_difference';
 
 export interface PlayerScore {
@@ -40,6 +42,7 @@ export interface GameSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   timerDurationSeconds: number;
+  languageSetting?: 'auto' | 'es' | 'en';
 }
 
 export interface MatchStats {

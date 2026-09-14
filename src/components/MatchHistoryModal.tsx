@@ -19,6 +19,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { GameMode, PastMatch, WinReason } from '../types';
+import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
 interface MatchHistoryModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ interface MatchHistoryModalProps {
   onClearHistory: (mode?: GameMode) => void;
   canSaveCurrentGame?: boolean;
   onSaveCurrentGame?: () => void;
+  lang: AppLanguage;
 }
 
 export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
@@ -38,7 +40,9 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
   onClearHistory,
   canSaveCurrentGame,
   onSaveCurrentGame,
+  lang,
 }) => {
+  const t = TRANSLATIONS[lang];
   const [activeTab, setActiveTab] = useState<'all' | 'teams' | 'individual'>('all');
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
 
@@ -94,28 +98,28 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
             <Lock className="w-2.5 h-2.5" />
-            Tranca
+            {t.reasonTranca}
           </span>
         );
       case 'capicua':
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
             <Sparkles className="w-2.5 h-2.5" />
-            Capicúa
+            {t.reasonCapicua}
           </span>
         );
       case 'penalizacion':
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-500/15 text-red-300 border border-red-500/30">
             <ShieldAlert className="w-2.5 h-2.5" />
-            Penalización
+            {t.reasonPenalization}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-800 text-stone-300 border border-stone-700">
             <CheckCircle2 className="w-2.5 h-2.5" />
-            Dominó
+            {t.reasonDomino}
           </span>
         );
     }
@@ -135,10 +139,12 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-stone-100 font-display">
-                Historial de Partidas
+                {t.matchHistory}
               </h3>
               <p className="text-xs text-stone-400">
-                Guarda y consulta partidas por pareja e individual
+                {lang === 'es'
+                  ? 'Guarda y consulta partidas por pareja e individual'
+                  : 'Save and view matches by teams and individual'}
               </p>
             </div>
           </div>
@@ -148,16 +154,16 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
               <button
                 type="button"
                 onClick={onSaveCurrentGame}
-                title="Guardar estado de la partida actual en el historial"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-all active:scale-95"
+                title={lang === 'es' ? 'Guardar estado de la partida actual en el historial' : 'Archive current game state to history'}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
               >
                 <BookmarkPlus className="w-3.5 h-3.5" />
-                <span>Archivar actual</span>
+                <span>{lang === 'es' ? 'Archivar actual' : 'Archive current'}</span>
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+              className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -169,13 +175,13 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('all')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'all'
                 ? 'border-amber-400 text-amber-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
-            <span>Todas</span>
+            <span>{lang === 'es' ? 'Todas' : 'All'}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-800 text-stone-300">
               {matches.length}
             </span>
@@ -184,14 +190,14 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('teams')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'teams'
                 ? 'border-emerald-400 text-emerald-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Por Parejas (2 Equipos)</span>
+            <span>{lang === 'es' ? 'Por Parejas (2 Equipos)' : 'By Teams (2 Teams)'}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-800 text-stone-300">
               {teamsMatches.length}
             </span>
@@ -200,14 +206,14 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('individual')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'individual'
                 ? 'border-sky-400 text-sky-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
             <Swords className="w-3.5 h-3.5" />
-            <span>Individual (Todos vs Todos)</span>
+            <span>{lang === 'es' ? 'Individual (Todos vs Todos)' : 'Individual (Free for All)'}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-800 text-stone-300">
               {individualMatches.length}
             </span>
@@ -221,10 +227,14 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
               <button
                 type="button"
                 onClick={onSaveCurrentGame}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold cursor-pointer"
               >
                 <BookmarkPlus className="w-4 h-4" />
-                <span>Archivar partida en curso al historial</span>
+                <span>
+                  {lang === 'es'
+                    ? 'Archivar partida en curso al historial'
+                    : 'Archive current game to history'}
+                </span>
               </button>
             </div>
           )}
@@ -235,10 +245,10 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
               <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Award className="w-4 h-4 text-amber-400" />
-                  Récord de la Serie en Parejas
+                  {lang === 'es' ? 'Récord de la Serie en Parejas' : 'Teams Series Record'}
                 </span>
                 <span className="text-[11px] text-stone-400 font-normal">
-                  {teamsMatches.length} {teamsMatches.length === 1 ? 'partida' : 'partidas'}
+                  {teamsMatches.length} {teamsMatches.length === 1 ? (lang === 'es' ? 'partida' : 'match') : (lang === 'es' ? 'partidas' : 'matches')}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
@@ -253,10 +263,12 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                           style={{ backgroundColor: data.color }}
                         />
-                        <span className="text-xs font-bold text-stone-100 truncate">{name}</span>
+                        <span className="text-xs font-bold text-stone-100 truncate">
+                          {formatPlayerDisplayName(name, lang)}
+                        </span>
                       </div>
                       <span className="text-[11px] text-stone-500">
-                        {data.totalPoints} pts acumulados
+                        {data.totalPoints} {lang === 'es' ? 'pts acumulados' : 'pts accumulated'}
                       </span>
                     </div>
                     <div className="text-right">
@@ -264,7 +276,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                         {data.wins}
                       </span>
                       <span className="text-[10px] text-stone-400 block -mt-1 font-semibold">
-                        victorias
+                        {lang === 'es' ? 'victorias' : 'wins'}
                       </span>
                     </div>
                   </div>
@@ -279,10 +291,10 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
               <div className="text-xs font-bold uppercase tracking-wider text-sky-400 mb-2.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Medal className="w-4 h-4 text-amber-400" />
-                  Tabla de Posiciones (Todos contra Todos)
+                  {lang === 'es' ? 'Tabla de Posiciones (Todos contra Todos)' : 'Leaderboard (Free for All)'}
                 </span>
                 <span className="text-[11px] text-stone-400 font-normal">
-                  {individualMatches.length} {individualMatches.length === 1 ? 'partida' : 'partidas'}
+                  {individualMatches.length} {individualMatches.length === 1 ? (lang === 'es' ? 'partida' : 'match') : (lang === 'es' ? 'partidas' : 'matches')}
                 </span>
               </div>
               <div className="space-y-1.5">
@@ -299,15 +311,17 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: data.color }}
                       />
-                      <span className="text-xs font-bold text-stone-100 truncate">{name}</span>
+                      <span className="text-xs font-bold text-stone-100 truncate">
+                        {formatPlayerDisplayName(name, lang)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
                       <span className="text-stone-400">
-                        {data.matchesPlayed} {data.matchesPlayed === 1 ? 'partida' : 'partidas'}
+                        {data.matchesPlayed} {data.matchesPlayed === 1 ? (lang === 'es' ? 'partida' : 'match') : (lang === 'es' ? 'partidas' : 'matches')}
                       </span>
                       <div className="text-right">
                         <span className="font-bold text-amber-400 text-sm">
-                          {data.wins} {data.wins === 1 ? 'victoria' : 'victorias'}
+                          {data.wins} {data.wins === 1 ? (lang === 'es' ? 'victoria' : 'win') : (lang === 'es' ? 'victorias' : 'wins')}
                         </span>
                       </div>
                     </div>
@@ -322,17 +336,22 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
             <div className="py-12 text-center text-stone-500 bg-stone-850/40 rounded-2xl border border-dashed border-stone-800">
               <Trophy className="w-8 h-8 mx-auto text-stone-600 mb-2 opacity-50" />
               <p className="text-sm font-medium text-stone-400">
-                No hay partidas registradas{' '}
-                {activeTab === 'teams'
-                  ? 'en la categoría por Parejas'
+                {lang === 'es'
+                  ? activeTab === 'teams'
+                    ? 'No hay partidas registradas en la categoría por Parejas.'
+                    : activeTab === 'individual'
+                    ? 'No hay partidas registradas en Todos contra Todos.'
+                    : 'No hay partidas registradas en el historial.'
+                  : activeTab === 'teams'
+                  ? 'No matches recorded in the Teams category.'
                   : activeTab === 'individual'
-                  ? 'en Todos contra Todos'
-                  : 'en el historial'}
-                .
+                  ? 'No matches recorded in Free for All.'
+                  : 'No matches recorded in history.'}
               </p>
               <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
-                Al terminar una partida o al pulsar &quot;Archivar actual&quot;, se guardará
-                automáticamente con todo el detalle de sus manos.
+                {lang === 'es'
+                  ? 'Al terminar una partida o al pulsar "Archivar actual", se guardará automáticamente con todo el detalle de sus manos.'
+                  : 'When a game ends or when you tap "Archive current", it will be saved automatically with full hand details.'}
               </p>
             </div>
           ) : (
@@ -357,7 +376,9 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                                 : 'bg-sky-500/10 text-sky-400 border-sky-500/30'
                             }`}
                           >
-                            {isTeams ? 'Por Parejas' : 'Todos vs Todos'}
+                            {isTeams
+                              ? (lang === 'es' ? 'Por Parejas' : 'Teams')
+                              : (lang === 'es' ? 'Todos vs Todos' : 'Free for All')}
                           </span>
                           <span className="flex items-center gap-1 text-stone-400">
                             <Calendar className="w-3 h-3 text-stone-500" />
@@ -372,17 +393,20 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                           </span>
                           <span className="text-stone-600">•</span>
                           <span className="text-stone-400 text-[11px]">
-                            Meta: <strong>{match.targetScore}</strong> pts
+                            {lang === 'es' ? 'Meta:' : 'Target:'} <strong>{match.targetScore}</strong> {t.pts}
                           </span>
                           <button
                             type="button"
                             onClick={() => {
-                              if (window.confirm('¿Deseas eliminar esta partida del historial?')) {
+                              const confirmMsg = lang === 'es'
+                                ? '¿Deseas eliminar esta partida del historial?'
+                                : 'Do you want to delete this match from history?';
+                              if (window.confirm(confirmMsg)) {
                                 onDeleteMatch(match.id);
                               }
                             }}
-                            title="Eliminar esta partida"
-                            className="p-1 rounded text-stone-500 hover:text-red-400 hover:bg-stone-800 transition-colors ml-1"
+                            title={lang === 'es' ? 'Eliminar esta partida' : 'Delete this match'}
+                            className="p-1 rounded text-stone-500 hover:text-red-400 hover:bg-stone-800 transition-colors ml-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -394,17 +418,19 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Trophy className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs text-stone-400">Ganador:</span>
+                            <span className="text-xs text-stone-400">
+                              {lang === 'es' ? 'Ganador:' : 'Winner:'}
+                            </span>
                             <span className="font-extrabold text-sm text-stone-100 flex items-center gap-1.5">
                               <span
                                 className="w-2 h-2 rounded-full"
                                 style={{ backgroundColor: match.winnerColor }}
                               />
-                              {match.winnerName}
+                              {formatPlayerDisplayName(match.winnerName, lang)}
                             </span>
                           </div>
                           <span className="text-xs text-stone-400">
-                            {match.totalRounds} {match.totalRounds === 1 ? 'mano' : 'manos'}
+                            {match.totalRounds} {match.totalRounds === 1 ? (lang === 'es' ? 'mano' : 'hand') : (lang === 'es' ? 'manos' : 'hands')}
                           </span>
                         </div>
 
@@ -425,7 +451,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                                 >
                                   <div className="flex items-center justify-between">
                                     <span className="font-bold text-stone-200 truncate">
-                                      {team.name}
+                                      {formatPlayerDisplayName(team.name, lang)}
                                     </span>
                                     <span className="font-mono font-extrabold text-amber-400 text-sm">
                                       {team.score}
@@ -457,7 +483,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                                   }`}
                                 >
                                   <span className="font-medium text-stone-200 truncate pr-1">
-                                    {p.name}
+                                    {formatPlayerDisplayName(p.name, lang)}
                                   </span>
                                   <span className="font-mono font-bold text-amber-400">
                                     {p.score}
@@ -475,12 +501,14 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setExpandedMatchId(isExpanded ? null : match.id)}
-                            className="w-full py-1.5 px-2.5 rounded-xl bg-stone-900/60 hover:bg-stone-900 text-stone-400 hover:text-stone-200 text-xs font-semibold flex items-center justify-between border border-stone-800/80 transition-colors"
+                            className="w-full py-1.5 px-2.5 rounded-xl bg-stone-900/60 hover:bg-stone-900 text-stone-400 hover:text-stone-200 text-xs font-semibold flex items-center justify-between border border-stone-800/80 transition-colors cursor-pointer"
                           >
                             <span>
                               {isExpanded
-                                ? 'Ocultar manos jugadas'
-                                : `Ver detalle de las ${match.rounds.length} manos`}
+                                ? (lang === 'es' ? 'Ocultar manos jugadas' : 'Hide played hands')
+                                : (lang === 'es'
+                                    ? `Ver detalle de las ${match.rounds.length} manos`
+                                    : `View details of all ${match.rounds.length} hands`)}
                             </span>
                             {isExpanded ? (
                               <ChevronUp className="w-3.5 h-3.5" />
@@ -493,7 +521,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                           {isExpanded && (
                             <div className="mt-2 space-y-1.5 bg-stone-950/70 p-2.5 rounded-xl border border-stone-800 text-xs">
                               <div className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1">
-                                Registro de Manos
+                                {lang === 'es' ? 'Registro de Manos' : 'Hand Log'}
                               </div>
                               <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
                                 {match.rounds.map((round) => (
@@ -522,7 +550,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                                         </span>
                                       )}
                                       <span className="font-mono font-bold text-amber-400">
-                                        +{round.points} pts
+                                        +{round.points} {t.pts}
                                       </span>
                                     </div>
                                   </div>
@@ -544,32 +572,46 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
         {filteredMatches.length > 0 && (
           <div className="px-5 py-3 border-t border-stone-800 bg-stone-850 flex items-center justify-between text-xs">
             <span className="text-stone-400">
-              Mostrando {filteredMatches.length} de {matches.length} partidas
+              {lang === 'es'
+                ? `Mostrando ${filteredMatches.length} de ${matches.length} partidas`
+                : `Showing ${filteredMatches.length} of ${matches.length} matches`}
             </span>
 
             <button
               type="button"
               onClick={() => {
                 const confirmMsg =
-                  activeTab === 'all'
-                    ? '¿Deseas borrar TODO el historial de partidas guardadas?'
+                  lang === 'es'
+                    ? activeTab === 'all'
+                      ? '¿Deseas borrar TODO el historial de partidas guardadas?'
+                      : activeTab === 'teams'
+                      ? '¿Deseas borrar solo el historial de partidas por Parejas?'
+                      : '¿Deseas borrar solo el historial de partidas Individuales?'
+                    : activeTab === 'all'
+                    ? 'Do you want to delete ALL saved match history?'
                     : activeTab === 'teams'
-                    ? '¿Deseas borrar solo el historial de partidas por Parejas?'
-                    : '¿Deseas borrar solo el historial de partidas Individuales?';
+                    ? 'Do you want to delete only Teams match history?'
+                    : 'Do you want to delete only Individual match history?';
 
                 if (window.confirm(confirmMsg)) {
                   onClearHistory(activeTab === 'all' ? undefined : activeTab);
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-stone-400 hover:text-red-400 hover:bg-red-500/10 font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-stone-400 hover:text-red-400 hover:bg-red-500/10 font-medium transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>
-                {activeTab === 'all'
-                  ? 'Borrar todo'
+                {lang === 'es'
+                  ? activeTab === 'all'
+                    ? 'Borrar todo'
+                    : activeTab === 'teams'
+                    ? 'Borrar parejas'
+                    : 'Borrar individuales'
+                  : activeTab === 'all'
+                  ? 'Clear all'
                   : activeTab === 'teams'
-                  ? 'Borrar parejas'
-                  : 'Borrar individuales'}
+                  ? 'Clear teams'
+                  : 'Clear individual'}
               </span>
             </button>
           </div>
