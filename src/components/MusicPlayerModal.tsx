@@ -30,6 +30,7 @@ import {
   Plus,
   Minus,
   Radio,
+  Repeat,
 } from 'lucide-react';
 import { MusicHistoryItem, MusicTrack } from '../types';
 import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
@@ -980,16 +981,24 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               ref={playerContainerRef}
               className="bg-stone-950 border border-stone-800 rounded-xl p-3 sm:p-3.5 shadow-md flex flex-col gap-2.5 transition-all"
             >
-              {/* Segundo plano pill */}
-              <div className="flex items-center justify-between text-[11px] pb-1 border-b border-stone-850">
-                <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="font-semibold uppercase text-[9px] tracking-wide">
-                    {lang === 'es' ? 'Segundo Plano Activo' : 'Background Active'}
-                  </span>
+              {/* Segundo plano & Auto-siguiente pills */}
+              <div className="flex items-center justify-between text-[11px] pb-1 border-b border-stone-850 gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-semibold uppercase text-[9px] tracking-wide">
+                      {lang === 'es' ? 'Segundo Plano' : 'Background Active'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full">
+                    <Repeat className="w-2.5 h-2.5" />
+                    <span className="font-semibold uppercase text-[9px] tracking-wide">
+                      {lang === 'es' ? 'Auto-Siguiente Activo' : 'Auto-Next'}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-stone-400">
-                  {lang === 'es' ? 'Suena al salir de la app o bloquear pantalla' : 'Plays when leaving app or locked'}
+                <span className="text-[10px] text-stone-400 hidden sm:inline">
+                  {lang === 'es' ? 'Suena al salir o apagar la pantalla' : 'Plays when leaving app or locked'}
                 </span>
               </div>
 

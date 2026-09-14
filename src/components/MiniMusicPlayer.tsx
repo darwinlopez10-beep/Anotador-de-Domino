@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -17,6 +17,7 @@ import {
   SkipBack,
   SkipForward,
   Radio,
+  Repeat,
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 import { AppLanguage } from '../utils/i18n';
@@ -159,10 +160,86 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     };
   }, [isYouTube, isPlaying]);
 
+  // Guard against duplicate triggers of next track for the same song
+  const hasTriggeredNextRef = useRef(false);
+
+  // Reset trigger flag when track changes
+  useEffect(() => {
+    hasTriggeredNextRef.current = false;
+  }, [track.id, track.videoId]);
+
+  const triggerNextTrack = useCallback(() => {
+    if (hasTriggeredNextRef.current) return;
+    hasTriggeredNextRef.current = true;
+    if (onNextTrack) {
+      onNextTrack();
+    }
+  }, [onNextTrack]);
+
+  // Listen to YouTube postMessage events (onStateChange: 0 means ENDED, infoDelivery playerState: 0)
+  useEffect(() => {
+    if (!isYouTube) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      let data = event.data;
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          return;
+        }
+      }
+
+      if (!data || typeof data !== 'object') return;
+
+      // 1. YouTube onStateChange event:
+      // YT.PlayerState.ENDED = 0
+      if (data.event === 'onStateChange') {
+        const state = data.info !== undefined ? data.info : data.data;
+        if (state === 0) {
+          triggerNextTrack();
+        }
+      }
+
+      // 2. YouTube infoDelivery event:
+      if (data.event === 'infoDelivery' && data.info) {
+        if (data.info.playerState === 0) {
+          triggerNextTrack();
+        } else if (
+          typeof data.info.currentTime === 'number' &&
+          typeof data.info.duration === 'number' &&
+          data.info.duration > 10 &&
+          data.info.currentTime >= data.info.duration - 1.2
+        ) {
+          triggerNextTrack();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [isYouTube, triggerNextTrack]);
+
+  // Polling fallback to query YouTube player state and detect song completion
+  useEffect(() => {
+    if (!isYouTube || !isPlaying || !iframeLoaded) return;
+
+    const interval = setInterval(() => {
+      sendYouTubeCommand('getPlayerState');
+      sendYouTubeCommand('getCurrentTime');
+      sendYouTubeCommand('getDuration');
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [isYouTube, isPlaying, iframeLoaded]);
+
   // When YouTube iframe finishes loading, initialize its state
   const handleIframeLoad = () => {
     setIframeLoaded(true);
     sendYouTubeCommand('listening');
+    sendYouTubeCommand('addEventListener', ['onStateChange']);
     sendYouTubeCommand('setVolume', [Math.round(volume * 100)]);
 
     if (volume === 0) {
@@ -188,12 +265,19 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     onVolumeChange(next);
   };
 
-  // Construct standard embed URL with JavaScript API enabled
+  // Construct standard embed URL with JavaScript API enabled and origin
+  const originParam =
+    typeof window !== 'undefined' && window.location.origin
+      ? `&origin=${encodeURIComponent(window.location.origin)}`
+      : '';
+
   const embedUrl = ytVideoId
-    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3`
-    : (track.url && track.url.includes('embed')
-        ? track.url
-        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(track.artist + ' ' + track.title)}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3`);
+    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
+    : track.url && track.url.includes('embed')
+    ? `${track.url}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
+    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
+        track.artist + ' ' + track.title
+      )}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`;
 
   return (
     <div
@@ -235,24 +319,40 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
           </div>
         )}
 
-        {/* Header indicator: Segundo Plano activo */}
+        {/* Header indicator: Segundo Plano activo & Auto Siguiente */}
         <div className="flex items-center justify-between text-[10px] text-stone-400 px-0.5">
-          <div
-            className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full"
-            title={
-              lang === 'es'
-                ? 'Sonando en segundo plano: Puedes salir de la app o apagar la pantalla y la música continuará sonando.'
-                : 'Playing in background: Music continues playing when leaving app or turning off screen.'
-            }
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-semibold tracking-wide uppercase text-[9px]">
-              {lang === 'es' ? 'Segundo Plano Activo' : 'Background Active'}
-            </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div
+              className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full"
+              title={
+                lang === 'es'
+                  ? 'Sonando en segundo plano: Puedes salir de la app o apagar la pantalla y la música continuará sonando.'
+                  : 'Playing in background: Music continues playing when leaving app or turning off screen.'
+              }
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-semibold tracking-wide uppercase text-[9px]">
+                {lang === 'es' ? 'Segundo Plano' : 'Background'}
+              </span>
+            </div>
+
+            <div
+              className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full"
+              title={
+                lang === 'es'
+                  ? 'Reproducción continua automática: Al terminar la canción se reproduce la siguiente.'
+                  : 'Continuous auto-play: Next track plays automatically when current finishes.'
+              }
+            >
+              <Repeat className="w-2.5 h-2.5" />
+              <span className="font-semibold tracking-wide uppercase text-[9px]">
+                {lang === 'es' ? 'Auto-Siguiente' : 'Auto-Next'}
+              </span>
+            </div>
           </div>
 
-          <span className="text-stone-500 text-[10px]">
-            {lang === 'es' ? 'Controles en notificaciones' : 'Lock screen controls'}
+          <span className="text-stone-500 text-[10px] hidden sm:inline">
+            {lang === 'es' ? 'Bloqueo / Notificaciones' : 'Lock screen'}
           </span>
         </div>
 

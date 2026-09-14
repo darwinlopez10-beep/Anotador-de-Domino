@@ -202,6 +202,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playNextTrackRef = useRef<() => void>(() => {});
 
   // Initialize and manage audio element
   useEffect(() => {
@@ -214,8 +215,9 @@ export default function App() {
     };
 
     const onEnded = () => {
-      setIsMusicPlaying(false);
       setMusicCurrentTime(0);
+      // Auto-reproducir la siguiente canción automáticamente
+      playNextTrackRef.current();
     };
 
     const onError = () => {
@@ -708,18 +710,33 @@ export default function App() {
   }, []);
 
   const handlePlayNextTrack = useCallback(() => {
-    const next = getNextTrack(currentMusicTrack, musicHistory, CURATED_DOMINO_YOUTUBE_TRACKS);
+    const next = getNextTrack(
+      currentMusicTrack,
+      musicHistory,
+      CURATED_DOMINO_YOUTUBE_TRACKS,
+      customTracks
+    );
     if (next) {
       handleSelectMusicTrack(next);
     }
-  }, [currentMusicTrack, musicHistory, handleSelectMusicTrack]);
+  }, [currentMusicTrack, musicHistory, customTracks, handleSelectMusicTrack]);
 
   const handlePlayPrevTrack = useCallback(() => {
-    const prev = getPrevTrack(currentMusicTrack, musicHistory, CURATED_DOMINO_YOUTUBE_TRACKS);
+    const prev = getPrevTrack(
+      currentMusicTrack,
+      musicHistory,
+      CURATED_DOMINO_YOUTUBE_TRACKS,
+      customTracks
+    );
     if (prev) {
       handleSelectMusicTrack(prev);
     }
-  }, [currentMusicTrack, musicHistory, handleSelectMusicTrack]);
+  }, [currentMusicTrack, musicHistory, customTracks, handleSelectMusicTrack]);
+
+  // Keep playNextTrackRef in sync with the latest handlePlayNextTrack callback
+  useEffect(() => {
+    playNextTrackRef.current = handlePlayNextTrack;
+  }, [handlePlayNextTrack]);
 
   const handleCloseMusicPlayer = useCallback(() => {
     if (audioRef.current) {

@@ -93,27 +93,48 @@ export function syncMediaSession({
 }
 
 /**
- * Calculates next track intelligently from recently played history or curated playlist
+ * Calculates next track intelligently from recently played history, curated playlist, or custom tracks
  */
 export function getNextTrack(
   current: MusicTrack | null,
-  history: MusicHistoryItem[],
-  curated: MusicTrack[]
+  history: MusicHistoryItem[] = [],
+  curated: MusicTrack[] = [],
+  customTracks: MusicTrack[] = []
 ): MusicTrack | null {
-  if (!current) return curated[0] || null;
+  if (!current) return curated[0] || customTracks[0] || null;
 
-  // Try finding in curated list
-  const currentKey = current.videoId || current.id;
-  const curatedIdx = curated.findIndex(
-    (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
-  );
-
-  if (curatedIdx !== -1 && curatedIdx < curated.length - 1) {
-    return curated[curatedIdx + 1];
+  // 1. Check if current is in customTracks
+  if (customTracks && customTracks.length > 0) {
+    const customIdx = customTracks.findIndex(
+      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
+    );
+    if (customIdx !== -1) {
+      if (customIdx < customTracks.length - 1) {
+        return customTracks[customIdx + 1];
+      } else {
+        return curated.length > 0 ? curated[0] : customTracks[0];
+      }
+    }
   }
 
-  // If in history
-  if (history.length > 1) {
+  // 2. Check if current is in curated list
+  if (curated && curated.length > 0) {
+    const curatedIdx = curated.findIndex(
+      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
+    );
+
+    if (curatedIdx !== -1) {
+      if (curatedIdx < curated.length - 1) {
+        return curated[curatedIdx + 1];
+      } else {
+        // Wrap around to the start of curated
+        return curated[0];
+      }
+    }
+  }
+
+  // 3. If in history
+  if (history && history.length > 1) {
     const histIdx = history.findIndex(
       (h) => (h.track.videoId && h.track.videoId === current.videoId) || h.track.id === current.id
     );
@@ -122,8 +143,8 @@ export function getNextTrack(
     }
   }
 
-  // Wrap around to start of curated
-  return curated[0] || null;
+  // 4. Default wrap-around to start of curated or custom
+  return curated[0] || customTracks[0] || null;
 }
 
 /**
@@ -131,20 +152,36 @@ export function getNextTrack(
  */
 export function getPrevTrack(
   current: MusicTrack | null,
-  history: MusicHistoryItem[],
-  curated: MusicTrack[]
+  history: MusicHistoryItem[] = [],
+  curated: MusicTrack[] = [],
+  customTracks: MusicTrack[] = []
 ): MusicTrack | null {
-  if (!current) return curated[0] || null;
+  if (!current) return curated[0] || customTracks[0] || null;
 
-  const curatedIdx = curated.findIndex(
-    (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
-  );
-
-  if (curatedIdx > 0) {
-    return curated[curatedIdx - 1];
+  if (customTracks && customTracks.length > 0) {
+    const customIdx = customTracks.findIndex(
+      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
+    );
+    if (customIdx > 0) {
+      return customTracks[customIdx - 1];
+    } else if (customIdx === 0) {
+      return customTracks[customTracks.length - 1];
+    }
   }
 
-  if (history.length > 1) {
+  if (curated && curated.length > 0) {
+    const curatedIdx = curated.findIndex(
+      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
+    );
+
+    if (curatedIdx > 0) {
+      return curated[curatedIdx - 1];
+    } else if (curatedIdx === 0) {
+      return curated[curated.length - 1];
+    }
+  }
+
+  if (history && history.length > 1) {
     const histIdx = history.findIndex(
       (h) => (h.track.videoId && h.track.videoId === current.videoId) || h.track.id === current.id
     );
@@ -153,7 +190,7 @@ export function getPrevTrack(
     }
   }
 
-  return curated[curated.length - 1] || null;
+  return curated[curated.length - 1] || customTracks[0] || null;
 }
 
 /**
