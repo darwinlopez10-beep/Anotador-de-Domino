@@ -107,11 +107,11 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                   className="py-2.5 px-3 sm:px-4 font-bold border-r border-stone-800/80"
                   style={{ color: players[0].color }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold tracking-tight">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-sm font-extrabold tracking-tight break-words line-clamp-2 leading-tight">
                       {formatPlayerDisplayName(players[0].name, lang)}
                     </span>
-                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">
+                    <span className="text-[11px] sm:text-xs opacity-75 font-normal flex-shrink-0">
                       {lang === 'es' ? 'Acumulado' : 'Total'}
                     </span>
                   </div>
@@ -120,11 +120,11 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
                   className="py-2.5 px-3 sm:px-4 font-bold"
                   style={{ color: players[1].color }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold tracking-tight">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-sm font-extrabold tracking-tight break-words line-clamp-2 leading-tight">
                       {formatPlayerDisplayName(players[1].name, lang)}
                     </span>
-                    <span className="text-[11px] sm:text-xs opacity-75 font-normal">
+                    <span className="text-[11px] sm:text-xs opacity-75 font-normal flex-shrink-0">
                       {lang === 'es' ? 'Acumulado' : 'Total'}
                     </span>
                   </div>

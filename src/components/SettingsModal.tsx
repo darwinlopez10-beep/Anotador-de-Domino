@@ -312,20 +312,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-1.5 pb-1 border-b border-stone-800">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                       <label className="text-xs text-stone-200 font-bold block">
-                        {activeLang === 'es' ? 'Jugador 1' : 'Player 1'}
+                        {activeLang === 'es' ? 'Jugador / Pareja 1' : 'Player / Team 1'}
                       </label>
                     </div>
                     <div>
                       <input
                         type="text"
                         value={player1Name}
-                        maxLength={20}
+                        maxLength={35}
                         onChange={(e) => setPlayer1Name(e.target.value)}
                         onFocus={(e) => {
                           if (/^(jugador|player)\s*1$/i.test(player1Name.trim())) setPlayer1Name('');
                           e.target.select();
                         }}
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
+                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs sm:text-sm text-stone-100 font-bold focus:outline-none focus:border-amber-500"
                         placeholder={activeLang === 'es' ? 'Jugador 1' : 'Player 1'}
                       />
                     </div>
@@ -336,20 +336,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-1.5 pb-1 border-b border-stone-800">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                       <label className="text-xs text-stone-200 font-bold block">
-                        {activeLang === 'es' ? 'Jugador 2' : 'Player 2'}
+                        {activeLang === 'es' ? 'Jugador / Pareja 2' : 'Player / Team 2'}
                       </label>
                     </div>
                     <div>
                       <input
                         type="text"
                         value={player2Name}
-                        maxLength={20}
+                        maxLength={35}
                         onChange={(e) => setPlayer2Name(e.target.value)}
                         onFocus={(e) => {
                           if (/^(jugador|player)\s*2$/i.test(player2Name.trim())) setPlayer2Name('');
                           e.target.select();
                         }}
-                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs text-stone-100 font-semibold focus:outline-none focus:border-amber-500"
+                        className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs sm:text-sm text-stone-100 font-bold focus:outline-none focus:border-amber-500"
                         placeholder={activeLang === 'es' ? 'Jugador 2' : 'Player 2'}
                       />
                     </div>

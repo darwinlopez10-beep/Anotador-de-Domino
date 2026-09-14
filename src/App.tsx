@@ -779,7 +779,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-2 sm:p-6 landscape:p-3 space-y-3 sm:space-y-5 landscape:space-y-3 pb-28 sm:pb-16 landscape:pb-16">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-1.5 sm:p-5 landscape:p-2.5 space-y-3 sm:space-y-4 landscape:space-y-2.5 pb-28 sm:pb-16 landscape:pb-16">
         {/* Score Board Cards */}
         <ScoreBoard
           key={startTime}
