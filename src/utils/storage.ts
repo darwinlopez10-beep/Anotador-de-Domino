@@ -1,10 +1,11 @@
-import { GameMode, GameSettings, MusicTrack, PastMatch, PlayerScore, Round } from '../types';
+import { GameMode, GameSettings, MusicHistoryItem, MusicTrack, PastMatch, PlayerScore, Round } from '../types';
 
 const STORAGE_KEYS = {
   CURRENT_GAME: 'domino_current_game_v1',
   SETTINGS: 'domino_settings_v1',
   MATCH_HISTORY: 'domino_match_history_v1',
   CUSTOM_TRACKS: 'domino_custom_tracks_v1',
+  MUSIC_HISTORY: 'domino_music_history_v1',
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -182,3 +183,126 @@ export function saveCustomTracks(tracks: MusicTrack[]): void {
     // Ignore
   }
 }
+
+/**
+ * Cargar el historial de canciones escuchadas guardado en el dispositivo
+ */
+export function loadMusicHistory(): MusicHistoryItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.MUSIC_HISTORY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item) => item && item.track && item.track.title);
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Guardar el historial de canciones escuchadas
+ */
+export function saveMusicHistory(items: MusicHistoryItem[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.MUSIC_HISTORY, JSON.stringify(items.slice(0, 200)));
+  } catch {
+    // Ignore storage quota
+  }
+}
+
+/**
+ * Graba automáticamente la canción que se está escuchando:
+ * - Si ya se había escuchado, incrementa su playCount y actualiza la fecha/hora
+ * - Si es nueva, la agrega con playCount = 1 y timestamp actual
+ * - Retorna la lista actualizada de historial
+ */
+export function recordSongPlay(track: MusicTrack): MusicHistoryItem[] {
+  if (!track || !track.title) return loadMusicHistory();
+  try {
+    const current = loadMusicHistory();
+    const cleanTitle = (track.title || '').trim().toLowerCase();
+    const cleanArtist = (track.artist || '').trim().toLowerCase();
+    const vId = track.videoId;
+
+    // Buscar si ya existe por ID exacto, por videoId de YouTube, o por combinación título + artista
+    const existingIndex = current.findIndex((item) => {
+      if (item.id === track.id) return true;
+      if (vId && item.track.videoId && item.track.videoId === vId) return true;
+      const itTitle = (item.track.title || '').trim().toLowerCase();
+      const itArtist = (item.track.artist || '').trim().toLowerCase();
+      return itTitle === cleanTitle && itArtist === cleanArtist;
+    });
+
+    let updatedHistory: MusicHistoryItem[];
+
+    if (existingIndex >= 0) {
+      const existingItem = current[existingIndex];
+      const updatedItem: MusicHistoryItem = {
+        ...existingItem,
+        track: {
+          ...existingItem.track,
+          ...track,
+          // Mantener videoId o artworkUrl si ya estaba mejor resuelto
+          videoId: track.videoId || existingItem.track.videoId,
+          artworkUrl: track.artworkUrl || existingItem.track.artworkUrl,
+        },
+        playedAt: Date.now(),
+        playCount: (existingItem.playCount || 1) + 1,
+      };
+
+      // Mover al principio para reflejar la última escucha reciente
+      updatedHistory = [
+        updatedItem,
+        ...current.filter((_, idx) => idx !== existingIndex),
+      ];
+    } else {
+      const newItem: MusicHistoryItem = {
+        id: track.id || `hist_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        track: { ...track },
+        playedAt: Date.now(),
+        playCount: 1,
+      };
+      updatedHistory = [newItem, ...current];
+    }
+
+    // Limitar a máximo 200 canciones en el historial para cuidar almacenamiento
+    const trimmed = updatedHistory.slice(0, 200);
+    saveMusicHistory(trimmed);
+    return trimmed;
+  } catch {
+    return loadMusicHistory();
+  }
+}
+
+/**
+ * Elimina una canción específica del historial
+ */
+export function deleteSongFromHistory(songId: string): MusicHistoryItem[] {
+  try {
+    const current = loadMusicHistory();
+    const updated = current.filter(
+      (item) => item.id !== songId && item.track.id !== songId && item.track.videoId !== songId
+    );
+    saveMusicHistory(updated);
+    return updated;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Limpia por completo el historial de música
+ */
+export function clearMusicHistory(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEYS.MUSIC_HISTORY);
+  } catch {
+    // Ignore
+  }
+}
+

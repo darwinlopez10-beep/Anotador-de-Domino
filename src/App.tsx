@@ -23,6 +23,7 @@ import {
   WinReason,
   PastMatch,
   MusicTrack,
+  MusicHistoryItem,
   GameMode,
 } from './types';
 import {
@@ -38,6 +39,10 @@ import {
   clearMatchHistory,
   loadCustomTracks,
   saveCustomTracks,
+  loadMusicHistory,
+  recordSongPlay,
+  deleteSongFromHistory,
+  clearMusicHistory,
   ActiveGameState,
 } from './utils/storage';
 import {
@@ -187,6 +192,7 @@ export default function App() {
   const [musicCurrentTime, setMusicCurrentTime] = useState(0);
   const [musicDuration, setMusicDuration] = useState(0);
   const [customTracks, setCustomTracks] = useState<MusicTrack[]>(() => loadCustomTracks());
+  const [musicHistory, setMusicHistory] = useState<MusicHistoryItem[]>(() => loadMusicHistory());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -667,6 +673,10 @@ export default function App() {
   const handleSelectMusicTrack = (track: MusicTrack) => {
     setCurrentMusicTrack(track);
 
+    // Grabar automáticamente la canción que se va escuchando en el historial
+    const updatedHistory = recordSongPlay(track);
+    setMusicHistory(updatedHistory);
+
     if (track.sourceType === 'youtube') {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -684,6 +694,19 @@ export default function App() {
           });
       }
     }
+  };
+
+  const handleDeleteMusicHistoryItem = (songId: string) => {
+    const updated = deleteSongFromHistory(songId);
+    setMusicHistory(updated);
+  };
+
+  const handleClearMusicHistory = () => {
+    clearMusicHistory();
+    setMusicHistory([]);
+    setToastMessage(
+      lang === 'es' ? 'Historial de música borrado' : 'Music history cleared'
+    );
   };
 
   const handleToggleMusicPlay = () => {
@@ -973,6 +996,9 @@ export default function App() {
         onDeleteCustomTrack={handleDeleteCustomTrack}
         initialTab={musicModalTab}
         lang={lang}
+        musicHistory={musicHistory}
+        onDeleteHistoryItem={handleDeleteMusicHistoryItem}
+        onClearMusicHistory={handleClearMusicHistory}
       />
 
       <VictoryModal

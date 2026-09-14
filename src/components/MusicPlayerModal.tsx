@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   X,
   Play,
@@ -15,9 +15,23 @@ import {
   Disc3,
   Music,
   ExternalLink,
+  Flame,
+  Clock,
+  Trash2,
+  RotateCcw,
+  TrendingUp,
+  Headphones,
+  ListMusic,
+  Check,
 } from 'lucide-react';
-import { MusicTrack } from '../types';
+import { MusicHistoryItem, MusicTrack } from '../types';
 import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
+import {
+  loadMusicHistory,
+  recordSongPlay,
+  deleteSongFromHistory,
+  clearMusicHistory,
+} from '../utils/storage';
 
 interface MusicPlayerModalProps {
   isOpen: boolean;
@@ -34,6 +48,9 @@ interface MusicPlayerModalProps {
   onDeleteCustomTrack?: (trackId: string) => void;
   initialTab?: string;
   lang: AppLanguage;
+  musicHistory?: MusicHistoryItem[];
+  onDeleteHistoryItem?: (songId: string) => void;
+  onClearMusicHistory?: () => void;
 }
 
 // Lista inicial recomendada para dominó con artistas y géneros variados
@@ -353,6 +370,9 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   onVolumeChange,
   onToggleMute,
   lang,
+  musicHistory,
+  onDeleteHistoryItem,
+  onClearMusicHistory,
 }) => {
   const t = TRANSLATIONS[lang];
   const [searchQuery, setSearchQuery] = useState('');
@@ -361,6 +381,23 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [isVideoExpanded, setIsVideoExpanded] = useState(true);
+
+  // Historial automático de canciones
+  const [history, setHistory] = useState<MusicHistoryItem[]>(() => musicHistory || loadMusicHistory());
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+
+  // Sincronizar si cambia desde props
+  useEffect(() => {
+    if (musicHistory) {
+      setHistory(musicHistory);
+    }
+  }, [musicHistory]);
+
+  // Pestaña de catálogo inicial: Si hay historial, arrancar mostrando 'mostPlayed' (las que más se escuchan)
+  const [catalogView, setCatalogView] = useState<'mostPlayed' | 'recent' | 'recommended'>(() => {
+    const initHist = musicHistory || loadMusicHistory();
+    return initHist.length > 0 ? 'mostPlayed' : 'recommended';
+  });
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -371,6 +408,54 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
   // Active YouTube video ID
   const activeVideoId = currentTrack?.videoId || (currentTrack?.url ? extractYouTubeId(currentTrack.url) : null);
+
+  // Canciones más escuchadas (ordenadas por cantidad de reproducciones descendente)
+  const mostPlayedTracks = useMemo(() => {
+    return [...history].sort((a, b) => (b.playCount || 1) - (a.playCount || 1) || b.playedAt - a.playedAt);
+  }, [history]);
+
+  // Canciones escuchadas recientemente (orden cronológico inverso)
+  const recentTracks = useMemo(() => {
+    return [...history].sort((a, b) => b.playedAt - a.playedAt);
+  }, [history]);
+
+  // Formato relativo de tiempo
+  const formatRelativeTime = (timestamp: number) => {
+    const diffMs = Math.max(0, Date.now() - timestamp);
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHours = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSec < 60) return lang === 'es' ? 'Hace un momento' : 'Just now';
+    if (diffMin < 60) return lang === 'es' ? `Hace ${diffMin} min` : `${diffMin}m ago`;
+    if (diffHours < 24) return lang === 'es' ? `Hace ${diffHours} h` : `${diffHours}h ago`;
+    if (diffDays === 1) return lang === 'es' ? 'Ayer' : 'Yesterday';
+    if (diffDays < 7) return lang === 'es' ? `Hace ${diffDays} días` : `${diffDays}d ago`;
+    return new Date(timestamp).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+
+  const handleDeleteFromHistory = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (onDeleteHistoryItem) {
+      onDeleteHistoryItem(id);
+    }
+    const updated = deleteSongFromHistory(id);
+    setHistory(updated);
+  };
+
+  const handleClearAllHistory = () => {
+    if (onClearMusicHistory) {
+      onClearMusicHistory();
+    }
+    clearMusicHistory();
+    setHistory([]);
+    setIsConfirmClearOpen(false);
+    setCatalogView('recommended');
+  };
 
   // Sincronizar estado play/pause con el iframe integrado de YouTube
   useEffect(() => {
@@ -419,6 +504,11 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
 
   // Selección manual de una canción (NUNCA automática)
   const handleSelectSong = async (track: MusicTrack) => {
+    // 1. Grabar automáticamente la canción seleccionada en el historial
+    const updatedHistory = recordSongPlay(track);
+    setHistory(updatedHistory);
+
+    // 2. Notificar reproducción
     onSelectTrack(track);
     setIsVideoExpanded(true);
 
@@ -470,6 +560,8 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
             url: `https://www.youtube.com/embed/${resolvedId}?autoplay=1&playsinline=1&enablejsapi=1`,
             artworkUrl: track.artworkUrl || `https://img.youtube.com/vi/${resolvedId}/hqdefault.jpg`,
           };
+          const updatedWithResolved = recordSongPlay(updated);
+          setHistory(updatedWithResolved);
           onSelectTrack(updated);
         }
       } catch {
@@ -1022,24 +1114,20 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               </div>
             )}
 
-            {/* Section Header */}
-            <div className="flex items-center justify-between pt-1">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
-                <Youtube className="w-4 h-4 text-red-500" />
-                {hasSearched
-                  ? searchResults.length > 0
+            {/* Section Header & Tabs */}
+            {hasSearched ? (
+              <div className="flex items-center justify-between pt-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
+                  <Youtube className="w-4 h-4 text-red-500" />
+                  {searchResults.length > 0
                     ? lang === 'es'
                       ? `Canciones de "${searchQuery}" (${searchResults.length})`
                       : `Songs for "${searchQuery}" (${searchResults.length})`
                     : lang === 'es'
                     ? `Sin resultados para "${searchQuery}"`
-                    : `No results for "${searchQuery}"`
-                  : lang === 'es'
-                  ? `Canciones Recomendadas (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`
-                  : `Recommended Songs (${CURATED_DOMINO_YOUTUBE_TRACKS.length})`}
-              </h4>
+                    : `No results for "${searchQuery}"`}
+                </h4>
 
-              {hasSearched && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1049,12 +1137,135 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                     setSearchError(null);
                     if (searchInputRef.current) searchInputRef.current.value = '';
                   }}
-                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer py-1"
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer py-1 flex items-center gap-1"
                 >
-                  {lang === 'es' ? 'Ver recomendadas' : 'View recommended'}
+                  <span>{lang === 'es' ? '← Volver a Más Escuchadas' : '← Back to Most Played'}</span>
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
+                {/* Selector de Pestañas: Más Escuchadas / Últimas Escuchadas / Recomendadas */}
+                <div className="flex items-center gap-1.5 p-1 bg-stone-900/90 rounded-2xl border border-stone-750/80 overflow-x-auto scrollbar-none">
+                  {/* Pestaña: Más Escuchadas */}
+                  <button
+                    type="button"
+                    onClick={() => setCatalogView('mostPlayed')}
+                    className={`flex-1 min-w-[125px] py-2.5 px-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation ${
+                      catalogView === 'mostPlayed'
+                        ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-950/40 font-black'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <Flame
+                      className={`w-4 h-4 ${
+                        catalogView === 'mostPlayed' ? 'text-stone-950 fill-stone-950' : 'text-amber-400'
+                      }`}
+                    />
+                    <span className="whitespace-nowrap">
+                      {lang === 'es' ? 'Más Escuchadas' : 'Most Played'}
+                    </span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        catalogView === 'mostPlayed'
+                          ? 'bg-stone-950/20 text-stone-950 font-black'
+                          : 'bg-stone-800 text-stone-400'
+                      }`}
+                    >
+                      {mostPlayedTracks.length}
+                    </span>
+                  </button>
+
+                  {/* Pestaña: Últimas Escuchadas */}
+                  <button
+                    type="button"
+                    onClick={() => setCatalogView('recent')}
+                    className={`flex-1 min-w-[130px] py-2.5 px-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation ${
+                      catalogView === 'recent'
+                        ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-950/40 font-black'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <Clock
+                      className={`w-4 h-4 ${
+                        catalogView === 'recent' ? 'text-stone-950' : 'text-sky-400'
+                      }`}
+                    />
+                    <span className="whitespace-nowrap">
+                      {lang === 'es' ? 'Últimas Escuchadas' : 'Recently Played'}
+                    </span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        catalogView === 'recent'
+                          ? 'bg-stone-950/20 text-stone-950 font-black'
+                          : 'bg-stone-800 text-stone-400'
+                      }`}
+                    >
+                      {recentTracks.length}
+                    </span>
+                  </button>
+
+                  {/* Pestaña: Recomendadas Clásicas */}
+                  <button
+                    type="button"
+                    onClick={() => setCatalogView('recommended')}
+                    className={`flex-1 min-w-[130px] py-2.5 px-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation ${
+                      catalogView === 'recommended'
+                        ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-950/40 font-black'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <Sparkles
+                      className={`w-4 h-4 ${
+                        catalogView === 'recommended' ? 'text-stone-950 fill-stone-950' : 'text-amber-400'
+                      }`}
+                    />
+                    <span className="whitespace-nowrap">
+                      {lang === 'es' ? 'Recomendadas' : 'Curated'}
+                    </span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        catalogView === 'recommended'
+                          ? 'bg-stone-950/20 text-stone-950 font-black'
+                          : 'bg-stone-800 text-stone-400'
+                      }`}
+                    >
+                      {CURATED_DOMINO_YOUTUBE_TRACKS.length}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Sub-banner indicador de grabación automática */}
+                <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-stone-900/60 border border-stone-800 text-[11px] text-stone-400">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                    <span className="truncate">
+                      {catalogView === 'mostPlayed'
+                        ? lang === 'es'
+                          ? 'Ordenadas automáticamente por las canciones que más escuchas'
+                          : 'Automatically sorted by your most played songs'
+                        : catalogView === 'recent'
+                        ? lang === 'es'
+                          ? 'Últimas canciones escuchadas grabadas automáticamente'
+                          : 'Automatically recorded recently played songs'
+                        : lang === 'es'
+                        ? 'Selección clásica curada para jugar partidas de dominó'
+                        : 'Classic curated playlist for domino games'}
+                    </span>
+                  </div>
+
+                  {catalogView !== 'recommended' && history.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmClearOpen(true)}
+                      className="text-[10px] text-stone-400 hover:text-red-400 underline underline-offset-2 flex-shrink-0 cursor-pointer flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>{lang === 'es' ? 'Limpiar historial' : 'Clear history'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Empty state if searched and no results */}
             {hasSearched && !isSearching && searchResults.length === 0 && (
@@ -1074,132 +1285,596 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   }}
                   className="px-4 py-2 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl hover:bg-amber-400 cursor-pointer min-h-[44px]"
                 >
-                  {lang === 'es'
-                    ? 'Ver lista recomendada de dominó'
-                    : 'View recommended domino playlist'}
+                  {lang === 'es' ? 'Ver canciones más escuchadas' : 'View most played songs'}
                 </button>
               </div>
             )}
 
-            {/* Songs List - Tarjetas táctiles y adaptables */}
-            <div className="space-y-2">
-              {(hasSearched ? searchResults : CURATED_DOMINO_YOUTUBE_TRACKS).map((track) => {
-                const isThisPlaying = isPlaying && currentTrack?.id === track.id;
-                const isThisTrackSelected = currentTrack?.id === track.id;
+            {/* Empty state for history in 'mostPlayed' or 'recent' tabs */}
+            {!hasSearched && (catalogView === 'mostPlayed' || catalogView === 'recent') && history.length === 0 && (
+              <div className="p-8 text-center bg-stone-900/60 rounded-2xl border border-stone-800 space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                  <Headphones className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h5 className="text-sm font-bold text-stone-100">
+                    {lang === 'es'
+                      ? 'Tu historial de música se grabará automáticamente'
+                      : 'Your music history will record automatically'}
+                  </h5>
+                  <p className="text-xs text-stone-400 max-w-sm mx-auto">
+                    {lang === 'es'
+                      ? 'Cada canción que reproduzcas desde la búsqueda o las recomendaciones se guardará aquí, contabilizando las que más escuchas.'
+                      : 'Every song you play from search or curated recommendations will be saved here, ranking the ones you listen to most.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCatalogView('recommended')}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4 fill-stone-950" />
+                  <span>{lang === 'es' ? 'Explorar recomendaciones' : 'Explore recommendations'}</span>
+                </button>
+              </div>
+            )}
 
-                return (
-                  <div
-                    key={track.id}
-                    onClick={() => {
-                      if (isThisTrackSelected) {
-                        onTogglePlay();
-                      } else {
-                        handleSelectSong(track);
-                      }
-                    }}
-                    className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation min-h-[62px] ${
-                      isThisPlaying
-                        ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
-                        : isThisTrackSelected
-                        ? 'bg-stone-800 border-amber-500/40'
-                        : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
-                    }`}
-                  >
-                    {/* Left: Thumbnail & Details */}
-                    <div className="flex items-center gap-3 truncate flex-1 group">
-                      <div className="relative w-14 sm:w-16 h-11 sm:h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
-                        {track.artworkUrl ? (
-                          <img
-                            src={track.artworkUrl}
-                            alt={track.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <Youtube className="w-5 h-5 text-red-500" />
-                        )}
-                        {track.durationText && (
-                          <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
-                            {track.durationText}
+            {/* Songs List */}
+            <div className="space-y-2">
+              {/* 1. MODO BÚSQUEDA */}
+              {hasSearched &&
+                searchResults.map((track) => {
+                  const isThisPlaying = isPlaying && currentTrack?.id === track.id;
+                  const isThisTrackSelected = currentTrack?.id === track.id;
+                  const inHist = history.find(
+                    (h) =>
+                      h.id === track.id ||
+                      (track.videoId && h.track.videoId === track.videoId) ||
+                      (h.track.title.toLowerCase() === track.title.toLowerCase() &&
+                        h.track.artist.toLowerCase() === track.artist.toLowerCase())
+                  );
+
+                  return (
+                    <div
+                      key={track.id}
+                      onClick={() => {
+                        if (isThisTrackSelected) {
+                          onTogglePlay();
+                        } else {
+                          handleSelectSong(track);
+                        }
+                      }}
+                      className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation min-h-[62px] ${
+                        isThisPlaying
+                          ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
+                          : isThisTrackSelected
+                          ? 'bg-stone-800 border-amber-500/40'
+                          : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 truncate flex-1 group">
+                        <div className="relative w-14 sm:w-16 h-11 sm:h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
+                          {track.artworkUrl ? (
+                            <img
+                              src={track.artworkUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Youtube className="w-5 h-5 text-red-500" />
+                          )}
+                          {track.durationText && (
+                            <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
+                              {track.durationText}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="truncate flex-1 min-w-0">
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
+                            {track.title}
+                          </h5>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] sm:text-xs text-stone-400 truncate">
+                            <span className="truncate">{track.artist}</span>
+                            {inHist && inHist.playCount > 0 && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0 font-medium">
+                                <Flame className="w-2.5 h-2.5 fill-current" />
+                                {inHist.playCount} {inHist.playCount === 1 ? 'rep' : 'reps'}
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
 
-                      <div className="truncate flex-1 min-w-0">
-                        <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
-                          {track.title}
-                        </h5>
-                        <p className="text-[11px] sm:text-xs text-stone-400 truncate mt-0.5">
-                          {track.artist}
-                        </p>
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                        <a
+                          href={
+                            track.videoId
+                              ? `https://www.youtube.com/watch?v=${track.videoId}`
+                              : `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title={lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isThisTrackSelected) {
+                              onTogglePlay();
+                            } else {
+                              handleSelectSong(track);
+                            }
+                          }}
+                          className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
+                            isThisPlaying
+                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
+                              : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
+                          }`}
+                        >
+                          {isThisPlaying ? (
+                            <>
+                              <Pause className="w-4 h-4 fill-current" />
+                              <span className="hidden xs:inline">{t.pause}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                              <span className="hidden xs:inline">{t.play}</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
+                  );
+                })}
 
-                    {/* Right: Actions */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                      {/* Abrir directamente en la app oficial de YouTube / navegador (ideal para Android) */}
-                      <a
-                        href={
-                          track.videoId
-                            ? `https://www.youtube.com/watch?v=${track.videoId}`
-                            : `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        title={
-                          lang === 'es'
-                            ? 'Abrir en la aplicación de YouTube de tu teléfono o navegador'
-                            : 'Open in YouTube app or browser'
-                        }
-                        className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
-                      >
-                        <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
-                      </a>
+              {/* 2. MODO MÁS ESCUCHADAS (TOP DEL HISTORIAL) */}
+              {!hasSearched &&
+                catalogView === 'mostPlayed' &&
+                mostPlayedTracks.map((item, idx) => {
+                  const track = item.track;
+                  const isThisPlaying = isPlaying && currentTrack?.id === track.id;
+                  const isThisTrackSelected = currentTrack?.id === track.id;
 
-                      {/* Direct play button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isThisTrackSelected) {
-                            onTogglePlay();
-                          } else {
-                            handleSelectSong(track);
+                  // Medalla de posición
+                  const rankBadge =
+                    idx === 0
+                      ? 'bg-amber-500 text-stone-950 font-black shadow-sm shadow-amber-500/30 ring-1 ring-amber-400'
+                      : idx === 1
+                      ? 'bg-stone-300 text-stone-950 font-black ring-1 ring-stone-200'
+                      : idx === 2
+                      ? 'bg-amber-700 text-amber-100 font-black ring-1 ring-amber-600'
+                      : 'bg-stone-800 text-stone-400 font-bold border border-stone-700';
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (isThisTrackSelected) {
+                          onTogglePlay();
+                        } else {
+                          handleSelectSong(track);
+                        }
+                      }}
+                      className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation min-h-[64px] ${
+                        isThisPlaying
+                          ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
+                          : isThisTrackSelected
+                          ? 'bg-stone-800 border-amber-500/40'
+                          : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
+                      }`}
+                    >
+                      {/* Left: Rank, Thumbnail & Details */}
+                      <div className="flex items-center gap-2.5 sm:gap-3 truncate flex-1 group">
+                        {/* Indicador de posición en el Top */}
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${rankBadge}`}
+                          title={
+                            lang === 'es'
+                              ? `Posición #${idx + 1} más escuchada`
+                              : `#${idx + 1} most played`
                           }
-                        }}
-                        title={
-                          isThisPlaying
-                            ? lang === 'es'
-                              ? 'Pausar canción'
-                              : 'Pause song'
-                            : lang === 'es'
-                            ? 'Reproducir canción'
-                            : 'Play song'
+                        >
+                          #{idx + 1}
+                        </div>
+
+                        {/* Artwork */}
+                        <div className="relative w-14 sm:w-16 h-11 sm:h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
+                          {track.artworkUrl ? (
+                            <img
+                              src={track.artworkUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Youtube className="w-5 h-5 text-red-500" />
+                          )}
+                          {track.durationText && (
+                            <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
+                              {track.durationText}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Title, Artist, & Play Count Badges */}
+                        <div className="truncate flex-1 min-w-0">
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
+                            {track.title}
+                          </h5>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] sm:text-xs text-stone-400 truncate flex-wrap">
+                            <span className="truncate text-stone-300 font-medium">{track.artist}</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                              <Flame className="w-3 h-3 fill-current text-amber-400" />
+                              <span>
+                                {item.playCount}{' '}
+                                {item.playCount === 1
+                                  ? lang === 'es'
+                                    ? 'reproducción'
+                                    : 'play'
+                                  : lang === 'es'
+                                  ? 'reproducciones'
+                                  : 'plays'}
+                              </span>
+                            </span>
+                            <span className="hidden sm:inline text-[10px] text-stone-500">
+                              • {lang === 'es' ? 'Última:' : 'Last:'} {formatRelativeTime(item.playedAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                        {/* Quitar del historial */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteFromHistory(e, item.id)}
+                          title={lang === 'es' ? 'Quitar del historial' : 'Remove from history'}
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4 text-stone-400 hover:text-red-400" />
+                        </button>
+
+                        {/* Abrir en YouTube */}
+                        <a
+                          href={
+                            track.videoId
+                              ? `https://www.youtube.com/watch?v=${track.videoId}`
+                              : `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title={lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
+                        </a>
+
+                        {/* Direct play button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isThisTrackSelected) {
+                              onTogglePlay();
+                            } else {
+                              handleSelectSong(track);
+                            }
+                          }}
+                          className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
+                            isThisPlaying
+                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
+                              : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
+                          }`}
+                        >
+                          {isThisPlaying ? (
+                            <>
+                              <Pause className="w-4 h-4 fill-current" />
+                              <span className="hidden xs:inline">{t.pause}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                              <span className="hidden xs:inline">{t.play}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* 3. MODO ÚLTIMAS ESCUCHADAS (CRONOLÓGICO) */}
+              {!hasSearched &&
+                catalogView === 'recent' &&
+                recentTracks.map((item) => {
+                  const track = item.track;
+                  const isThisPlaying = isPlaying && currentTrack?.id === track.id;
+                  const isThisTrackSelected = currentTrack?.id === track.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (isThisTrackSelected) {
+                          onTogglePlay();
+                        } else {
+                          handleSelectSong(track);
                         }
-                        className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
-                          isThisPlaying
-                            ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
-                            : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
-                        }`}
-                      >
-                        {isThisPlaying ? (
-                          <>
-                            <Pause className="w-4 h-4 fill-current" />
-                            <span className="hidden xs:inline">{t.pause}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 fill-current ml-0.5" />
-                            <span className="hidden xs:inline">{t.play}</span>
-                          </>
-                        )}
-                      </button>
+                      }}
+                      className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation min-h-[64px] ${
+                        isThisPlaying
+                          ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
+                          : isThisTrackSelected
+                          ? 'bg-stone-800 border-amber-500/40'
+                          : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 truncate flex-1 group">
+                        <div className="relative w-14 sm:w-16 h-11 sm:h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
+                          {track.artworkUrl ? (
+                            <img
+                              src={track.artworkUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Youtube className="w-5 h-5 text-red-500" />
+                          )}
+                          {track.durationText && (
+                            <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
+                              {track.durationText}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="truncate flex-1 min-w-0">
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
+                            {track.title}
+                          </h5>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] sm:text-xs text-stone-400 truncate flex-wrap">
+                            <span className="truncate text-stone-300 font-medium">{track.artist}</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex-shrink-0">
+                              <Clock className="w-3 h-3 text-sky-400" />
+                              <span>{formatRelativeTime(item.playedAt)}</span>
+                            </span>
+                            <span className="text-[10px] text-stone-400 flex items-center gap-1">
+                              • {item.playCount} {item.playCount === 1 ? 'vez' : 'veces'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteFromHistory(e, item.id)}
+                          title={lang === 'es' ? 'Quitar del historial' : 'Remove from history'}
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4 text-stone-400 hover:text-red-400" />
+                        </button>
+
+                        <a
+                          href={
+                            track.videoId
+                              ? `https://www.youtube.com/watch?v=${track.videoId}`
+                              : `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title={lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isThisTrackSelected) {
+                              onTogglePlay();
+                            } else {
+                              handleSelectSong(track);
+                            }
+                          }}
+                          className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
+                            isThisPlaying
+                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
+                              : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
+                          }`}
+                        >
+                          {isThisPlaying ? (
+                            <>
+                              <Pause className="w-4 h-4 fill-current" />
+                              <span className="hidden xs:inline">{t.pause}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                              <span className="hidden xs:inline">{t.play}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* 4. MODO RECOMENDADAS CLÁSICAS DE DOMINÓ */}
+              {!hasSearched &&
+                catalogView === 'recommended' &&
+                CURATED_DOMINO_YOUTUBE_TRACKS.map((track) => {
+                  const isThisPlaying = isPlaying && currentTrack?.id === track.id;
+                  const isThisTrackSelected = currentTrack?.id === track.id;
+                  const inHist = history.find(
+                    (h) =>
+                      h.id === track.id ||
+                      (track.videoId && h.track.videoId === track.videoId) ||
+                      (h.track.title.toLowerCase() === track.title.toLowerCase() &&
+                        h.track.artist.toLowerCase() === track.artist.toLowerCase())
+                  );
+
+                  return (
+                    <div
+                      key={track.id}
+                      onClick={() => {
+                        if (isThisTrackSelected) {
+                          onTogglePlay();
+                        } else {
+                          handleSelectSong(track);
+                        }
+                      }}
+                      className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.99] touch-manipulation min-h-[62px] ${
+                        isThisPlaying
+                          ? 'bg-amber-500/15 border-amber-500/60 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40'
+                          : isThisTrackSelected
+                          ? 'bg-stone-800 border-amber-500/40'
+                          : 'bg-stone-850/90 hover:bg-stone-800 active:bg-stone-800 border-stone-750/70 hover:border-stone-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 truncate flex-1 group">
+                        <div className="relative w-14 sm:w-16 h-11 sm:h-12 rounded-lg overflow-hidden bg-stone-900 border border-stone-750 flex-shrink-0 flex items-center justify-center">
+                          {track.artworkUrl ? (
+                            <img
+                              src={track.artworkUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Youtube className="w-5 h-5 text-red-500" />
+                          )}
+                          {track.durationText && (
+                            <div className="absolute bottom-0 right-0 bg-black/85 text-white font-mono text-[9px] px-1 rounded-tl">
+                              {track.durationText}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="truncate flex-1 min-w-0">
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-100 group-hover:text-amber-400 transition-colors truncate">
+                            {track.title}
+                          </h5>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] sm:text-xs text-stone-400 truncate">
+                            <span className="truncate">{track.artist}</span>
+                            {inHist && inHist.playCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0 font-medium">
+                                <Flame className="w-2.5 h-2.5 fill-current text-amber-400" />
+                                {inHist.playCount} {inHist.playCount === 1 ? 'vez' : 'veces'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                        <a
+                          href={
+                            track.videoId
+                              ? `https://www.youtube.com/watch?v=${track.videoId}`
+                              : `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title={lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}
+                          className="p-2 sm:p-2.5 rounded-xl text-stone-400 hover:text-red-400 active:text-red-300 bg-stone-900/60 hover:bg-stone-900 border border-stone-750 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] touch-manipulation cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-stone-300 hover:text-red-400" />
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isThisTrackSelected) {
+                              onTogglePlay();
+                            } else {
+                              handleSelectSong(track);
+                            }
+                          }}
+                          className={`min-h-[44px] min-w-[44px] px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 touch-manipulation cursor-pointer text-xs sm:text-sm ${
+                            isThisPlaying
+                              ? 'bg-amber-500 text-stone-950 shadow-amber-950/30 ring-2 ring-amber-400'
+                              : 'bg-red-600 hover:bg-red-500 active:bg-red-700 text-white shadow-red-950/30'
+                          }`}
+                        >
+                          {isThisPlaying ? (
+                            <>
+                              <Pause className="w-4 h-4 fill-current" />
+                              <span className="hidden xs:inline">{t.pause}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                              <span className="hidden xs:inline">{t.play}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Confirm Clear History Dialog */}
+            {isConfirmClearOpen && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+              >
+                <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 flex-shrink-0">
+                      <Trash2 className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-stone-100">
+                        {lang === 'es' ? '¿Borrar historial?' : 'Clear history?'}
+                      </h3>
+                      <p className="text-xs text-stone-400">
+                        {lang === 'es'
+                          ? 'Se eliminarán todas las canciones guardadas y sus contadores.'
+                          : 'All saved songs and their play counts will be removed.'}
+                      </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmClearOpen(false)}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 font-bold text-xs border border-stone-700 transition-all cursor-pointer"
+                    >
+                      {t.cancel}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearAllHistory}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-black text-xs transition-all shadow-lg shadow-red-950/40 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>{lang === 'es' ? 'Sí, borrar' : 'Yes, clear'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

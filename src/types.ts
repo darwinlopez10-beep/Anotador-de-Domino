@@ -86,3 +86,10 @@ export interface MusicTrack {
   genre?: string;
   previewUrl?: string;
 }
+
+export interface MusicHistoryItem {
+  id: string;
+  track: MusicTrack;
+  playedAt: number;
+  playCount: number;
+}
