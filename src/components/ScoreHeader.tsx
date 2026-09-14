@@ -8,8 +8,6 @@ import {
   Volume2,
   VolumeX,
   Music,
-  Download,
-  Languages,
 } from 'lucide-react';
 import { DominoTileIcon } from './DominoTileIcon';
 import { GameMode } from '../types';
@@ -28,9 +26,6 @@ interface ScoreHeaderProps {
   onOpenHistory: () => void;
   onOpenMusic: () => void;
   onNewGame: () => void;
-  onOpenInstall?: () => void;
-  onToggleLanguage?: () => void;
-  isInstalled?: boolean;
   roundsCount: number;
 }
 
@@ -47,9 +42,6 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
   onOpenHistory,
   onOpenMusic,
   onNewGame,
-  onOpenInstall,
-  onToggleLanguage,
-  isInstalled,
   roundsCount,
 }) => {
   const t = TRANSLATIONS[lang];
@@ -86,32 +78,6 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-          {/* Language Toggle Badge */}
-          {onToggleLanguage && (
-            <button
-              id="btn-toggle-language"
-              onClick={onToggleLanguage}
-              title={lang === 'es' ? 'Cambiar a English' : 'Cambiar a Español'}
-              className="flex items-center gap-1 px-2 py-1 sm:py-1.5 rounded-lg bg-stone-800/90 hover:bg-stone-700 active:bg-stone-600 text-stone-200 border border-stone-700 text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[38px] flex-shrink-0"
-            >
-              <Languages className="w-3.5 h-3.5 text-amber-400" />
-              <span className="uppercase text-[11px] font-mono tracking-wider">{lang}</span>
-            </button>
-          )}
-
-          {/* Install / Download PWA Button */}
-          {onOpenInstall && !isInstalled && (
-            <button
-              id="btn-open-install"
-              onClick={onOpenInstall}
-              title={t.installPrompt}
-              className="flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-200 hover:text-white text-xs font-semibold border border-amber-500/40 text-amber-300 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center shadow-sm shadow-amber-950/30"
-            >
-              <Download className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span className="hidden md:inline">{t.installApp}</span>
-            </button>
-          )}
-
           {/* Quick Tranca Calculator */}
           <button
             id="btn-open-tranca-calc"

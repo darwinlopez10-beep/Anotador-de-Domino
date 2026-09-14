@@ -10,13 +10,10 @@ import { MatchHistoryModal } from './components/MatchHistoryModal';
 import { VictoryModal } from './components/VictoryModal';
 import { MusicPlayerModal } from './components/MusicPlayerModal';
 import { MiniMusicPlayer } from './components/MiniMusicPlayer';
-import { PWAInstallModal } from './components/PWAInstallModal';
-import { usePWAInstall } from './utils/usePWAInstall';
 import {
   AppLanguage,
   TRANSLATIONS,
   resolveActiveLanguage,
-  saveLanguageSetting,
   formatPlayerDisplayName,
 } from './utils/i18n';
 import {
@@ -96,7 +93,6 @@ function createInitialPlayers(settings: GameSettings): PlayerScore[] {
 
 export default function App() {
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
-  const { isInstalled, isInstallable } = usePWAInstall();
 
   // Language state initialized with automatic phone/device language detection
   const [lang, setLang] = useState<AppLanguage>(() => {
@@ -118,18 +114,6 @@ export default function App() {
       document.documentElement.lang = newLang;
     }
   }, []);
-
-  const handleToggleLanguage = useCallback(() => {
-    const nextLang: AppLanguage = lang === 'es' ? 'en' : 'es';
-    setLang(nextLang);
-    saveLanguageSetting(nextLang);
-    setSettings((prev) => ({ ...prev, languageSetting: nextLang }));
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = nextLang;
-    }
-    setToastMessage(nextLang === 'es' ? 'Idioma cambiado a Español 🇪🇸' : 'Language switched to English 🇺🇸');
-    setTimeout(() => setToastMessage(null), 2500);
-  }, [lang]);
 
   const [players, setPlayers] = useState<PlayerScore[]>(() => {
     const saved = loadActiveGame();
@@ -192,7 +176,6 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
-  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const [musicModalTab, setMusicModalTab] = useState<'search' | 'curated' | 'add' | 'stations'>('search');
 
@@ -783,9 +766,6 @@ export default function App() {
         isMusicPlaying={isMusicPlaying}
         lang={lang}
         onToggleSound={handleToggleSound}
-        onToggleLanguage={handleToggleLanguage}
-        onOpenInstall={() => setIsInstallModalOpen(true)}
-        isInstalled={isInstalled}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenTrancaCalc={() => setIsTrancaCalcOpen(true)}
         onOpenTimer={() => setIsTimerOpen(true)}
@@ -1007,12 +987,6 @@ export default function App() {
         onRematch={handleRematch}
         onNewGameSetup={handleNewGameSetup}
         onResetGame={handleNewGame}
-        lang={lang}
-      />
-
-      <PWAInstallModal
-        isOpen={isInstallModalOpen}
-        onClose={() => setIsInstallModalOpen(false)}
         lang={lang}
       />
 
