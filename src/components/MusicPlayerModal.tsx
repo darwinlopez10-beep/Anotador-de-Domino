@@ -626,14 +626,6 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       }
     }
 
-    // Ocultar teclado virtual en dispositivos móviles sin perder foco en el contenedor
-    if (searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
-    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-
     if (!query) {
       setSearchError(
         lang === 'es'
