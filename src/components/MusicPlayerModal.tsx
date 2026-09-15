@@ -31,6 +31,7 @@ import {
   Minus,
   Radio,
   Repeat,
+  AlertCircle,
 } from 'lucide-react';
 import { MusicHistoryItem, MusicTrack } from '../types';
 import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
@@ -63,6 +64,26 @@ interface MusicPlayerModalProps {
   musicHistory?: MusicHistoryItem[];
   onDeleteHistoryItem?: (songId: string) => void;
   onClearMusicHistory?: () => void;
+}
+
+// ============================================================================
+// CLAVE EDITABLE DE GOOGLE YOUTUBE DATA API v3 (FRONTEND / NAVEGADOR)
+// Puedes pegar tu clave directamente entre las comillas o definir VITE_YOUTUBE_API_KEY:
+// ============================================================================
+export const MI_YOUTUBE_API_KEY: string =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_YOUTUBE_API_KEY) ||
+  ''; // <-- PEGA TU CLAVE DE YOUTUBE DATA API v3 AQUÍ SI DESEAS USARLA DIRECTAMENTE EN EL NAVEGADOR
+
+// Helper para decodificar entidades HTML devueltas por YouTube API (&quot;, &#39;, &amp;, etc.)
+export function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
 }
 
 // Lista inicial recomendada para dominó con artistas y géneros variados
@@ -588,7 +609,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     }
   };
 
-  // Búsqueda dinámica global en YouTube sin filtros rígidos ni listas mock
+  // Búsqueda dinámica global en YouTube 100% funcional en el navegador
   const handleSearchYouTube = async (termToSearch?: string) => {
     const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
     const query = (rawVal || '').trim();
@@ -635,140 +656,130 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     setSearchError(null);
     setHasSearched(true);
 
-    try {
-      let tracks: MusicTrack[] = [];
+    let foundTracks: MusicTrack[] = [];
+    let lastErrorDetail = '';
 
-      // 1. Consulta dinámica al backend con parámetro de búsqueda global directo encodeURIComponent(query)
-      // El backend utiliza la API de YouTube con type=video y videoEmbeddable=true sin filtros fijos
+    // MÉTODO 1: Búsqueda directa con la YouTube Data API v3 en el navegador (si se definió la constante editable o la variable de entorno)
+    const apiKey = (MI_YOUTUBE_API_KEY || '').trim();
+    if (apiKey) {
       try {
-        const res = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
+        const ytApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=15&q=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
+        const ytRes = await fetch(ytApiUrl, { signal: AbortSignal.timeout(8000) });
+        if (ytRes.ok) {
+          const ytData = await ytRes.json();
+          if (Array.isArray(ytData.items) && ytData.items.length > 0) {
+            const seen = new Set<string>();
+            for (const item of ytData.items) {
+              const vid = item.id?.videoId;
+              if (vid && !seen.has(vid)) {
+                seen.add(vid);
+                foundTracks.push({
+                  id: `yt_${vid}`,
+                  videoId: vid,
+                  title: item.snippet?.title ? decodeHtmlEntities(item.snippet.title) : query,
+                  artist: item.snippet?.channelTitle ? decodeHtmlEntities(item.snippet.channelTitle) : 'YouTube',
+                  sourceType: 'youtube',
+                  url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
+                  artworkUrl:
+                    item.snippet?.thumbnails?.high?.url ||
+                    item.snippet?.thumbnails?.medium?.url ||
+                    `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
+                });
+              }
+            }
+          }
+        } else {
+          const errData = await ytRes.json().catch(() => null);
+          if (errData?.error?.message) {
+            lastErrorDetail = `YouTube API: ${errData.error.message}`;
+          }
+        }
+      } catch (e: any) {
+        lastErrorDetail = e?.message || 'Error conectando con YouTube Data API';
+      }
+    }
+
+    // MÉTODO 2: Endpoint del servidor backend / Cloud Run (/api/music/search)
+    if (foundTracks.length === 0) {
+      try {
+        const sRes = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
           signal: AbortSignal.timeout(8000),
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && Array.isArray(data.results) && data.results.length > 0) {
-            tracks = data.results;
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (Array.isArray(sData.results) && sData.results.length > 0) {
+            foundTracks = sData.results;
           }
         }
       } catch {
-        // Fallback a ruta alternativa en caso de bloqueador de red
-        try {
-          const altRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
-            signal: AbortSignal.timeout(6000),
-          });
-          if (altRes.ok) {
-            const altData = await altRes.json();
-            if (altData && Array.isArray(altData.results) && altData.results.length > 0) {
-              tracks = altData.results;
-            }
-          }
-        } catch {
-          // Continuar a respaldo
-        }
+        // Continuar al método 3
       }
+    }
 
-      // 2. Si el servidor local no respondió a tiempo, consultar espejos públicos en vivo (type=video)
-      if (tracks.length === 0) {
-        const publicMirrors = [
-          `https://invidious.flokinet.to/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-          `https://inv.tux.pizza/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-          `https://yt.artemislena.eu/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-        ];
+    // MÉTODO 3: Instancias públicas de Invidious / Piped como respaldo en el navegador
+    if (foundTracks.length === 0) {
+      const publicEndpoints = [
+        `https://invidious.jing.rocks/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
+        `https://inv.bp.projectsegfau.lt/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
+        `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
+        `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=videos`,
+      ];
 
-        for (const mirrorUrl of publicMirrors) {
-          try {
-            const mRes = await fetch(mirrorUrl, { signal: AbortSignal.timeout(4000) });
-            if (mRes.ok) {
-              const mData = await mRes.json();
-              if (Array.isArray(mData) && mData.length > 0) {
-                tracks = mData
-                  .filter((v: any) => v && (v.videoId || v.id))
-                  .slice(0, 25)
-                  .map((v: any) => {
-                    const vid = v.videoId || v.id;
-                    const dur = v.lengthSeconds || 0;
-                    const m = Math.floor(dur / 60);
-                    const s = dur % 60;
-                    return {
-                      id: `yt_${vid}`,
-                      videoId: vid,
-                      title: v.title || query,
-                      artist: v.author || 'YouTube',
-                      sourceType: 'youtube' as const,
-                      url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
-                      artworkUrl: `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
-                      durationSeconds: dur,
-                      durationText: dur > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
-                    };
+      for (const endpoint of publicEndpoints) {
+        try {
+          const pRes = await fetch(endpoint, { signal: AbortSignal.timeout(4500) });
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            if (Array.isArray(pData) && pData.length > 0) {
+              const mapped: MusicTrack[] = [];
+              for (const v of pData) {
+                const vid = v.videoId || v.id;
+                if (vid && typeof vid === 'string' && vid.length === 11) {
+                  const dur = v.lengthSeconds || 0;
+                  const m = Math.floor(dur / 60);
+                  const s = dur % 60;
+                  mapped.push({
+                    id: `yt_${vid}`,
+                    videoId: vid,
+                    title: v.title ? decodeHtmlEntities(v.title) : query,
+                    artist: v.author ? decodeHtmlEntities(v.author) : 'YouTube',
+                    sourceType: 'youtube' as const,
+                    url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
+                    artworkUrl: `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
+                    durationSeconds: dur,
+                    durationText: dur > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
                   });
-                if (tracks.length > 0) break;
+                }
+              }
+              if (mapped.length > 0) {
+                foundTracks = mapped;
+                break;
               }
             }
-          } catch {
-            continue;
-          }
-        }
-      }
-
-      // 3. Respaldo universal con catálogo de canciones (para búsquedas amplias)
-      if (tracks.length === 0) {
-        try {
-          const itunesRes = await fetch(
-            `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=25`,
-            { signal: AbortSignal.timeout(4000) }
-          );
-          if (itunesRes.ok) {
-            const itunesData = await itunesRes.json();
-            if (itunesData && Array.isArray(itunesData.results) && itunesData.results.length > 0) {
-              tracks = itunesData.results.map((item: any) => {
-                const durSec = Math.round((item.trackTimeMillis || 0) / 1000);
-                const m = Math.floor(durSec / 60);
-                const s = durSec % 60;
-                const art = item.artistName || 'Artista';
-                const tit = item.trackName || 'Canción';
-                return {
-                  id: `itunes_${item.trackId}`,
-                  title: tit,
-                  artist: art,
-                  sourceType: 'youtube' as const,
-                  url: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(art + ' ' + tit)}&autoplay=1&playsinline=1&enablejsapi=1`,
-                  artworkUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '300x300bb') : undefined,
-                  durationSeconds: durSec,
-                  durationText: durSec > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
-                  genre: item.primaryGenreName,
-                  previewUrl: item.previewUrl,
-                };
-              });
-            }
           }
         } catch {
-          // Continuar
+          continue;
         }
       }
+    }
 
-      if (tracks.length > 0) {
-        setSearchResults(tracks);
-        setSearchError(null);
-        setTimeout(() => {
-          songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      } else {
-        setSearchResults([]);
-        setSearchError(
-          lang === 'es'
-            ? `No se encontraron canciones para "${query}". Intenta con otro término de búsqueda.`
-            : `No songs found for "${query}". Try another search term.`
-        );
-      }
-    } catch {
+    setIsSearching(false);
+
+    // Sin intercepción por listas mock o fijas: los resultados son 100% dinámicos
+    if (foundTracks.length > 0) {
+      setSearchResults(foundTracks);
+      setSearchError(null);
+      setTimeout(() => {
+        songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } else {
       setSearchResults([]);
-      setSearchError(
-        lang === 'es'
-          ? `Error al buscar "${query}". Revisa tu conexión a internet o intenta de nuevo.`
-          : `Error searching for "${query}". Check your internet connection or try again.`
-      );
-    } finally {
-      setIsSearching(false);
+      const errMsg = lastErrorDetail
+        ? `${lang === 'es' ? 'Error al buscar en YouTube' : 'YouTube search error'}: ${lastErrorDetail}`
+        : lang === 'es'
+        ? `No se encontraron canciones para "${query}".`
+        : `No songs found for "${query}".`;
+      setSearchError(errMsg);
     }
   };
 
@@ -923,6 +934,39 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <span>{t.search}</span>
               </button>
             </form>
+
+            {/* Error visual directamente debajo de la barra de búsqueda */}
+            {searchError && !isSearching && (
+              <div
+                id="music-search-error-banner"
+                className="p-3 text-xs text-red-200 bg-red-950/70 rounded-xl border border-red-500/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-md animate-fadeIn"
+              >
+                <div className="flex items-center gap-2 flex-1 text-left">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <p className="font-medium text-red-200">{searchError}</p>
+                </div>
+                <div className="flex items-center gap-2 justify-end flex-wrap flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleSearchYouTube()}
+                    className="px-3 py-1.5 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px] border border-red-500/40 active:scale-95 transition-all"
+                  >
+                    {lang === 'es' ? 'Reintentar' : 'Retry'}
+                  </button>
+                  {searchQuery && (
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px] flex items-center gap-1.5 border border-stone-700"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>{lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* 2. CUADROS PEQUEÑOS DE ARTISTAS Y GÉNEROS POPULARES */}
             <div className="space-y-1.5">
