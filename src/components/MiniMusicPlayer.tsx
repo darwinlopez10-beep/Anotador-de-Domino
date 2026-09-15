@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -21,10 +21,13 @@ import {
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 import { AppLanguage } from '../utils/i18n';
-import { extractYouTubeId } from './MusicPlayerModal';
+import { extractYouTubeId, CURATED_DOMINO_YOUTUBE_TRACKS } from './MusicPlayerModal';
+import { parseDurationText } from '../utils/backgroundAudio';
 
 interface MiniMusicPlayerProps {
   track: MusicTrack;
+  playlist?: MusicTrack[];
+  onTrackAutoAdvanced?: (nextTrack: MusicTrack, playlistContext?: MusicTrack[]) => void;
   isPlaying: boolean;
   volume: number;
   currentTime: number;
@@ -44,6 +47,8 @@ interface MiniMusicPlayerProps {
 
 export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   track,
+  playlist,
+  onTrackAutoAdvanced,
   isPlaying,
   volume,
   currentTime,
@@ -90,23 +95,116 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
   const isYouTube = track.sourceType === 'youtube';
   const ytVideoId = track.videoId || extractYouTubeId(track.url);
 
-  // Calculate percentage for progress bar
-  const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  // YouTube live playback state reported by iframe
+  const [ytCurrentTime, setYtCurrentTime] = useState(0);
+  const [ytDuration, setYtDuration] = useState(0);
 
-  // Helper to send commands to YouTube IFrame API
-  const sendYouTubeCommand = (func: string, args: (string | number)[] = []) => {
-    if (!iframeRef.current?.contentWindow) return;
-    try {
-      const message = JSON.stringify({
-        event: 'command',
-        func,
-        args,
-      });
-      iframeRef.current.contentWindow.postMessage(message, '*');
-    } catch (err) {
-      console.warn('YouTube postMessage notice:', err);
+  // Extraer cola de reproducción continua nativa para el reproductor embebido de YouTube
+  // Esto permite que en iPhone Safari y Android Chrome, el reproductor interno de YouTube
+  // pase de una canción a la siguiente automáticamente sin bloqueo de autoplay del navegador.
+  const upcomingVideoIds = useMemo(() => {
+    const list = playlist && playlist.length > 0 ? playlist : CURATED_DOMINO_YOUTUBE_TRACKS;
+    const currentId = ytVideoId;
+    if (!currentId) return [];
+
+    const ordered: string[] = [];
+    const currentIdx = list.findIndex(
+      (t) => (t.videoId || extractYouTubeId(t.url)) === currentId
+    );
+
+    if (currentIdx !== -1) {
+      // 1. Añadir primero las siguientes canciones en orden
+      for (let i = currentIdx + 1; i < list.length; i++) {
+        const id = list[i].videoId || extractYouTubeId(list[i].url);
+        if (id && id !== currentId && !ordered.includes(id)) {
+          ordered.push(id);
+        }
+      }
+      // 2. Luego hacer ciclo continuo con las canciones anteriores
+      for (let i = 0; i < currentIdx; i++) {
+        const id = list[i].videoId || extractYouTubeId(list[i].url);
+        if (id && id !== currentId && !ordered.includes(id)) {
+          ordered.push(id);
+        }
+      }
     }
-  };
+
+    // Si la lista tiene pocas canciones o es una canción individual,
+    // completar con el catálogo clásico de dominó para asegurar continuidad infinita
+    if (ordered.length < 10) {
+      for (const t of CURATED_DOMINO_YOUTUBE_TRACKS) {
+        const id = t.videoId || extractYouTubeId(t.url);
+        if (id && id !== currentId && !ordered.includes(id)) {
+          ordered.push(id);
+        }
+      }
+    }
+
+    // Mantener hasta 25 IDs (óptimo para URLs sin sobrepasar límites de navegadores móviles)
+    return ordered.slice(0, 25);
+  }, [playlist, ytVideoId]);
+
+  // Parse estimated track duration (from durationSeconds or "3:45" text)
+  const estimatedSeconds =
+    track.durationSeconds || parseDurationText(track.durationText) || 0;
+  const effectiveDuration =
+    ytDuration > 0 ? ytDuration : duration > 0 ? duration : estimatedSeconds;
+  const effectiveCurrentTime = ytCurrentTime > 0 ? ytCurrentTime : currentTime;
+
+  // Calculate percentage for progress bar
+  const progressPercent =
+    effectiveDuration > 0
+      ? Math.min(100, (effectiveCurrentTime / effectiveDuration) * 100)
+      : 0;
+
+  // Construct standard embed URL with JavaScript API enabled and origin
+  const originParam =
+    typeof window !== 'undefined' && window.location.origin
+      ? `&origin=${encodeURIComponent(window.location.origin)}`
+      : '';
+
+  const playlistParam =
+    upcomingVideoIds.length > 0
+      ? `&playlist=${upcomingVideoIds.join(',')}&loop=1`
+      : '';
+
+  const embedUrl = ytVideoId
+    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${playlistParam}${originParam}`
+    : track.url && track.url.includes('embed')
+    ? `${track.url}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${playlistParam}${originParam}`
+    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
+        track.artist + ' ' + track.title
+      )}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`;
+
+  const [currentIframeSrc, setCurrentIframeSrc] = useState(embedUrl);
+
+  // Helper to send commands to YouTube IFrame API (supports both array and object formats)
+  const sendYouTubeCommand = useCallback(
+    (func: string, args: (string | number | object)[] = []) => {
+      if (!iframeRef.current?.contentWindow) return;
+      try {
+        const message = JSON.stringify({
+          event: 'command',
+          func,
+          args,
+        });
+        iframeRef.current.contentWindow.postMessage(message, '*');
+
+        // Para loadVideoById, enviar también formato con objeto para compatibilidad total de navegadores móviles
+        if (func === 'loadVideoById' && typeof args[0] === 'string') {
+          const altMessage = JSON.stringify({
+            event: 'command',
+            func: 'loadVideoById',
+            args: [{ videoId: args[0], startSeconds: args[1] || 0 }],
+          });
+          iframeRef.current.contentWindow.postMessage(altMessage, '*');
+        }
+      } catch (err) {
+        console.warn('YouTube postMessage notice:', err);
+      }
+    },
+    []
+  );
 
   // Handle Play / Pause for YouTube iframe via postMessage
   useEffect(() => {
@@ -121,7 +219,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
       const t = setTimeout(() => sendYouTubeCommand('pauseVideo'), 100);
       return () => clearTimeout(t);
     }
-  }, [isPlaying, isYouTube, iframeLoaded]);
+  }, [isPlaying, isYouTube, iframeLoaded, sendYouTubeCommand]);
 
   // Handle Volume change for YouTube iframe (0 to 100)
   useEffect(() => {
@@ -136,7 +234,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
       sendYouTubeCommand('unMute');
       sendYouTubeCommand('setVolume', [targetVol]);
     }
-  }, [volume, isYouTube, iframeLoaded]);
+  }, [volume, isYouTube, iframeLoaded, sendYouTubeCommand]);
 
   // Protección y resistencia para reproducción en segundo plano:
   // Cuando el usuario cambia de app (WhatsApp, navegador, etc.) o bloquea la pantalla,
@@ -162,16 +260,24 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handleVisibilityChange);
     };
-  }, [isYouTube, isPlaying]);
+  }, [isYouTube, isPlaying, sendYouTubeCommand]);
 
   // Guard against duplicate triggers of next track for the same song
   const hasTriggeredNextRef = useRef(false);
   const prevLoadedVideoIdRef = useRef<string | null>(ytVideoId || track.id || null);
+  const lastKnownVideoIdRef = useRef<string>(ytVideoId || '');
+  const playStartTimestampRef = useRef<number>(Date.now());
 
-  // Reset trigger flag when track changes
+  // Reset trigger flag and timers when track changes
   useEffect(() => {
     hasTriggeredNextRef.current = false;
-  }, [track.id, track.videoId]);
+    playStartTimestampRef.current = Date.now();
+    setYtCurrentTime(0);
+    setYtDuration(0);
+    if (ytVideoId) {
+      lastKnownVideoIdRef.current = ytVideoId;
+    }
+  }, [track.id, track.videoId, track.url, ytVideoId]);
 
   const triggerNextTrack = useCallback(() => {
     // If Autoplay is disabled, pause instead of skipping automatically
@@ -184,10 +290,21 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
 
     if (hasTriggeredNextRef.current) return;
     hasTriggeredNextRef.current = true;
+
+    // 1. Enviar comando nativo nextVideo al reproductor de YouTube para que avance de inmediato
+    sendYouTubeCommand('nextVideo');
+    sendYouTubeCommand('playVideo');
+
+    // 2. Permitir recuperación si pasan más de 3 segundos
+    setTimeout(() => {
+      hasTriggeredNextRef.current = false;
+    }, 3000);
+
+    // 3. Notificar a la aplicación para actualizar la canción activa en el catálogo
     if (onNextTrack) {
       onNextTrack();
     }
-  }, [isAutoplay, isPlaying, onTogglePlay, onNextTrack]);
+  }, [isAutoplay, isPlaying, onTogglePlay, onNextTrack, sendYouTubeCommand]);
 
   // Listen to YouTube postMessage events (onStateChange: 0 means ENDED, infoDelivery playerState: 0)
   useEffect(() => {
@@ -216,6 +333,45 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
 
       // 2. YouTube infoDelivery event:
       if (data.event === 'infoDelivery' && data.info) {
+        if (typeof data.info.currentTime === 'number') {
+          setYtCurrentTime(data.info.currentTime);
+        }
+        if (typeof data.info.duration === 'number' && data.info.duration > 0) {
+          setYtDuration(data.info.duration);
+        }
+
+        // Detección de avance automático nativo dentro del reproductor de YouTube:
+        // Cuando YouTube termina la canción y arranca la siguiente pista de la playlist incorporada,
+        // envía data.info.videoData con el nuevo video_id
+        const incomingVideoId = data.info?.videoData?.video_id;
+        if (
+          incomingVideoId &&
+          typeof incomingVideoId === 'string' &&
+          incomingVideoId.length >= 8 &&
+          incomingVideoId !== ytVideoId &&
+          incomingVideoId !== lastKnownVideoIdRef.current
+        ) {
+          lastKnownVideoIdRef.current = incomingVideoId;
+          const list = playlist && playlist.length > 0 ? playlist : CURATED_DOMINO_YOUTUBE_TRACKS;
+          const matched = list.find(
+            (t) => (t.videoId || extractYouTubeId(t.url)) === incomingVideoId
+          );
+          if (matched && onTrackAutoAdvanced) {
+            onTrackAutoAdvanced(matched, playlist);
+          } else if (onTrackAutoAdvanced) {
+            const autoTrack: MusicTrack = {
+              id: `yt_${incomingVideoId}`,
+              videoId: incomingVideoId,
+              title: data.info.videoData.title || track.title,
+              artist: data.info.videoData.author || track.artist,
+              sourceType: 'youtube',
+              url: `https://www.youtube.com/embed/${incomingVideoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+              artworkUrl: `https://img.youtube.com/vi/${incomingVideoId}/hqdefault.jpg`,
+            };
+            onTrackAutoAdvanced(autoTrack, playlist);
+          }
+        }
+
         if (data.info.playerState === 0) {
           triggerNextTrack();
         } else if (
@@ -233,9 +389,9 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [isYouTube, triggerNextTrack]);
+  }, [isYouTube, triggerNextTrack, ytVideoId, playlist, onTrackAutoAdvanced, track.title, track.artist]);
 
-  // Polling fallback to query YouTube player state and detect song completion
+  // Polling fallback to query YouTube player state and keep communication open
   useEffect(() => {
     if (!isYouTube || !isPlaying || !iframeLoaded) return;
 
@@ -243,55 +399,96 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
       sendYouTubeCommand('getPlayerState');
       sendYouTubeCommand('getCurrentTime');
       sendYouTubeCommand('getDuration');
-    }, 1500);
+      if (iframeRef.current?.contentWindow) {
+        try {
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'listening' }),
+            '*'
+          );
+        } catch {}
+      }
+    }, 1200);
 
     return () => clearInterval(interval);
-  }, [isYouTube, isPlaying, iframeLoaded]);
+  }, [isYouTube, isPlaying, iframeLoaded, sendYouTubeCommand]);
 
-  // Construct standard embed URL with JavaScript API enabled and origin
-  const originParam =
-    typeof window !== 'undefined' && window.location.origin
-      ? `&origin=${encodeURIComponent(window.location.origin)}`
-      : '';
+  // Temporizador de respaldo para autoplay en celulares con pantalla bloqueada:
+  // Si la canción tiene una duración conocida y el navegador suspende postMessage,
+  // el timer del hilo principal (mantenido despierto por el carrier de audio silencioso)
+  // pasará a la siguiente canción automáticamente al cumplirse la duración.
+  useEffect(() => {
+    if (!isPlaying || !isAutoplay) return;
 
-  const embedUrl = ytVideoId
-    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
-    : track.url && track.url.includes('embed')
-    ? `${track.url}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`
-    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
-        track.artist + ' ' + track.title
-      )}&autoplay=${isPlaying ? 1 : 0}&playsinline=1&enablejsapi=1&version=3&rel=0${originParam}`;
+    const totalDuration =
+      ytDuration > 0
+        ? ytDuration
+        : estimatedSeconds > 0
+        ? estimatedSeconds
+        : duration;
+
+    if (!totalDuration || totalDuration < 15) return;
+
+    const durationCheckInterval = setInterval(() => {
+      const elapsed = (Date.now() - playStartTimestampRef.current) / 1000;
+      if (elapsed >= totalDuration + 1.5) {
+        triggerNextTrack();
+      }
+    }, 2000);
+
+    return () => clearInterval(durationCheckInterval);
+  }, [
+    isPlaying,
+    isAutoplay,
+    ytDuration,
+    estimatedSeconds,
+    duration,
+    triggerNextTrack,
+  ]);
 
   // Handle seamless track transition in existing iframe on mobile
-  // Mobile browsers block autoplay if a new iframe DOM element is mounted,
-  // but allow loadVideoById on an already activated iframe!
+  // Mobile browsers allow loadVideoById on an already activated iframe!
   useEffect(() => {
-    if (!isYouTube || !iframeLoaded) return;
+    if (!isYouTube) return;
 
     const currentKey = ytVideoId || track.id || track.url;
     if (prevLoadedVideoIdRef.current === currentKey) return;
     prevLoadedVideoIdRef.current = currentKey;
 
-    if (ytVideoId) {
-      sendYouTubeCommand('loadVideoById', [ytVideoId, 0]);
-      sendYouTubeCommand('setVolume', [Math.round(volume * 100)]);
-      if (volume === 0) {
-        sendYouTubeCommand('mute');
-      } else {
-        sendYouTubeCommand('unMute');
-      }
-      sendYouTubeCommand('playVideo');
-      const t1 = setTimeout(() => sendYouTubeCommand('playVideo'), 200);
-      const t2 = setTimeout(() => sendYouTubeCommand('playVideo'), 600);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
-    } else if (track.url) {
-      sendYouTubeCommand('loadVideoByUrl', [embedUrl]);
-      sendYouTubeCommand('playVideo');
+    // Si YouTube ya avanzó nativamente y ya está reproduciendo este ID,
+    // evitamos enviar loadVideoById redundante para no generar pausas
+    if (lastKnownVideoIdRef.current === ytVideoId && ytVideoId) {
+      return;
     }
-  }, [ytVideoId, track.id, track.url, isYouTube, iframeLoaded, volume, embedUrl]);
+    if (ytVideoId) {
+      lastKnownVideoIdRef.current = ytVideoId;
+    }
+
+    if (iframeLoaded) {
+      if (ytVideoId) {
+        sendYouTubeCommand('loadVideoById', [ytVideoId, 0]);
+        sendYouTubeCommand('setVolume', [Math.round(volume * 100)]);
+        if (volume === 0) {
+          sendYouTubeCommand('mute');
+        } else {
+          sendYouTubeCommand('unMute');
+        }
+        sendYouTubeCommand('playVideo');
+        const t1 = setTimeout(() => sendYouTubeCommand('playVideo'), 250);
+        const t2 = setTimeout(() => sendYouTubeCommand('playVideo'), 750);
+        setCurrentIframeSrc(embedUrl);
+        return () => {
+          clearTimeout(t1);
+          clearTimeout(t2);
+        };
+      } else if (track.url) {
+        sendYouTubeCommand('loadVideoByUrl', [embedUrl]);
+        sendYouTubeCommand('playVideo');
+        setCurrentIframeSrc(embedUrl);
+      }
+    } else {
+      setCurrentIframeSrc(embedUrl);
+    }
+  }, [ytVideoId, track.id, track.url, isYouTube, iframeLoaded, volume, embedUrl, sendYouTubeCommand]);
 
   // When YouTube iframe finishes loading, initialize its state
   const handleIframeLoad = () => {
@@ -343,7 +540,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
             <iframe
               ref={iframeRef}
               id="persistent-domino-youtube-iframe"
-              src={embedUrl}
+              src={currentIframeSrc}
               title={track.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -354,7 +551,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
         )}
 
         {/* Progress Bar (if track has finite duration) */}
-        {duration > 0 && (
+        {effectiveDuration > 0 && (
           <div className="w-full bg-stone-800 h-1 rounded-full overflow-hidden">
             <div
               className="bg-amber-500 h-full transition-all duration-300 rounded-full"
@@ -504,16 +701,24 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
             {/* Previous Track Button */}
             {onPrevTrack && (
               <button
+                id="btn-mini-prev-track"
                 type="button"
-                onClick={onPrevTrack}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isYouTube) {
+                    sendYouTubeCommand('previousVideo');
+                    sendYouTubeCommand('playVideo');
+                  }
+                  onPrevTrack();
+                }}
                 title={lang === 'es' ? 'Canción anterior' : 'Previous song'}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors active:scale-95"
+                className="min-h-[44px] min-w-[40px] p-2 rounded-xl text-stone-300 hover:text-white hover:bg-stone-800 transition-colors active:scale-95 flex items-center justify-center cursor-pointer"
               >
-                <SkipBack className="w-3.5 h-3.5" />
+                <SkipBack className="w-4 h-4" />
               </button>
             )}
 
@@ -531,7 +736,7 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
                   ? 'Reanudar música'
                   : 'Play'
               }
-              className={`p-2 rounded-xl active:scale-95 font-bold shadow-md transition-all flex items-center justify-center ${
+              className={`min-h-[44px] min-w-[44px] p-2 rounded-xl active:scale-95 font-bold shadow-md transition-all flex items-center justify-center ${
                 isPlaying
                   ? 'bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-amber-950/40 ring-2 ring-amber-400/50'
                   : 'bg-stone-750 hover:bg-amber-500 hover:text-stone-950 text-stone-100 border border-stone-600'
@@ -547,12 +752,20 @@ export const MiniMusicPlayer: React.FC<MiniMusicPlayerProps> = ({
             {/* Next Track Button */}
             {onNextTrack && (
               <button
+                id="btn-mini-next-track"
                 type="button"
-                onClick={onNextTrack}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isYouTube) {
+                    sendYouTubeCommand('nextVideo');
+                    sendYouTubeCommand('playVideo');
+                  }
+                  onNextTrack();
+                }}
                 title={lang === 'es' ? 'Siguiente canción' : 'Next song'}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors active:scale-95"
+                className="min-h-[44px] min-w-[40px] p-2 rounded-xl text-stone-300 hover:text-white hover:bg-stone-800 transition-colors active:scale-95 flex items-center justify-center cursor-pointer"
               >
-                <SkipForward className="w-3.5 h-3.5" />
+                <SkipForward className="w-4 h-4" />
               </button>
             )}
 

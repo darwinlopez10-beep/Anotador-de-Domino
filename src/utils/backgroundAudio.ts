@@ -92,105 +92,158 @@ export function syncMediaSession({
   }
 }
 
-/**
- * Calculates next track intelligently from recently played history, curated playlist, or custom tracks
- */
-export function getNextTrack(
-  current: MusicTrack | null,
-  history: MusicHistoryItem[] = [],
-  curated: MusicTrack[] = [],
-  customTracks: MusicTrack[] = []
-): MusicTrack | null {
-  if (!current) return curated[0] || customTracks[0] || null;
-
-  // 1. Check if current is in customTracks
-  if (customTracks && customTracks.length > 0) {
-    const customIdx = customTracks.findIndex(
-      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
-    );
-    if (customIdx !== -1) {
-      if (customIdx < customTracks.length - 1) {
-        return customTracks[customIdx + 1];
-      } else {
-        return curated.length > 0 ? curated[0] : customTracks[0];
-      }
-    }
+export function parseDurationText(durationText?: string): number {
+  if (!durationText) return 0;
+  const parts = durationText.trim().split(':').map((p) => parseInt(p, 10));
+  if (parts.some(isNaN)) return 0;
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
   }
-
-  // 2. Check if current is in curated list
-  if (curated && curated.length > 0) {
-    const curatedIdx = curated.findIndex(
-      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
-    );
-
-    if (curatedIdx !== -1) {
-      if (curatedIdx < curated.length - 1) {
-        return curated[curatedIdx + 1];
-      } else {
-        // Wrap around to the start of curated
-        return curated[0];
-      }
-    }
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
   }
+  return 0;
+}
 
-  // 3. If in history
-  if (history && history.length > 1) {
-    const histIdx = history.findIndex(
-      (h) => (h.track.videoId && h.track.videoId === current.videoId) || h.track.id === current.id
-    );
-    if (histIdx !== -1 && histIdx < history.length - 1) {
-      return history[histIdx + 1].track;
-    }
+export function getTrackObject(item: any): MusicTrack | null {
+  if (!item) return null;
+  if (item.track && typeof item.track === 'object') {
+    return item.track as MusicTrack;
   }
+  if (typeof item === 'object' && (item.title || item.artist || item.id || item.videoId)) {
+    return item as MusicTrack;
+  }
+  return null;
+}
 
-  // 4. Default wrap-around to start of curated or custom
-  return curated[0] || customTracks[0] || null;
+function findTrackIndex(list: any[], track: MusicTrack): number {
+  if (!list || list.length === 0 || !track) return -1;
+  const cTitle = (track.title || '').trim().toLowerCase();
+  const cArtist = (track.artist || '').trim().toLowerCase();
+  const cVid = track.videoId || null;
+  const cId = track.id || null;
+
+  return list.findIndex((raw) => {
+    const item = getTrackObject(raw);
+    if (!item) return false;
+    if (cId && item.id === cId) return true;
+    if (cVid && item.videoId && item.videoId === cVid) return true;
+    if (
+      cTitle &&
+      cArtist &&
+      (item.title || '').trim().toLowerCase() === cTitle &&
+      (item.artist || '').trim().toLowerCase() === cArtist
+    ) {
+      return true;
+    }
+    if (
+      cTitle &&
+      item.title &&
+      (item.title.toLowerCase().includes(cTitle) || cTitle.includes(item.title.toLowerCase()))
+    ) {
+      return true;
+    }
+    return false;
+  });
 }
 
 /**
- * Calculates previous track
+ * Calculates next track intelligently from active playlist, curated playlist, or custom tracks.
+ * Seamlessly loops forward through the playlist.
  */
-export function getPrevTrack(
+export function getNextTrack(
   current: MusicTrack | null,
-  history: MusicHistoryItem[] = [],
+  playlist: any[] = [],
   curated: MusicTrack[] = [],
   customTracks: MusicTrack[] = []
 ): MusicTrack | null {
-  if (!current) return curated[0] || customTracks[0] || null;
-
-  if (customTracks && customTracks.length > 0) {
-    const customIdx = customTracks.findIndex(
-      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
+  if (!current) {
+    return (
+      getTrackObject(playlist[0]) ||
+      curated[0] ||
+      customTracks[0] ||
+      null
     );
-    if (customIdx > 0) {
-      return customTracks[customIdx - 1];
-    } else if (customIdx === 0) {
-      return customTracks[customTracks.length - 1];
+  }
+
+  // 1. Search in active playlist (search results, most played, recent, or custom)
+  if (playlist && playlist.length > 0) {
+    const idx = findTrackIndex(playlist, current);
+    if (idx !== -1) {
+      return getTrackObject(playlist[(idx + 1) % playlist.length]);
     }
   }
 
+  // 2. Search in curated tracks
   if (curated && curated.length > 0) {
-    const curatedIdx = curated.findIndex(
-      (t) => (t.videoId && t.videoId === current.videoId) || t.id === current.id
-    );
-
-    if (curatedIdx > 0) {
-      return curated[curatedIdx - 1];
-    } else if (curatedIdx === 0) {
-      return curated[curated.length - 1];
+    const idx = findTrackIndex(curated, current);
+    if (idx !== -1) {
+      return curated[(idx + 1) % curated.length];
     }
   }
 
-  if (history && history.length > 1) {
-    const histIdx = history.findIndex(
-      (h) => (h.track.videoId && h.track.videoId === current.videoId) || h.track.id === current.id
-    );
-    if (histIdx > 0) {
-      return history[histIdx - 1].track;
+  // 3. Search in custom tracks
+  if (customTracks && customTracks.length > 0) {
+    const idx = findTrackIndex(customTracks, current);
+    if (idx !== -1) {
+      return customTracks[(idx + 1) % customTracks.length];
     }
   }
 
-  return curated[curated.length - 1] || customTracks[0] || null;
+  // Fallback: wrap to start of playlist or curated
+  if (playlist && playlist.length > 0) return getTrackObject(playlist[0]);
+  if (curated && curated.length > 0) return curated[0];
+  if (customTracks && customTracks.length > 0) return customTracks[0];
+  return null;
+}
+
+/**
+ * Calculates previous track from active playlist, curated playlist, or custom tracks.
+ * Seamlessly loops backward through the playlist.
+ */
+export function getPrevTrack(
+  current: MusicTrack | null,
+  playlist: any[] = [],
+  curated: MusicTrack[] = [],
+  customTracks: MusicTrack[] = []
+): MusicTrack | null {
+  if (!current) {
+    return (
+      getTrackObject(playlist[playlist.length - 1]) ||
+      curated[curated.length - 1] ||
+      customTracks[customTracks.length - 1] ||
+      null
+    );
+  }
+
+  // 1. Search in active playlist
+  if (playlist && playlist.length > 0) {
+    const idx = findTrackIndex(playlist, current);
+    if (idx !== -1) {
+      return getTrackObject(playlist[(idx - 1 + playlist.length) % playlist.length]);
+    }
+  }
+
+  // 2. Search in curated tracks
+  if (curated && curated.length > 0) {
+    const idx = findTrackIndex(curated, current);
+    if (idx !== -1) {
+      return curated[(idx - 1 + curated.length) % curated.length];
+    }
+  }
+
+  // 3. Search in custom tracks
+  if (customTracks && customTracks.length > 0) {
+    const idx = findTrackIndex(customTracks, current);
+    if (idx !== -1) {
+      return customTracks[(idx - 1 + customTracks.length) % customTracks.length];
+    }
+  }
+
+  if (playlist && playlist.length > 0) return getTrackObject(playlist[playlist.length - 1]);
+  if (curated && curated.length > 0) return curated[curated.length - 1];
+  if (customTracks && customTracks.length > 0) return customTracks[customTracks.length - 1];
+  return null;
 }
 
 /**

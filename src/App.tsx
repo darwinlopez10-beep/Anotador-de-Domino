@@ -201,6 +201,11 @@ export default function App() {
   const [musicDuration, setMusicDuration] = useState(0);
   const [customTracks, setCustomTracks] = useState<MusicTrack[]>(() => loadCustomTracks());
   const [musicHistory, setMusicHistory] = useState<MusicHistoryItem[]>(() => loadMusicHistory());
+  const [activePlaylist, setActivePlaylist] = useState<MusicTrack[]>(() => {
+    const h = loadMusicHistory();
+    if (h && h.length > 0) return h.map((item) => item.track);
+    return CURATED_DOMINO_YOUTUBE_TRACKS;
+  });
   const [isMusicAutoplay, setIsMusicAutoplay] = useState<boolean>(() => loadMusicAutoplay());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -690,60 +695,74 @@ export default function App() {
   };
 
   // Music Handlers
-  const handleSelectMusicTrack = useCallback((track: MusicTrack) => {
-    setCurrentMusicTrack(track);
+  const handleSelectMusicTrack = useCallback(
+    (track: MusicTrack, playlistContext?: MusicTrack[]) => {
+      setCurrentMusicTrack(track);
 
-    // Grabar automáticamente la canción que se va escuchando en el historial
-    const updatedHistory = recordSongPlay(track);
-    setMusicHistory(updatedHistory);
+      if (playlistContext && playlistContext.length > 0) {
+        setActivePlaylist(playlistContext);
+      }
 
-    if (track.sourceType === 'youtube') {
-      if (audioRef.current) {
-        // Reproducir carrier de audio silencioso para mantener activa la sesión multimedia del sistema operativo
-        // Esto previene que Android o iOS suspendan o detengan el proceso web cuando se cambia de app o se bloquea la pantalla.
-        audioRef.current.src = SILENT_AUDIO_DATA_URI;
-        audioRef.current.loop = true;
-        audioRef.current.play().catch(() => {});
+      // Grabar automáticamente la canción que se va escuchando en el historial
+      const updatedHistory = recordSongPlay(track);
+      setMusicHistory(updatedHistory);
+
+      if (track.sourceType === 'youtube') {
+        if (audioRef.current) {
+          // Reproducir carrier de audio silencioso para mantener activa la sesión multimedia del sistema operativo
+          // Esto previene que Android o iOS suspendan o detengan el proceso web cuando se cambia de app o se bloquea la pantalla.
+          audioRef.current.src = SILENT_AUDIO_DATA_URI;
+          audioRef.current.loop = true;
+          audioRef.current.play().catch(() => {});
+        }
+        setIsMusicPlaying(true);
+      } else {
+        if (audioRef.current) {
+          audioRef.current.loop = false;
+          audioRef.current.src = track.url;
+          audioRef.current
+            .play()
+            .then(() => setIsMusicPlaying(true))
+            .catch((err) => {
+              console.warn('Playback notice:', err);
+              setIsMusicPlaying(false);
+            });
+        }
       }
-      setIsMusicPlaying(true);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.loop = false;
-        audioRef.current.src = track.url;
-        audioRef.current
-          .play()
-          .then(() => setIsMusicPlaying(true))
-          .catch((err) => {
-            console.warn('Playback notice:', err);
-            setIsMusicPlaying(false);
-          });
-      }
-    }
-  }, []);
+    },
+    []
+  );
+
+  const effectivePlaylist = useMemo(() => {
+    if (activePlaylist && activePlaylist.length > 0) return activePlaylist;
+    const historyTracks = musicHistory.map((item) => item.track);
+    if (historyTracks.length > 0) return historyTracks;
+    return CURATED_DOMINO_YOUTUBE_TRACKS;
+  }, [activePlaylist, musicHistory]);
 
   const handlePlayNextTrack = useCallback(() => {
     const next = getNextTrack(
       currentMusicTrack,
-      musicHistory,
+      effectivePlaylist,
       CURATED_DOMINO_YOUTUBE_TRACKS,
       customTracks
     );
     if (next) {
-      handleSelectMusicTrack(next);
+      handleSelectMusicTrack(next, effectivePlaylist);
     }
-  }, [currentMusicTrack, musicHistory, customTracks, handleSelectMusicTrack]);
+  }, [currentMusicTrack, effectivePlaylist, customTracks, handleSelectMusicTrack]);
 
   const handlePlayPrevTrack = useCallback(() => {
     const prev = getPrevTrack(
       currentMusicTrack,
-      musicHistory,
+      effectivePlaylist,
       CURATED_DOMINO_YOUTUBE_TRACKS,
       customTracks
     );
     if (prev) {
-      handleSelectMusicTrack(prev);
+      handleSelectMusicTrack(prev, effectivePlaylist);
     }
-  }, [currentMusicTrack, musicHistory, customTracks, handleSelectMusicTrack]);
+  }, [currentMusicTrack, effectivePlaylist, customTracks, handleSelectMusicTrack]);
 
   // Keep playNextTrackRef in sync with the latest handlePlayNextTrack callback
   useEffect(() => {
@@ -971,6 +990,8 @@ export default function App() {
       {currentMusicTrack && (
         <MiniMusicPlayer
           track={currentMusicTrack}
+          playlist={effectivePlaylist}
+          onTrackAutoAdvanced={handleSelectMusicTrack}
           isPlaying={isMusicPlaying}
           volume={musicVolume}
           currentTime={musicCurrentTime}
