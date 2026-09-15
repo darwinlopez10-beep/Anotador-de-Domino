@@ -31,7 +31,6 @@ import {
   Minus,
   Radio,
   Repeat,
-  AlertCircle,
 } from 'lucide-react';
 import { MusicHistoryItem, MusicTrack } from '../types';
 import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
@@ -64,26 +63,6 @@ interface MusicPlayerModalProps {
   musicHistory?: MusicHistoryItem[];
   onDeleteHistoryItem?: (songId: string) => void;
   onClearMusicHistory?: () => void;
-}
-
-// ============================================================================
-// CLAVE EDITABLE DE GOOGLE YOUTUBE DATA API v3 (FRONTEND / NAVEGADOR)
-// Puedes pegar tu clave directamente entre las comillas o definir VITE_YOUTUBE_API_KEY:
-// ============================================================================
-export const MI_YOUTUBE_API_KEY: string =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_YOUTUBE_API_KEY) ||
-  ''; // <-- PEGA TU CLAVE DE YOUTUBE DATA API v3 AQUÍ SI DESEAS USARLA DIRECTAMENTE EN EL NAVEGADOR
-
-// Helper para decodificar entidades HTML devueltas por YouTube API (&quot;, &#39;, &amp;, etc.)
-export function decodeHtmlEntities(str: string): string {
-  if (!str) return '';
-  return str
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
 }
 
 // Lista inicial recomendada para dominó con artistas y géneros variados
@@ -370,8 +349,6 @@ export function extractYouTubeId(url: string): string | null {
 
 // Botones rápidos para buscar directamente artistas o géneros populares en YouTube
 const POPULAR_SEARCH_TAGS = [
-  'Ana Gabriel',
-  'Héctor Lavoe',
   'Vicente Fernández',
   'Juan Gabriel',
   'Julio Iglesias',
@@ -379,6 +356,7 @@ const POPULAR_SEARCH_TAGS = [
   'Los Tigres del Norte',
   'Marc Anthony',
   'Celia Cruz',
+  'Héctor Lavoe',
   'Joe Arroyo',
   'El Gran Combo',
   'Los Hermanos Rosario',
@@ -389,7 +367,6 @@ const POPULAR_SEARCH_TAGS = [
   'Shakira',
   'Frank Sinatra',
   'Salsa Clásica',
-  'Salsa Vieja',
   'Merengues',
   'Bachatas',
 ];
@@ -609,33 +586,25 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
     }
   };
 
-  // Búsqueda dinámica global en YouTube 100% funcional en dispositivos móviles y PC
+  // Protocolo Universal de Búsqueda Karaoke Pro (100% compatible con celulares Android y PC sin depender de backend)
   const handleSearchYouTube = async (termToSearch?: string) => {
-    // Tomar valor de termToSearch, o de searchInputRef, o del state searchQuery
-    const inputVal = searchInputRef.current?.value;
-    const rawVal = (termToSearch !== undefined && termToSearch !== '') 
-      ? termToSearch 
-      : ((inputVal && inputVal.trim()) ? inputVal : searchQuery);
+    const rawVal = termToSearch !== undefined ? termToSearch : (searchInputRef.current?.value || searchQuery);
     const query = (rawVal || '').trim();
 
-    // Sincronizar de inmediato el estado con el texto ingresado
-    if (query) {
-      setSearchQuery(query);
-      if (searchInputRef.current && searchInputRef.current.value !== query) {
-        searchInputRef.current.value = query;
-      }
+    // Ocultar teclado virtual en Android y enfocar resultados
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
     }
 
     if (!query) {
-      setSearchError(
-        lang === 'es'
-          ? 'Escribe el nombre de un cantante, grupo, canción o género musical.'
-          : 'Type the name of a singer, band, song, or music genre.'
-      );
+      setSearchError('Escribe el nombre de un cantante, grupo o canción, o toca uno de los botones abajo.');
       return;
     }
 
-    // Comprobar si el usuario pegó un enlace directo o ID de YouTube
+    // Comprobar si el usuario pegó un enlace directo de YouTube
     const directVideoId = extractYouTubeId(query);
     if (directVideoId) {
       const directTrack: MusicTrack = {
@@ -655,198 +624,175 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
       return;
     }
 
+    setSearchQuery(query);
     setIsSearching(true);
     setSearchError(null);
     setHasSearched(true);
 
-    let foundTracks: MusicTrack[] = [];
-    let lastErrorDetail = '';
+    // 1. Coincidencias instantáneas del catálogo local de dominó (0ms, offline y verificado)
+    const queryLower = query.toLowerCase();
+    const queryTokens = queryLower.split(/\s+/).filter(Boolean);
+    const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter((t) => {
+      const tStr = `${t.title} ${t.artist} ${t.genre || ''}`.toLowerCase();
+      return queryTokens.every((token) => tStr.includes(token)) || tStr.includes(queryLower);
+    });
 
-    // MÉTODO 1: Endpoint local del servidor backend (/api/music/search)
-    // Se ejecuta primero porque el servidor en Cloud Run / Node tiene conexión rápida directa con YouTube
-    try {
-      const sRes = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
-        signal: AbortSignal.timeout(6000),
-      });
-      if (sRes.ok) {
-        const sData = await sRes.json();
-        if (Array.isArray(sData.results) && sData.results.length > 0) {
-          foundTracks = sData.results;
-        }
-      }
-    } catch (e: any) {
-      lastErrorDetail = e?.message || 'Error en /api/music/search';
-    }
-
-    // MÉTODO 1.1: Endpoint alternativo /api/youtube/search (por si el adblocker o navegador del celular bloquea la palabra "music")
-    if (foundTracks.length === 0) {
+    // 2. Protocolo Karaoke Pro: Búsqueda universal directa en cliente mediante catálogo de Apple Music / iTunes
+    // Permite buscar CUALQUIER artista, canción o género en el mundo desde cualquier celular sin pasar por el servidor
+    const fetchClientCatalog = async (): Promise<MusicTrack[]> => {
       try {
-        const ytRouteRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
-          signal: AbortSignal.timeout(6000),
+        const res = await fetch(
+          `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=35`,
+          { signal: AbortSignal.timeout(4500) }
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (!data || !Array.isArray(data.results)) return [];
+
+        return data.results.map((item: any) => {
+          const durSec = Math.round((item.trackTimeMillis || 0) / 1000);
+          const m = Math.floor(durSec / 60);
+          const s = durSec % 60;
+          const art = item.artistName || 'Artista';
+          const tit = item.trackName || 'Sin título';
+
+          const matchedLocal = CURATED_DOMINO_YOUTUBE_TRACKS.find(
+            (c) => c.title.toLowerCase() === tit.toLowerCase() && c.artist.toLowerCase() === art.toLowerCase()
+          );
+
+          return {
+            id: `itunes_${item.trackId}`,
+            videoId: matchedLocal?.videoId,
+            title: tit,
+            artist: art,
+            sourceType: 'youtube' as const,
+            url: matchedLocal?.videoId
+              ? `https://www.youtube.com/embed/${matchedLocal.videoId}?autoplay=1&playsinline=1&enablejsapi=1`
+              : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(art + ' ' + tit)}&autoplay=1&playsinline=1&enablejsapi=1`,
+            artworkUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '300x300bb') : undefined,
+            durationSeconds: durSec,
+            durationText: durSec > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
+            genre: item.primaryGenreName,
+            previewUrl: item.previewUrl,
+          };
         });
-        if (ytRouteRes.ok) {
-          const ytRouteData = await ytRouteRes.json();
-          if (Array.isArray(ytRouteData.results) && ytRouteData.results.length > 0) {
-            foundTracks = ytRouteData.results;
-          }
-        }
-      } catch (e: any) {
-        lastErrorDetail = e?.message || 'Error en /api/youtube/search';
+      } catch {
+        return [];
       }
-    }
+    };
 
-    // MÉTODO 2: Búsqueda directa con YouTube Data API v3 si está configurada
-    const apiKey = (MI_YOUTUBE_API_KEY || '').trim();
-    if (foundTracks.length === 0 && apiKey) {
+    // 3. Consulta en paralelo a APIs de video directas (servidor local e Invidious CORS)
+    const fetchYouTubeDirect = async (): Promise<MusicTrack[]> => {
+      // 3.1 Probar servidor local si está activo
       try {
-        const ytApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=15&q=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
-        const ytRes = await fetch(ytApiUrl, { signal: AbortSignal.timeout(7000) });
-        if (ytRes.ok) {
-          const ytData = await ytRes.json();
-          if (Array.isArray(ytData.items) && ytData.items.length > 0) {
-            const seen = new Set<string>();
-            for (const item of ytData.items) {
-              const vid = item.id?.videoId;
-              if (vid && !seen.has(vid)) {
-                seen.add(vid);
-                foundTracks.push({
-                  id: `yt_${vid}`,
-                  videoId: vid,
-                  title: item.snippet?.title ? decodeHtmlEntities(item.snippet.title) : query,
-                  artist: item.snippet?.channelTitle ? decodeHtmlEntities(item.snippet.channelTitle) : 'YouTube',
-                  sourceType: 'youtube',
-                  url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
-                  artworkUrl:
-                    item.snippet?.thumbnails?.high?.url ||
-                    item.snippet?.thumbnails?.medium?.url ||
-                    `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
-                });
-              }
-            }
-          }
-        } else {
-          const errData = await ytRes.json().catch(() => null);
-          if (errData?.error?.message) {
-            lastErrorDetail = `YouTube API: ${errData.error.message}`;
+        const res = await fetch(`/api/music/search?q=${encodeURIComponent(query)}`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.results) && data.results.length > 0) {
+            return data.results;
           }
         }
-      } catch (e: any) {
-        lastErrorDetail = e?.message || 'Error conectando con YouTube Data API';
-      }
-    }
+      } catch {}
 
-    // MÉTODO 3: Instancias públicas de Invidious / Piped como respaldo
-    if (foundTracks.length === 0) {
-      const publicEndpoints = [
-        `https://invidious.jing.rocks/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-        `https://inv.bp.projectsegfau.lt/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-        `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
-        `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=videos`,
-      ];
-
-      for (const endpoint of publicEndpoints) {
-        try {
-          const pRes = await fetch(endpoint, { signal: AbortSignal.timeout(3500) });
-          if (pRes.ok) {
-            const pData = await pRes.json();
-            if (Array.isArray(pData) && pData.length > 0) {
-              const mapped: MusicTrack[] = [];
-              for (const v of pData) {
-                const vid = v.videoId || v.id;
-                if (vid && typeof vid === 'string' && vid.length === 11) {
-                  const dur = v.lengthSeconds || 0;
-                  const m = Math.floor(dur / 60);
-                  const s = dur % 60;
-                  mapped.push({
-                    id: `yt_${vid}`,
-                    videoId: vid,
-                    title: v.title ? decodeHtmlEntities(v.title) : query,
-                    artist: v.author ? decodeHtmlEntities(v.author) : 'YouTube',
-                    sourceType: 'youtube' as const,
-                    url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
-                    artworkUrl: `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
-                    durationSeconds: dur,
-                    durationText: dur > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
-                  });
-                }
-              }
-              if (mapped.length > 0) {
-                foundTracks = mapped;
-                break;
-              }
-            }
+      // 3.2 Probar Invidious CORS público
+      try {
+        const invRes = await fetch(
+          `https://invidious.flokinet.to/api/v1/search?q=${encodeURIComponent(query)}&type=video`,
+          { signal: AbortSignal.timeout(3000) }
+        );
+        if (invRes.ok) {
+          const invData = await invRes.json();
+          if (Array.isArray(invData) && invData.length > 0) {
+            return invData.slice(0, 15).map((v: any) => {
+              const dur = v.lengthSeconds || 0;
+              const m = Math.floor(dur / 60);
+              const s = dur % 60;
+              return {
+                id: `yt_${v.videoId}`,
+                videoId: v.videoId,
+                title: v.title,
+                artist: v.author || 'YouTube',
+                sourceType: 'youtube' as const,
+                url: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&playsinline=1&enablejsapi=1`,
+                artworkUrl: `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`,
+                durationSeconds: dur,
+                durationText: dur > 0 ? `${m}:${s < 10 ? '0' : ''}${s}` : undefined,
+              };
+            });
           }
-        } catch {
-          continue;
+        }
+      } catch {}
+
+      return [];
+    };
+
+    try {
+      const [clientTracks, ytTracks] = await Promise.all([
+        fetchClientCatalog(),
+        fetchYouTubeDirect(),
+      ]);
+
+      // Fusionar y desduplicar resultados respetando prioridad de calidad
+      const combined: MusicTrack[] = [];
+      const seenKeys = new Set<string>();
+
+      // 1. Primero las coincidencias locales verificadas
+      for (const track of localMatches) {
+        const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          combined.push(track);
         }
       }
-    }
 
-    // MÉTODO 4: Si fallan todas las conexiones de red externas en el teléfono móvil,
-    // generar de forma garantizada una lista de reproducción interactiva de YouTube
-    // con el término ingresado para que NUNCA se quede en blanco ni arroje error.
-    if (foundTracks.length === 0) {
-      // Buscar primero coincidencias en el catálogo local
-      const lowerQ = query.toLowerCase();
-      const localMatches = CURATED_DOMINO_YOUTUBE_TRACKS.filter(
-        (t) =>
-          t.title.toLowerCase().includes(lowerQ) ||
-          t.artist.toLowerCase().includes(lowerQ) ||
-          (t.genre && t.genre.toLowerCase().includes(lowerQ))
-      );
+      // 2. Si obtuvimos videos directos de YouTube, agregarlos
+      for (const track of ytTracks) {
+        const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
+        if (!seenKeys.has(key) && track.videoId) {
+          seenKeys.add(key);
+          combined.push(track);
+        }
+      }
 
-      if (localMatches.length > 0) {
-        foundTracks = localMatches;
+      // 3. Agregar el catálogo universal completo de canciones
+      for (const track of clientTracks) {
+        const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          combined.push(track);
+        }
+      }
+
+      if (combined.length > 0) {
+        setSearchResults(combined);
+        setSearchError(null);
+        setTimeout(() => {
+          songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
       } else {
-        // Generar lista de reproducción directa con búsqueda de YouTube
-        foundTracks = [
-          {
-            id: `yt_search_direct_1`,
-            title: `${query} - Éxitos y Canciones`,
-            artist: query,
-            genre: 'YouTube Music',
-            sourceType: 'youtube',
-            url: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}&autoplay=1&playsinline=1&enablejsapi=1&rel=0`,
-            artworkUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80',
-          },
-          {
-            id: `yt_search_direct_2`,
-            title: `${query} - En Vivo y Conciertos`,
-            artist: query,
-            genre: 'YouTube Music',
-            sourceType: 'youtube',
-            url: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query + ' en vivo')}&autoplay=1&playsinline=1&enablejsapi=1&rel=0`,
-            artworkUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&auto=format&fit=crop&q=80',
-          },
-          {
-            id: `yt_search_direct_3`,
-            title: `${query} - Lo Mejor`,
-            artist: query,
-            genre: 'YouTube Music',
-            sourceType: 'youtube',
-            url: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent('lo mejor de ' + query)}&autoplay=1&playsinline=1&enablejsapi=1&rel=0`,
-            artworkUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&auto=format&fit=crop&q=80',
-          },
-        ];
+        setSearchResults([]);
+        setSearchError(
+          lang === 'es'
+            ? `No se encontraron canciones para "${query}". Intenta buscar con otro nombre.`
+            : `No songs found for "${query}". Try searching with another name.`
+        );
       }
-    }
-
-    setIsSearching(false);
-
-    if (foundTracks.length > 0) {
-      setSearchResults(foundTracks);
-      setSearchError(null);
-      setTimeout(() => {
-        songsListSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    } else {
-      setSearchResults([]);
-      const errMsg = lastErrorDetail
-        ? `${lang === 'es' ? 'Error al buscar en YouTube' : 'YouTube search error'}: ${lastErrorDetail}`
-        : lang === 'es'
-        ? `No se encontraron canciones para "${query}".`
-        : `No songs found for "${query}".`;
-      setSearchError(errMsg);
+    } catch {
+      if (localMatches.length > 0) {
+        setSearchResults(localMatches);
+        setSearchError(null);
+      } else {
+        setSearchResults([]);
+        setSearchError(
+          lang === 'es'
+            ? `No se encontraron resultados para "${query}". Toca uno de los botones de artistas abajo.`
+            : `No results found for "${query}". Tap one of the artist buttons below.`
+        );
+      }
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -924,7 +870,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               action="javascript:void(0)"
               onSubmit={(e) => {
                 e.preventDefault();
-                const term = (searchInputRef.current?.value ?? searchQuery ?? '').trim();
+                const term = searchInputRef.current?.value ?? searchQuery;
                 handleSearchYouTube(term);
               }}
               className="flex flex-row items-center gap-2 w-full"
@@ -951,7 +897,7 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.keyCode === 13) {
                       e.preventDefault();
-                      const term = (searchInputRef.current?.value ?? searchQuery ?? '').trim();
+                      const term = searchInputRef.current?.value ?? searchQuery;
                       handleSearchYouTube(term);
                     }
                   }}
@@ -981,14 +927,14 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 )}
               </div>
 
-              {/* Botón con la palabra Buscar al lado (con touch-action y compatibilidad móvil inmediata) */}
+              {/* Botón con la palabra Buscar al lado (type submit + onClick para máxima compatibilidad móvil y PC) */}
               <button
                 type="submit"
                 id="btn-search-music"
                 disabled={isSearching}
                 onClick={(e) => {
                   e.preventDefault();
-                  const term = (searchInputRef.current?.value ?? searchQuery ?? '').trim();
+                  const term = searchInputRef.current?.value ?? searchQuery;
                   handleSearchYouTube(term);
                 }}
                 className="px-4 sm:px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-stone-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer min-h-[44px] min-w-[84px] touch-manipulation active:scale-95 select-none"
@@ -1001,39 +947,6 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
                 <span>{t.search}</span>
               </button>
             </form>
-
-            {/* Error visual directamente debajo de la barra de búsqueda */}
-            {searchError && !isSearching && (
-              <div
-                id="music-search-error-banner"
-                className="p-3 text-xs text-red-200 bg-red-950/70 rounded-xl border border-red-500/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-md animate-fadeIn"
-              >
-                <div className="flex items-center gap-2 flex-1 text-left">
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  <p className="font-medium text-red-200">{searchError}</p>
-                </div>
-                <div className="flex items-center gap-2 justify-end flex-wrap flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleSearchYouTube()}
-                    className="px-3 py-1.5 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px] border border-red-500/40 active:scale-95 transition-all"
-                  >
-                    {lang === 'es' ? 'Reintentar' : 'Retry'}
-                  </button>
-                  {searchQuery && (
-                    <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-lg bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white text-xs font-bold whitespace-nowrap cursor-pointer min-h-[38px] flex items-center gap-1.5 border border-stone-700"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>{lang === 'es' ? 'Abrir en YouTube' : 'Open in YouTube'}</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* 2. CUADROS PEQUEÑOS DE ARTISTAS Y GÉNEROS POPULARES */}
             <div className="space-y-1.5">

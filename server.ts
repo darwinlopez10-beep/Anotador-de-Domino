@@ -20,45 +20,6 @@ async function fetchYouTubeTracks(query: string): Promise<any[]> {
   let finalResults: any[] = [];
   const seenVideoIds = new Set<string>();
 
-  // Layer 0: Official YouTube Data API v3 if API key is provided
-  const youtubeApiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY;
-  if (youtubeApiKey) {
-    try {
-      const ytApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=25&q=${encodeURIComponent(cleanQuery)}&key=${youtubeApiKey}`;
-      const ytRes = await fetch(ytApiUrl, { signal: AbortSignal.timeout(6000) });
-      if (ytRes.ok) {
-        const ytData = await ytRes.json();
-        if (Array.isArray(ytData.items) && ytData.items.length > 0) {
-          for (const item of ytData.items) {
-            const vid = item.id?.videoId;
-            if (vid && !seenVideoIds.has(vid)) {
-              seenVideoIds.add(vid);
-              finalResults.push({
-                id: `yt_${vid}`,
-                videoId: vid,
-                title: item.snippet?.title || cleanQuery,
-                artist: item.snippet?.channelTitle || 'YouTube',
-                sourceType: 'youtube',
-                url: `https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1`,
-                artworkUrl:
-                  item.snippet?.thumbnails?.high?.url ||
-                  item.snippet?.thumbnails?.medium?.url ||
-                  `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
-                durationText: '',
-              });
-            }
-          }
-          if (finalResults.length > 0) {
-            searchCache.set(cacheKey, { time: Date.now(), results: finalResults });
-            return finalResults;
-          }
-        }
-      }
-    } catch {
-      // Continue to next layers
-    }
-  }
-
   const walkInnertube = (o: any) => {
     if (!o || typeof o !== 'object') return;
     if (o.videoId && typeof o.videoId === 'string' && o.videoId.length === 11) {
