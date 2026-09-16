@@ -45,6 +45,8 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
   const t = TRANSLATIONS[lang];
   const [activeTab, setActiveTab] = useState<'all' | 'teams' | 'individual'>('all');
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+  const [confirmClearType, setConfirmClearType] = useState<'all' | 'teams' | 'individual' | null>(null);
+  const [confirmDeleteMatchId, setConfirmDeleteMatchId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -149,7 +151,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {canSaveCurrentGame && onSaveCurrentGame && (
               <button
                 type="button"
@@ -161,6 +163,20 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                 <span>{lang === 'es' ? 'Archivar actual' : 'Archive current'}</span>
               </button>
             )}
+
+            {matches.length > 0 && (
+              <button
+                type="button"
+                id="btn-header-clear-history"
+                onClick={() => setConfirmClearType('all')}
+                title={lang === 'es' ? 'Borrar todo el historial' : 'Clear all match history'}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === 'es' ? 'Borrar todo' : 'Clear all'}</span>
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
@@ -397,16 +413,9 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                           </span>
                           <button
                             type="button"
-                            onClick={() => {
-                              const confirmMsg = lang === 'es'
-                                ? '¿Deseas eliminar esta partida del historial?'
-                                : 'Do you want to delete this match from history?';
-                              if (window.confirm(confirmMsg)) {
-                                onDeleteMatch(match.id);
-                              }
-                            }}
+                            onClick={() => setConfirmDeleteMatchId(match.id)}
                             title={lang === 'es' ? 'Eliminar esta partida' : 'Delete this match'}
-                            className="p-1 rounded text-stone-500 hover:text-red-400 hover:bg-stone-800 transition-colors ml-1 cursor-pointer"
+                            className="p-1.5 rounded-lg text-stone-500 hover:text-red-400 hover:bg-stone-800 transition-colors ml-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -569,9 +578,9 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
         </div>
 
         {/* Footer actions */}
-        {filteredMatches.length > 0 && (
-          <div className="px-5 py-3 border-t border-stone-800 bg-stone-850 flex items-center justify-between text-xs">
-            <span className="text-stone-400">
+        {matches.length > 0 && (
+          <div className="px-5 py-3 border-t border-stone-800 bg-stone-850 flex items-center justify-between text-xs gap-2">
+            <span className="text-stone-400 truncate">
               {lang === 'es'
                 ? `Mostrando ${filteredMatches.length} de ${matches.length} partidas`
                 : `Showing ${filteredMatches.length} of ${matches.length} matches`}
@@ -579,25 +588,9 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
 
             <button
               type="button"
-              onClick={() => {
-                const confirmMsg =
-                  lang === 'es'
-                    ? activeTab === 'all'
-                      ? '¿Deseas borrar TODO el historial de partidas guardadas?'
-                      : activeTab === 'teams'
-                      ? '¿Deseas borrar solo el historial de partidas por Parejas?'
-                      : '¿Deseas borrar solo el historial de partidas Individuales?'
-                    : activeTab === 'all'
-                    ? 'Do you want to delete ALL saved match history?'
-                    : activeTab === 'teams'
-                    ? 'Do you want to delete only Teams match history?'
-                    : 'Do you want to delete only Individual match history?';
-
-                if (window.confirm(confirmMsg)) {
-                  onClearHistory(activeTab === 'all' ? undefined : activeTab);
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-stone-400 hover:text-red-400 hover:bg-red-500/10 font-medium transition-colors cursor-pointer"
+              id="btn-footer-clear-history"
+              onClick={() => setConfirmClearType(activeTab === 'all' ? 'all' : activeTab)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 font-bold transition-all active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>
@@ -617,6 +610,140 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal: Clear History */}
+      {confirmClearType && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirmClearType(null);
+          }}
+        >
+          <div
+            className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 flex-shrink-0 mt-0.5">
+                <Trash2 className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-stone-100">
+                  {lang === 'es'
+                    ? confirmClearType === 'all'
+                      ? '¿Borrar todo el historial?'
+                      : confirmClearType === 'teams'
+                      ? '¿Borrar historial de Parejas?'
+                      : '¿Borrar historial Individual?'
+                    : confirmClearType === 'all'
+                    ? 'Delete all match history?'
+                    : confirmClearType === 'teams'
+                    ? 'Delete Teams match history?'
+                    : 'Delete Individual match history?'}
+                </h3>
+                <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                  {lang === 'es'
+                    ? confirmClearType === 'all'
+                      ? 'Esta acción eliminará todas las partidas guardadas en la copa de manera permanente.'
+                      : 'Esta acción eliminará las partidas de esta categoría guardadas en la copa permanentemente.'
+                    : 'This action will permanently delete the saved match records from the trophy history.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearType(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs border border-stone-700 transition-all cursor-pointer"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-clear-history-action"
+                onClick={() => {
+                  onClearHistory(confirmClearType === 'all' ? undefined : confirmClearType);
+                  setConfirmClearType(null);
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-black text-xs transition-all shadow-lg shadow-red-950/50 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>
+                  {lang === 'es'
+                    ? confirmClearType === 'all'
+                      ? 'Sí, borrar todo'
+                      : 'Sí, borrar'
+                    : confirmClearType === 'all'
+                    ? 'Yes, delete all'
+                    : 'Yes, delete'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Delete Single Match */}
+      {confirmDeleteMatchId && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirmDeleteMatchId(null);
+          }}
+        >
+          <div
+            className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 flex-shrink-0 mt-0.5">
+                <Trash2 className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-stone-100">
+                  {lang === 'es' ? '¿Eliminar partida?' : 'Delete match?'}
+                </h3>
+                <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                  {lang === 'es'
+                    ? '¿Seguro que deseas eliminar esta partida del historial?'
+                    : 'Are you sure you want to remove this match from history?'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteMatchId(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs border border-stone-700 transition-all cursor-pointer"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-delete-single-match"
+                onClick={() => {
+                  if (confirmDeleteMatchId) {
+                    onDeleteMatch(confirmDeleteMatchId);
+                  }
+                  setConfirmDeleteMatchId(null);
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-black text-xs transition-all shadow-lg shadow-red-950/50 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === 'es' ? 'Eliminar' : 'Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

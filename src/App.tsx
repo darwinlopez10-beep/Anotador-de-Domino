@@ -681,17 +681,33 @@ export default function App() {
   };
 
   const handleDeletePastMatch = (matchId: string) => {
+    playUndoSound(settings.soundEnabled);
+    triggerVibration(settings.vibrationEnabled, 30);
     deletePastMatch(matchId);
     setPastMatches((prev) => prev.filter((m) => m.id !== matchId));
+    setToastMessage(
+      lang === 'es' ? 'Partida eliminada del historial' : 'Match deleted from history'
+    );
   };
 
   const handleClearMatchHistory = (mode?: GameMode) => {
+    playUndoSound(settings.soundEnabled);
+    triggerVibration(settings.vibrationEnabled, [30, 30]);
     clearMatchHistory(mode);
     if (!mode) {
       setPastMatches([]);
     } else {
       setPastMatches((prev) => prev.filter((m) => m.gameMode !== mode));
     }
+    setToastMessage(
+      lang === 'es'
+        ? mode
+          ? 'Historial de la categoría borrado'
+          : 'Historial de la copa borrado completamente'
+        : mode
+        ? 'Category history cleared'
+        : 'All trophy history cleared completely'
+    );
   };
 
   // Music Handlers

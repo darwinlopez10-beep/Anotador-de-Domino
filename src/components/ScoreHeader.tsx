@@ -3,11 +3,9 @@ import {
   RotateCcw,
   Settings,
   Calculator,
-  Timer,
   Trophy,
   Volume2,
   VolumeX,
-  Music,
   Plus,
 } from 'lucide-react';
 import { DominoTileIcon } from './DominoTileIcon';
@@ -23,9 +21,9 @@ interface ScoreHeaderProps {
   onToggleSound: () => void;
   onOpenSettings: () => void;
   onOpenTrancaCalc: () => void;
-  onOpenTimer: () => void;
+  onOpenTimer?: () => void;
   onOpenHistory: () => void;
-  onOpenMusic: () => void;
+  onOpenMusic?: () => void;
   onOpenAddRound?: () => void;
   onNewGame: () => void;
   roundsCount: number;
@@ -35,14 +33,14 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
   targetScore,
   gameMode,
   soundEnabled,
-  isMusicPlaying,
+  isMusicPlaying: _isMusicPlaying,
   lang,
   onToggleSound,
   onOpenSettings,
   onOpenTrancaCalc,
-  onOpenTimer,
+  onOpenTimer: _onOpenTimer,
   onOpenHistory,
-  onOpenMusic,
+  onOpenMusic: _onOpenMusic,
   onOpenAddRound,
   onNewGame,
   roundsCount,
@@ -92,30 +90,6 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
             <span className="hidden lg:inline">{t.trancaCalculator}</span>
           </button>
 
-          {/* Turn Timer */}
-          <button
-            id="btn-open-timer"
-            onClick={onOpenTimer}
-            title={t.timerTitle}
-            className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
-          >
-            <Timer className="w-4 h-4 text-emerald-400" />
-          </button>
-
-          {/* Music Player */}
-          <button
-            id="btn-open-music"
-            onClick={onOpenMusic}
-            title={t.musicTitle}
-            className={`flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-medium transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center ${
-              isMusicPlaying
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm shadow-amber-950/40'
-                : 'bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border-stone-700/70'
-            }`}
-          >
-            <Music className={`w-4 h-4 text-amber-400 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-            <span className="hidden lg:inline">{t.music}</span>
-          </button>
 
           {/* Match History */}
           <button
