@@ -126,7 +126,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       trancaRule,
       capicuaBonus,
       soundEnabled,
-      vibrationEnabled,
+      vibrationEnabled: soundEnabled ? vibrationEnabled : false,
       timerDurationSeconds,
       languageSetting,
     };
@@ -453,19 +453,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <input
                 type="checkbox"
                 checked={soundEnabled}
-                onChange={(e) => setSoundEnabled(e.target.checked)}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setSoundEnabled(val);
+                  if (!val) {
+                    setVibrationEnabled(false);
+                  }
+                }}
                 className="w-4 h-4 accent-amber-500 cursor-pointer"
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-300 font-medium">
+              <span className={`text-xs font-medium ${soundEnabled ? 'text-stone-300' : 'text-stone-500'}`}>
                 {t.hapticVibration}
               </span>
               <input
                 type="checkbox"
-                checked={vibrationEnabled}
+                disabled={!soundEnabled}
+                checked={soundEnabled && vibrationEnabled}
                 onChange={(e) => setVibrationEnabled(e.target.checked)}
-                className="w-4 h-4 accent-amber-500 cursor-pointer"
+                className="w-4 h-4 accent-amber-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               />
             </div>
           </div>

@@ -106,6 +106,7 @@ function createInitialPlayers(settings: GameSettings): PlayerScore[] {
 
 export default function App() {
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
+  const isVibrationActive = Boolean(settings.soundEnabled && settings.vibrationEnabled);
 
   // Language state initialized with automatic phone/device language detection
   const [lang, setLang] = useState<AppLanguage>(() => {
@@ -357,7 +358,7 @@ export default function App() {
     setPlayers(updatedPlayers);
 
     playScoreAddedSound(settings.soundEnabled);
-    triggerVibration(settings.vibrationEnabled, [40, 20, 60]);
+    triggerVibration(isVibrationActive, [40, 20, 60]);
 
     // Check if winner reached or surpassed target score
     const winningCandidate = updatedPlayers.find((p) => p.score >= settings.targetScore);
@@ -414,7 +415,7 @@ export default function App() {
   const handleUndoLastRound = () => {
     if (rounds.length === 0) return;
     playUndoSound(settings.soundEnabled);
-    triggerVibration(settings.vibrationEnabled, 30);
+    triggerVibration(isVibrationActive, 30);
 
     const remainingRounds = rounds.slice(0, -1);
     const updatedPlayers = calculatePlayerStatsFromRounds(players, remainingRounds);
@@ -433,7 +434,7 @@ export default function App() {
   // Delete a specific round by id
   const handleDeleteRound = (roundId: string) => {
     playUndoSound(settings.soundEnabled);
-    triggerVibration(settings.vibrationEnabled, 30);
+    triggerVibration(isVibrationActive, 30);
 
     const filtered = rounds.filter((r) => r.id !== roundId);
     // Re-index round numbers
@@ -475,7 +476,7 @@ export default function App() {
   // Confirm Reset: borra tanto los nombres de los jugadores como los puntos a cero
   const confirmResetGame = () => {
     playTileClickSound(settings.soundEnabled);
-    triggerVibration(settings.vibrationEnabled, 40);
+    triggerVibration(isVibrationActive, 40);
     clearActiveGame();
     setRounds([]);
     setMatchOver(false);
@@ -620,10 +621,16 @@ export default function App() {
 
   // Toggle sound
   const handleToggleSound = () => {
-    setSettings((prev) => ({
-      ...prev,
-      soundEnabled: !prev.soundEnabled,
-    }));
+    setSettings((prev) => {
+      const nextSound = !prev.soundEnabled;
+      const updated = {
+        ...prev,
+        soundEnabled: nextSound,
+        vibrationEnabled: nextSound ? prev.vibrationEnabled : false,
+      };
+      saveSettings(updated);
+      return updated;
+    });
   };
 
   // History Handlers
@@ -682,7 +689,7 @@ export default function App() {
 
   const handleDeletePastMatch = (matchId: string) => {
     playUndoSound(settings.soundEnabled);
-    triggerVibration(settings.vibrationEnabled, 30);
+    triggerVibration(isVibrationActive, 30);
     deletePastMatch(matchId);
     setPastMatches((prev) => prev.filter((m) => m.id !== matchId));
     setToastMessage(
@@ -692,7 +699,7 @@ export default function App() {
 
   const handleClearMatchHistory = (mode?: GameMode) => {
     playUndoSound(settings.soundEnabled);
-    triggerVibration(settings.vibrationEnabled, [30, 30]);
+    triggerVibration(isVibrationActive, [30, 30]);
     clearMatchHistory(mode);
     if (!mode) {
       setPastMatches([]);
@@ -1049,7 +1056,7 @@ export default function App() {
         roundNumber={rounds.length + 1}
         capicuaBonus={settings.capicuaBonus}
         soundEnabled={settings.soundEnabled}
-        vibrationEnabled={settings.vibrationEnabled}
+        vibrationEnabled={isVibrationActive}
         lang={lang}
         onSaveRound={handleSaveRound}
         onUpdatePlayerMembers={handleUpdatePlayerMembers}
@@ -1062,7 +1069,7 @@ export default function App() {
         players={players}
         trancaRule={settings.trancaRule}
         soundEnabled={settings.soundEnabled}
-        vibrationEnabled={settings.vibrationEnabled}
+        vibrationEnabled={isVibrationActive}
         onApplyTrancaPoints={handleApplyTrancaPoints}
         lang={lang}
       />
@@ -1072,7 +1079,7 @@ export default function App() {
         onClose={() => setIsTimerOpen(false)}
         defaultSeconds={settings.timerDurationSeconds}
         soundEnabled={settings.soundEnabled}
-        vibrationEnabled={settings.vibrationEnabled}
+        vibrationEnabled={isVibrationActive}
         lang={lang}
       />
 
