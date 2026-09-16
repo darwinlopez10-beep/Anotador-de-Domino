@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Delete, Sparkles, Plus, Users, User, Edit3, Check } from 'lucide-react';
+import { X, Delete, Plus } from 'lucide-react';
 import { PlayerScore, WinReason } from '../types';
 import { playTileClickSound, triggerVibration } from '../utils/sound';
 import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
@@ -31,7 +31,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
   players,
   defaultWinnerId,
   roundNumber,
-  capicuaBonus,
+  capicuaBonus: _capicuaBonus,
   soundEnabled,
   vibrationEnabled,
   lang,
@@ -47,12 +47,6 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
   const [pointsInput, setPointsInput] = useState<string>('');
   const [reason, setReason] = useState<WinReason>('normal');
   const [notes, setNotes] = useState<string>('');
-  const [includeBonus, setIncludeBonus] = useState<boolean>(true);
-
-  // Quick edit names panel
-  const [isEditingNames, setIsEditingNames] = useState<boolean>(false);
-  const [editPlayer1Name, setEditPlayer1Name] = useState<string>('');
-  const [editPlayer2Name, setEditPlayer2Name] = useState<string>('');
 
   // Sync state when modal opens
   useEffect(() => {
@@ -65,24 +59,12 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
     setPointsInput('');
     setReason('normal');
     setNotes('');
-    setIsEditingNames(false);
-
-    // Prepare quick edit fields
-    if (players.length >= 2) {
-      setEditPlayer1Name(players[0]?.name || 'Jugador 1');
-      setEditPlayer2Name(players[1]?.name || 'Jugador 2');
-    }
   }, [isOpen, defaultWinnerId, players]);
 
   if (!isOpen) return null;
 
   const currentPoints = parseInt(pointsInput || '0', 10);
-  const totalPointsToSave =
-    reason === 'capicua' && includeBonus
-      ? currentPoints + capicuaBonus
-      : currentPoints;
-
-  const isTwoTeams = players.length === 2;
+  const totalPointsToSave = currentPoints;
 
   const handleKeypadPress = (val: string) => {
     playTileClickSound(soundEnabled);
@@ -119,28 +101,6 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
     setSelectedPlayerName(player?.name || '');
   };
 
-  const handleSaveNames = () => {
-    playTileClickSound(soundEnabled);
-    if (players.length >= 2) {
-      const p1 = editPlayer1Name.trim() || 'Jugador 1';
-      const p2 = editPlayer2Name.trim() || 'Jugador 2';
-      if (onUpdatePlayerName) {
-        onUpdatePlayerName(players[0].id, p1);
-        onUpdatePlayerName(players[1].id, p2);
-      }
-      if (onUpdatePlayerMembers) {
-        onUpdatePlayerMembers(players[0].id, [p1]);
-        onUpdatePlayerMembers(players[1].id, [p2]);
-      }
-      if (selectedWinnerId === players[0].id) {
-        setSelectedPlayerName(p1);
-      } else if (selectedWinnerId === players[1].id) {
-        setSelectedPlayerName(p2);
-      }
-    }
-    setIsEditingNames(false);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (totalPointsToSave <= 0) return;
@@ -165,13 +125,44 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-800 bg-stone-850">
           <div>
-            <h3 className="text-lg font-bold text-stone-100 font-display flex items-center gap-2">
-              <span>{t.recordHand} #{roundNumber}</span>
-            </h3>
-            <p className="text-xs text-stone-400">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-lg font-bold text-stone-100 font-display">
+                {t.recordHand} #{roundNumber}
+              </h3>
+              {selectedPlayerObj && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (players.length === 2) {
+                      const other = players.find((p) => p.id !== selectedWinnerId);
+                      if (other) handleSelectWinner(other.id);
+                    }
+                  }}
+                  title={players.length === 2 ? (lang === 'es' ? 'Toca para cambiar de jugador' : 'Tap to switch player') : undefined}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black border transition-all active:scale-95 cursor-pointer shadow-sm"
+                  style={{
+                    backgroundColor: `${selectedPlayerObj.color}25`,
+                    borderColor: `${selectedPlayerObj.color}60`,
+                    color: selectedPlayerObj.color,
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: selectedPlayerObj.color }}
+                  />
+                  <span>{formatPlayerDisplayName(selectedPlayerObj.name, lang)}</span>
+                  {players.length === 2 && (
+                    <span className="text-[10px] text-stone-400 font-normal underline ml-0.5">
+                      {lang === 'es' ? 'cambiar' : 'change'}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-stone-400 mt-0.5">
               {lang === 'es'
-                ? 'Registra los puntos y el jugador que salió en la mano'
-                : 'Record points and the player who won the hand'}
+                ? `Ingresa los puntos ganados para ${formatPlayerDisplayName(selectedPlayerObj?.name || '', lang)}`
+                : `Enter points scored for ${formatPlayerDisplayName(selectedPlayerObj?.name || '', lang)}`}
             </p>
           </div>
           <button
@@ -183,219 +174,8 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-          {/* Winner Selector & Players section */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-stone-400">
-                {lang === 'es' ? '¿Quién ganó la mano?' : 'Who won the hand?'}
-              </label>
-              {isTwoTeams && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !isEditingNames;
-                    setIsEditingNames(next);
-                    if (next) {
-                      if (/^(jugador|player)\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
-                      if (/^(jugador|player)\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
-                    }
-                  }}
-                  className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium transition-colors cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>
-                    {isEditingNames
-                      ? (lang === 'es' ? 'Cerrar edición' : 'Close editing')
-                      : (lang === 'es' ? 'Agregar / Editar nombres' : 'Add / Edit names')}
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* Inline Names Editing Panel */}
-            {isEditingNames && isTwoTeams && (
-              <div className="mb-3 p-3 sm:p-3.5 bg-stone-950 border border-amber-500/40 rounded-2xl space-y-3 animate-in fade-in duration-150 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    <Users className="w-4 h-4" />
-                    {lang === 'es' ? 'Editar Nombres de Jugadores' : 'Edit Player Names'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleSaveNames}
-                    className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer active:scale-95 transition-all"
-                  >
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>{lang === 'es' ? 'Guardar nombres' : 'Save names'}</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                  {/* Jugador 1 */}
-                  <div className="p-2.5 sm:p-3 bg-stone-900 rounded-xl border border-stone-800 space-y-1.5">
-                    <label className="text-xs font-bold text-emerald-400 block">
-                      {lang === 'es' ? 'Jugador / Pareja 1' : 'Player / Team 1'}
-                    </label>
-                    <input
-                      type="text"
-                      value={editPlayer1Name}
-                      maxLength={35}
-                      onChange={(e) => setEditPlayer1Name(e.target.value)}
-                      onFocus={(e) => {
-                        if (/^(jugador|player)\s*1$/i.test(editPlayer1Name.trim())) setEditPlayer1Name('');
-                        e.target.select();
-                      }}
-                      placeholder={lang === 'es' ? 'Jugador 1' : 'Player 1'}
-                      className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs sm:text-sm text-stone-100 font-bold focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  {/* Jugador 2 */}
-                  <div className="p-2.5 sm:p-3 bg-stone-900 rounded-xl border border-stone-800 space-y-1.5">
-                    <label className="text-xs font-bold text-amber-400 block">
-                      {lang === 'es' ? 'Jugador / Pareja 2' : 'Player / Team 2'}
-                    </label>
-                    <input
-                      type="text"
-                      value={editPlayer2Name}
-                      maxLength={35}
-                      onChange={(e) => setEditPlayer2Name(e.target.value)}
-                      onFocus={(e) => {
-                        if (/^(jugador|player)\s*2$/i.test(editPlayer2Name.trim())) setEditPlayer2Name('');
-                        e.target.select();
-                      }}
-                      placeholder={lang === 'es' ? 'Jugador 2' : 'Player 2'}
-                      className="w-full bg-stone-950 border border-stone-750 rounded-lg px-2.5 py-2 text-xs sm:text-sm text-stone-100 font-bold focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Winner Selection Cards */}
-            <div className={`grid gap-2 sm:gap-3 ${isTwoTeams ? 'grid-cols-2' : players.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
-              {players.map((player) => {
-                const isSelected = selectedWinnerId === player.id;
-                const displayName = formatPlayerDisplayName(player.name, lang);
-                return (
-                  <button
-                    key={player.id}
-                    type="button"
-                    onClick={() => handleSelectWinner(player.id)}
-                    className={`p-3 rounded-2xl border transition-all text-left flex flex-col justify-between min-h-[70px] cursor-pointer ${
-                      isSelected
-                        ? 'border-amber-400 shadow-md ring-2 ring-amber-400/40 font-bold'
-                        : 'bg-stone-850/80 border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-850'
-                    }`}
-                    style={{
-                      backgroundColor: isSelected ? player.color : undefined,
-                      color: isSelected ? '#0c0a09' : undefined,
-                    }}
-                  >
-                    <div className="flex items-start justify-between w-full gap-1.5">
-                      <div className="flex items-start gap-2 min-w-0 flex-1">
-                        <span
-                          className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm mt-1"
-                          style={{
-                            backgroundColor: isSelected ? '#1c1917' : player.color,
-                          }}
-                        />
-                        <span className="text-xs sm:text-base font-black break-words line-clamp-2 leading-tight">
-                          {displayName}
-                        </span>
-                      </div>
-                      {isSelected && (
-                        <Check className="w-4 h-4 flex-shrink-0 stroke-[3] mt-0.5" />
-                      )}
-                    </div>
-                    {isSelected && (
-                      <span className="text-[10px] font-black uppercase tracking-wider mt-1.5 bg-stone-950/25 px-2 py-0.5 rounded-md self-start">
-                        {t.wonHand}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected winner summary badge */}
-            <div className="mt-2.5 px-3 py-1.5 bg-stone-950/70 border border-stone-800/80 rounded-xl flex items-center justify-between text-xs">
-              <span className="text-stone-400">{lang === 'es' ? 'Mano a favor de:' : 'Hand awarded to:'}</span>
-              <div className="flex items-center gap-1.5 font-bold">
-                <span style={{ color: selectedPlayerObj?.color || '#f59e0b' }}>
-                  {formatPlayerDisplayName(selectedPlayerObj?.name || '', lang)}
-                </span>
-                {selectedPlayerName && selectedPlayerName !== selectedPlayerObj?.name && (
-                  <>
-                    <span className="text-stone-600">•</span>
-                    <span className="text-amber-400">
-                      {lang === 'es' ? `Salió: ${selectedPlayerName}` : `Played: ${selectedPlayerName}`}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Win Type Selector */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">
-              {lang === 'es' ? 'Tipo de victoria' : 'Win Type'}
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              {[
-                { id: 'normal', label: t.reasonDomino },
-                { id: 'tranca', label: t.reasonTranca },
-                { id: 'capicua', label: t.reasonCapicua },
-                { id: 'penalizacion', label: t.reasonPenalization },
-              ].map((item) => {
-                const active = reason === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setReason(item.id as WinReason);
-                      playTileClickSound(soundEnabled);
-                    }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
-                      active
-                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
-                        : 'bg-stone-850 border-stone-800 text-stone-400 hover:text-stone-200'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Capicúa Bonus Callout */}
-            {reason === 'capicua' && capicuaBonus > 0 && (
-              <div className="mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span className="text-xs text-amber-300">
-                    {lang === 'es' ? `Bonificación de Capicúa: +${capicuaBonus} pts` : `Capicúa Bonus: +${capicuaBonus} pts`}
-                  </span>
-                </div>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeBonus}
-                    onChange={(e) => setIncludeBonus(e.target.checked)}
-                    className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-                  />
-                  <span className="text-xs text-stone-300 font-medium">
-                    {lang === 'es' ? 'Aplicar' : 'Apply'}
-                  </span>
-                </label>
-              </div>
-            )}
-          </div>
-
           {/* Points Display */}
-          <div className="bg-stone-950 p-3.5 rounded-2xl border border-stone-800 text-center">
+          <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 text-center shadow-inner">
             <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1">
               {lang === 'es' ? 'Puntos a anotar' : 'Points to record'}
             </div>
@@ -405,11 +185,6 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
               </span>
               <span className="text-base text-stone-400 font-semibold">{t.pts}</span>
             </div>
-            {reason === 'capicua' && includeBonus && (
-              <p className="text-xs text-stone-400 mt-1">
-                ({currentPoints} {lang === 'es' ? 'fichas' : 'tiles'} + {capicuaBonus} {lang === 'es' ? 'bono capicúa' : 'capicúa bonus'})
-              </p>
-            )}
           </div>
 
           {/* Quick Preset Buttons */}

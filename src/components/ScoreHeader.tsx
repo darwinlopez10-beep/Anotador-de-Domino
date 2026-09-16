@@ -6,7 +6,6 @@ import {
   Trophy,
   Volume2,
   VolumeX,
-  Plus,
 } from 'lucide-react';
 import { DominoTileIcon } from './DominoTileIcon';
 import { GameMode } from '../types';
@@ -41,7 +40,7 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
   onOpenTimer: _onOpenTimer,
   onOpenHistory,
   onOpenMusic: _onOpenMusic,
-  onOpenAddRound,
+  onOpenAddRound: _onOpenAddRound,
   onNewGame,
   roundsCount,
 }) => {
@@ -125,18 +124,6 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Add Hand / Score Button */}
-          {onOpenAddRound && (
-            <button
-              id="btn-header-add-round"
-              onClick={onOpenAddRound}
-              title={t.addScore}
-              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-stone-950 font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 flex-shrink-0 cursor-pointer select-none"
-            >
-              <Plus className="w-4 h-4 stroke-[3] flex-shrink-0" />
-              <span className="font-extrabold text-xs sm:text-sm">{t.addScore}</span>
-            </button>
-          )}
 
           {/* Reset / New Game Button */}
           <button

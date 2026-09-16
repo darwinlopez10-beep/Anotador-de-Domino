@@ -92,8 +92,8 @@ export const RoundHistory: React.FC<RoundHistoryProps> = ({
           <p className="text-sm font-medium">{t.noRoundsYet}</p>
           <p className="text-xs text-stone-600 mt-1">
             {lang === 'es'
-              ? 'Usa el botón "+ Anotar Mano" para registrar la primera jugada.'
-              : 'Use the "+ Record Hand" button to log the first round.'}
+              ? 'Toca el cuadro del jugador para anotar los puntos de la mano.'
+              : 'Tap a player score card to record hand points.'}
           </p>
         </div>
       ) : isTwoTeams ? (

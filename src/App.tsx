@@ -59,7 +59,7 @@ import {
   playTileClickSound,
   triggerVibration,
 } from './utils/sound';
-import { Plus, Calculator, Timer, Trophy, Music, Check, RotateCcw } from 'lucide-react';
+import { Calculator, Timer, Trophy, Music, Check, RotateCcw } from 'lucide-react';
 
 const TEAM_COLORS = ['#10b981', '#f59e0b', '#38bdf8', '#ec4899'];
 
@@ -1001,18 +1001,6 @@ export default function App() {
 
       {/* Bottom Sticky Mobile Navigation (hidden in landscape to keep both score cards full view) */}
       <nav className="sm:hidden landscape:hidden fixed bottom-0 left-0 right-0 z-30 bg-stone-900/95 backdrop-blur-md border-t border-stone-800 px-3 py-2 flex items-center justify-around">
-        <button
-          onClick={() => {
-            setActiveAddRoundPlayerId(undefined);
-            setIsAddRoundOpen(true);
-          }}
-          className="flex flex-col items-center gap-1 text-amber-400 cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center shadow-md">
-            <Plus className="w-5 h-5 stroke-[3]" />
-          </div>
-          <span className="text-[10px] font-bold">{t.addScore}</span>
-        </button>
 
         <button
           onClick={() => setIsTrancaCalcOpen(true)}
