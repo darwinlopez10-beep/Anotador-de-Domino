@@ -70,122 +70,119 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             <div
               key={player.id}
               id={`player-card-${player.id}`}
-              className={`relative overflow-visible rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
+              className={`relative overflow-hidden rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
                 isLeader
-                  ? 'bg-stone-850/95 border-amber-500/50 shadow-xl shadow-amber-950/25 ring-1 ring-amber-500/40'
-                  : 'bg-stone-850/90 border-stone-800 shadow-lg'
+                  ? 'bg-stone-900 border-amber-500/60 shadow-xl shadow-amber-950/25 ring-1 ring-amber-500/40'
+                  : 'bg-stone-900 border-stone-800 shadow-lg'
               }`}
             >
               {/* Top team color banner line */}
               <div
-                className="h-2 sm:h-2.5 w-full rounded-t-2xl flex-shrink-0"
+                className="h-2 sm:h-2.5 w-full flex-shrink-0"
                 style={{ backgroundColor: player.color }}
               />
 
-              <div className="p-3 sm:p-4.5 landscape:p-2.5 flex flex-col justify-between flex-1">
-                {/* Player Name Box: Generous, clear container with easy readability */}
-                <div className="mb-2">
-                  {editingPlayerId === player.id ? (
-                    <div className="w-full p-1.5 sm:p-2 bg-stone-900 rounded-xl border-2 border-amber-500/90 shadow-md">
-                      {(() => {
-                        const defaultFallback = player.id === 'team_1'
-                          ? (lang === 'es' ? 'Jugador 1' : 'Player 1')
-                          : player.id === 'team_2'
-                          ? (lang === 'es' ? 'Jugador 2' : 'Player 2')
-                          : displayName;
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={editingName}
-                              placeholder={defaultFallback}
-                              maxLength={35}
-                              autoFocus
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveEdit(player.id, defaultFallback);
-                                if (e.key === 'Escape') setEditingPlayerId(null);
-                              }}
-                              className="bg-transparent text-base sm:text-xl md:text-2xl text-stone-100 placeholder:text-stone-500 focus:outline-none w-full font-black min-w-0"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveEdit(player.id, defaultFallback)}
-                              className="p-1.5 sm:p-2 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0 cursor-pointer shadow active:scale-95"
-                              title={lang === 'es' ? 'Guardar nombre' : 'Save name'}
-                            >
-                              <Check className="w-4 h-4 stroke-[3]" />
-                            </button>
-                          </div>
-                        );
-                      })()}
+              {/* Unified Header: Player Name */}
+              <div className="px-3 py-2 sm:px-4 sm:py-3 bg-stone-950/40 border-b border-stone-800/80">
+                {editingPlayerId === player.id ? (
+                  <div className="w-full">
+                    {(() => {
+                      const defaultFallback = player.id === 'team_1'
+                        ? (lang === 'es' ? 'Jugador 1' : 'Player 1')
+                        : player.id === 'team_2'
+                        ? (lang === 'es' ? 'Jugador 2' : 'Player 2')
+                        : displayName;
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={editingName}
+                            placeholder={defaultFallback}
+                            maxLength={35}
+                            autoFocus
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEdit(player.id, defaultFallback);
+                              if (e.key === 'Escape') setEditingPlayerId(null);
+                            }}
+                            className="bg-stone-850 border border-amber-500/80 rounded-lg px-2 py-1 text-base sm:text-xl font-black text-stone-100 placeholder:text-stone-500 focus:outline-none w-full min-w-0 shadow-inner"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(player.id, defaultFallback)}
+                            className="p-1.5 sm:p-2 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0 cursor-pointer shadow active:scale-95"
+                            title={lang === 'es' ? 'Guardar nombre' : 'Save name'}
+                          >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => startEdit(player)}
+                    title={lang === 'es' ? 'Toca para editar nombre' : 'Tap to edit name'}
+                    className="w-full flex items-center justify-between gap-2 group cursor-pointer"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base sm:text-xl md:text-2xl font-black text-stone-50 break-words line-clamp-2 leading-tight tracking-tight">
+                        {displayName}
+                      </h2>
                     </div>
+                    <div className="p-1 text-stone-400 group-hover:text-amber-400 transition-colors flex-shrink-0">
+                      <Edit2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Unified Body: Score Digits and Hands Stats */}
+              <div
+                id={`score-card-box-${player.id}`}
+                onClick={() => onAddRoundForPlayer?.(player.id)}
+                title={lang === 'es' ? `Toca para anotar puntos para ${displayName}` : `Tap to record points for ${displayName}`}
+                className="p-3.5 sm:p-5 landscape:p-2.5 text-center flex flex-col justify-center flex-1 cursor-pointer hover:bg-stone-850/40 transition-colors active:scale-[0.99]"
+              >
+                <div className="flex items-baseline justify-center gap-1.5 sm:gap-2">
+                  <span
+                    id={`score-display-${player.id}`}
+                    className="text-5xl sm:text-6xl md:text-7xl landscape:text-4xl sm:landscape:text-5xl font-black tracking-tight font-display text-amber-300 drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)] select-all leading-none"
+                  >
+                    {player.score}
+                  </span>
+                  <span className="text-xs sm:text-base font-extrabold text-stone-400 select-none">
+                    / {targetScore}
+                  </span>
+                </div>
+
+                {/* Status / Points to win */}
+                <div className="mt-2 sm:mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:text-sm leading-tight">
+                  {pointsRemaining === 0 ? (
+                    <span className="font-extrabold text-emerald-400">
+                      {lang === 'es' ? '¡Meta lograda!' : 'Target reached!'}
+                    </span>
+                  ) : isAtLeyDe ? (
+                    <span className="font-extrabold text-amber-400 animate-pulse">
+                      {lang === 'es' ? `¡A ley de ${pointsRemaining}!` : `${pointsRemaining} ${t.pointsToWin}!`}
+                    </span>
                   ) : (
-                    <div
-                      onClick={() => startEdit(player)}
-                      title={lang === 'es' ? 'Toca para editar nombre' : 'Tap to edit name'}
-                      className="w-full min-h-[46px] sm:min-h-[54px] px-3 py-1.5 sm:px-4 sm:py-2.5 bg-stone-900/80 hover:bg-stone-900 border border-stone-750/80 rounded-xl flex items-center justify-between gap-2 group cursor-pointer transition-colors shadow-inner"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h2 className="text-base sm:text-xl md:text-2xl font-black text-stone-50 break-words line-clamp-2 leading-tight tracking-tight">
-                          {displayName}
-                        </h2>
-                      </div>
-                      <div className="p-1 text-stone-400 group-hover:text-amber-400 transition-colors flex-shrink-0">
-                        <Edit2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                      </div>
-                    </div>
+                    <span className="text-stone-300 font-semibold">
+                      {lang === 'es' ? `Faltan ${pointsRemaining}` : `${pointsRemaining} ${t.pointsToWin}`}
+                    </span>
                   )}
+                  <span className="text-stone-600">•</span>
+                  <span className="text-stone-300 font-medium flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-amber-400/80 flex-shrink-0" />
+                    <span>
+                      {player.handsWon}{' '}
+                      {player.handsWon === 1
+                        ? (lang === 'es' ? 'mano' : 'hand')
+                        : (lang === 'es' ? 'manos' : 'hands')}
+                    </span>
+                  </span>
                 </div>
-
-                {/* Main Score Digits Display: Expanded, High Contrast */}
-                <div
-                  id={`score-card-box-${player.id}`}
-                  onClick={() => onAddRoundForPlayer?.(player.id)}
-                  title={lang === 'es' ? `Toca para anotar puntos para ${displayName}` : `Tap to record points for ${displayName}`}
-                  className="my-1 sm:my-2 landscape:my-1 text-center py-2.5 sm:py-4 landscape:py-2 px-2.5 sm:px-4 bg-stone-900/95 hover:bg-stone-900/80 rounded-xl border border-stone-750/90 hover:border-amber-500/40 shadow-inner shadow-black/50 overflow-visible cursor-pointer transition-all active:scale-[0.99]"
-                >
-                  <div className="flex items-baseline justify-center gap-1.5 sm:gap-2">
-                    <span
-                      id={`score-display-${player.id}`}
-                      className="text-5xl sm:text-6xl md:text-7xl landscape:text-4xl sm:landscape:text-5xl font-black tracking-tight font-display text-amber-300 drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)] select-all leading-none"
-                    >
-                      {player.score}
-                    </span>
-                    <span className="text-xs sm:text-base font-extrabold text-stone-400 select-none">
-                      / {targetScore}
-                    </span>
-                  </div>
-
-                  {/* Status / Points to win */}
-                  <div className="mt-1.5 sm:mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:text-sm leading-tight">
-                    {pointsRemaining === 0 ? (
-                      <span className="font-extrabold text-emerald-400">
-                        {lang === 'es' ? '¡Meta lograda!' : 'Target reached!'}
-                      </span>
-                    ) : isAtLeyDe ? (
-                      <span className="font-extrabold text-amber-400 animate-pulse">
-                        {lang === 'es' ? `¡A ley de ${pointsRemaining}!` : `${pointsRemaining} ${t.pointsToWin}!`}
-                      </span>
-                    ) : (
-                      <span className="text-stone-300 font-semibold">
-                        {lang === 'es' ? `Faltan ${pointsRemaining}` : `${pointsRemaining} ${t.pointsToWin}`}
-                      </span>
-                    )}
-                    <span className="text-stone-600">•</span>
-                    <span className="text-stone-300 font-medium flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-amber-400/80 flex-shrink-0" />
-                      <span>
-                        {player.handsWon}{' '}
-                        {player.handsWon === 1
-                          ? (lang === 'es' ? 'mano' : 'hand')
-                          : (lang === 'es' ? 'manos' : 'hands')}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
               </div>
             </div>
           );
