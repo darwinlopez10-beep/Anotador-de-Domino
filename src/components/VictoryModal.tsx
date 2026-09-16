@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Award, RotateCcw, ArrowRight, Clock, Target } from 'lucide-react';
+import { Trophy, Award, RotateCcw, ArrowRight, Clock, Target, X } from 'lucide-react';
 import { PlayerScore, Round } from '../types';
 import { playVictorySound } from '../utils/sound';
 import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
@@ -85,11 +85,25 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-md bg-stone-900 border border-amber-500/40 rounded-3xl shadow-2xl overflow-hidden p-6 text-center relative"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close Button (X) */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-3.5 right-3.5 p-2 rounded-xl text-stone-400 hover:text-stone-100 hover:bg-stone-800 transition-colors z-20 cursor-pointer"
+          title={lang === 'es' ? 'Cerrar ventana' : 'Close window'}
+          aria-label={lang === 'es' ? 'Cerrar ventana' : 'Close window'}
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         {/* Glow accent */}
         <div
           className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full blur-3xl opacity-30 pointer-events-none"
