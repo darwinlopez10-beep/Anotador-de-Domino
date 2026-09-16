@@ -78,15 +78,15 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             >
               {/* Top team color banner line */}
               <div
-                className="h-1.5 sm:h-2 w-full rounded-t-2xl flex-shrink-0"
+                className="h-2 sm:h-2.5 w-full rounded-t-2xl flex-shrink-0"
                 style={{ backgroundColor: player.color }}
               />
 
-              <div className="p-2 sm:p-3.5 landscape:p-2 flex flex-col justify-between flex-1">
-                {/* Player Name Box: Compact, clean container with wrapping support */}
-                <div className="mb-1.5">
+              <div className="p-3 sm:p-4.5 landscape:p-2.5 flex flex-col justify-between flex-1">
+                {/* Player Name Box: Generous, clear container with easy readability */}
+                <div className="mb-2">
                   {editingPlayerId === player.id ? (
-                    <div className="w-full p-1 sm:p-1.5 bg-stone-900 rounded-xl border-2 border-amber-500/90 shadow-md">
+                    <div className="w-full p-1.5 sm:p-2 bg-stone-900 rounded-xl border-2 border-amber-500/90 shadow-md">
                       {(() => {
                         const defaultFallback = player.id === 'team_1'
                           ? (lang === 'es' ? 'Jugador 1' : 'Player 1')
@@ -107,15 +107,15 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                                 if (e.key === 'Enter') saveEdit(player.id, defaultFallback);
                                 if (e.key === 'Escape') setEditingPlayerId(null);
                               }}
-                              className="bg-transparent text-sm sm:text-base md:text-lg text-stone-100 placeholder:text-stone-500 focus:outline-none w-full font-bold min-w-0"
+                              className="bg-transparent text-base sm:text-xl md:text-2xl text-stone-100 placeholder:text-stone-500 focus:outline-none w-full font-black min-w-0"
                             />
                             <button
                               type="button"
                               onClick={() => saveEdit(player.id, defaultFallback)}
-                              className="p-1 sm:p-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0 cursor-pointer shadow active:scale-95"
+                              className="p-1.5 sm:p-2 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0 cursor-pointer shadow active:scale-95"
                               title={lang === 'es' ? 'Guardar nombre' : 'Save name'}
                             >
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <Check className="w-4 h-4 stroke-[3]" />
                             </button>
                           </div>
                         );
@@ -125,41 +125,41 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     <div
                       onClick={() => startEdit(player)}
                       title={lang === 'es' ? 'Toca para editar nombre' : 'Tap to edit name'}
-                      className="w-full min-h-[38px] sm:min-h-[44px] px-2.5 py-1 sm:px-3 sm:py-1.5 bg-stone-900/80 hover:bg-stone-900 border border-stone-750/80 rounded-xl flex items-center justify-between gap-2 group cursor-pointer transition-colors shadow-inner"
+                      className="w-full min-h-[46px] sm:min-h-[54px] px-3 py-1.5 sm:px-4 sm:py-2.5 bg-stone-900/80 hover:bg-stone-900 border border-stone-750/80 rounded-xl flex items-center justify-between gap-2 group cursor-pointer transition-colors shadow-inner"
                     >
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-sm sm:text-lg md:text-xl font-bold text-stone-50 break-words line-clamp-2 leading-tight tracking-tight">
+                        <h2 className="text-base sm:text-xl md:text-2xl font-black text-stone-50 break-words line-clamp-2 leading-tight tracking-tight">
                           {displayName}
                         </h2>
                       </div>
                       <div className="p-1 text-stone-400 group-hover:text-amber-400 transition-colors flex-shrink-0">
-                        <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <Edit2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Main Score Digits Display: Compact, High Contrast, Balanced Padding */}
+                {/* Main Score Digits Display: Expanded, High Contrast */}
                 <div
                   id={`score-card-box-${player.id}`}
                   onClick={() => onAddRoundForPlayer?.(player.id)}
                   title={lang === 'es' ? `Toca para anotar puntos para ${displayName}` : `Tap to record points for ${displayName}`}
-                  className="my-0.5 sm:my-1.5 landscape:my-0.5 text-center py-2 sm:py-3.5 landscape:py-1.5 px-2 sm:px-3 bg-stone-900/95 hover:bg-stone-900/80 rounded-xl border border-stone-750/90 hover:border-amber-500/40 shadow-inner shadow-black/50 overflow-visible cursor-pointer transition-all active:scale-[0.99]"
+                  className="my-1 sm:my-2 landscape:my-1 text-center py-2.5 sm:py-4 landscape:py-2 px-2.5 sm:px-4 bg-stone-900/95 hover:bg-stone-900/80 rounded-xl border border-stone-750/90 hover:border-amber-500/40 shadow-inner shadow-black/50 overflow-visible cursor-pointer transition-all active:scale-[0.99]"
                 >
-                  <div className="flex items-baseline justify-center gap-1 sm:gap-1.5">
+                  <div className="flex items-baseline justify-center gap-1.5 sm:gap-2">
                     <span
                       id={`score-display-${player.id}`}
-                      className="text-4xl sm:text-5xl md:text-6xl landscape:text-3xl sm:landscape:text-4xl font-black tracking-tight font-display text-amber-300 drop-shadow-[0_2px_10px_rgba(245,158,11,0.25)] select-all leading-none"
+                      className="text-5xl sm:text-6xl md:text-7xl landscape:text-4xl sm:landscape:text-5xl font-black tracking-tight font-display text-amber-300 drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)] select-all leading-none"
                     >
                       {player.score}
                     </span>
-                    <span className="text-[11px] sm:text-sm font-extrabold text-stone-400 select-none">
+                    <span className="text-xs sm:text-base font-extrabold text-stone-400 select-none">
                       / {targetScore}
                     </span>
                   </div>
 
                   {/* Status / Points to win */}
-                  <div className="mt-1 sm:mt-1.5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[11px] sm:text-xs leading-tight">
+                  <div className="mt-1.5 sm:mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:text-sm leading-tight">
                     {pointsRemaining === 0 ? (
                       <span className="font-extrabold text-emerald-400">
                         {lang === 'es' ? '¡Meta lograda!' : 'Target reached!'}
@@ -175,7 +175,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     )}
                     <span className="text-stone-600">•</span>
                     <span className="text-stone-300 font-medium flex items-center gap-1">
-                      <Award className="w-3 h-3 text-amber-400/80 flex-shrink-0" />
+                      <Award className="w-3.5 h-3.5 text-amber-400/80 flex-shrink-0" />
                       <span>
                         {player.handsWon}{' '}
                         {player.handsWon === 1
