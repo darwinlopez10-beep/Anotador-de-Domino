@@ -45,8 +45,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
   );
   const [selectedPlayerName, setSelectedPlayerName] = useState<string>('');
   const [pointsInput, setPointsInput] = useState<string>('');
-  const [reason, setReason] = useState<WinReason>('normal');
-  const [notes, setNotes] = useState<string>('');
+  const [reason, _setReason] = useState<WinReason>('normal');
 
   // Sync state when modal opens
   useEffect(() => {
@@ -57,8 +56,6 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
     setSelectedPlayerName(defaultPlayer?.name || '');
 
     setPointsInput('');
-    setReason('normal');
-    setNotes('');
   }, [isOpen, defaultWinnerId, players]);
 
   if (!isOpen) return null;
@@ -108,7 +105,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
       selectedWinnerId,
       totalPointsToSave,
       reason,
-      notes.trim() || undefined,
+      undefined,
       selectedPlayerName.trim() || undefined
     );
     onClose();
@@ -117,9 +114,9 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
   const selectedPlayerObj = players.find((p) => p.id === selectedWinnerId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-stone-900 border border-stone-800 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[94vh] flex flex-col"
+        className="w-full max-w-lg bg-stone-900 border border-stone-800 rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col -translate-y-4 sm:-translate-y-8 transition-transform"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -245,18 +242,6 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
                 <Delete className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          {/* Notes (Optional) */}
-          <div>
-            <input
-              type="text"
-              placeholder={lang === 'es' ? 'Nota opcional (ej. Tranca con la cochina / doble 6)' : 'Optional note (e.g. Block with double 6)'}
-              value={notes}
-              maxLength={40}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 placeholder-stone-600 focus:outline-none focus:border-amber-500/50"
-            />
           </div>
 
           {/* Submit Button */}
