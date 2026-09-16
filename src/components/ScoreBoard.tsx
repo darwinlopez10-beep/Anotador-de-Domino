@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Check, Flame, Award, Users, User } from 'lucide-react';
+import { Edit2, Check, Flame, Award } from 'lucide-react';
 import { PlayerScore } from '../types';
 import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
@@ -170,7 +170,12 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 </div>
 
                 {/* Main Score Digits Display: Expanded, High Contrast, Ample Padding */}
-                <div className="my-1 sm:my-2.5 landscape:my-1 text-center py-3 sm:py-5 landscape:py-2 px-2 sm:px-4 bg-stone-900/95 rounded-2xl border border-stone-750/90 shadow-inner shadow-black/50 overflow-visible">
+                <div
+                  id={`score-card-box-${player.id}`}
+                  onClick={() => onAddRoundForPlayer?.(player.id)}
+                  title={lang === 'es' ? `Toca para anotar puntos para ${displayName}` : `Tap to record points for ${displayName}`}
+                  className="my-1 sm:my-2.5 landscape:my-1 text-center py-3 sm:py-5 landscape:py-2 px-2 sm:px-4 bg-stone-900/95 hover:bg-stone-900/80 rounded-2xl border border-stone-750/90 hover:border-amber-500/40 shadow-inner shadow-black/50 overflow-visible cursor-pointer transition-all active:scale-[0.99]"
+                >
                   <div className="flex items-baseline justify-center gap-1.5 sm:gap-2">
                     <span
                       id={`score-display-${player.id}`}
@@ -212,7 +217,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 </div>
 
                 {/* Progress Bar */}
-                <div className="space-y-1 mb-2 sm:mb-4 landscape:mb-2">
+                <div className="space-y-1 mt-1">
                   <div className="flex justify-between text-[10px] sm:text-xs text-stone-400">
                     <span>{lang === 'es' ? 'Progreso' : 'Progress'}</span>
                     <span className="font-mono font-bold text-stone-300">{progressPercent}%</span>
@@ -227,24 +232,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                     />
                   </div>
                 </div>
-
-                {/* Quick Add Button */}
-                <button
-                  id={`btn-add-points-${player.id}`}
-                  onClick={() => onAddRoundForPlayer(player.id)}
-                  className="w-full flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 sm:py-3.5 landscape:py-2 px-2 sm:px-4 rounded-xl text-stone-950 font-black text-xs sm:text-base landscape:text-xs sm:landscape:text-sm shadow-md transition-all active:scale-[0.98] hover:brightness-110 cursor-pointer"
-                  style={{
-                    backgroundColor: player.color,
-                  }}
-                >
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] flex-shrink-0" />
-                  <span className="hidden sm:inline">
-                    {lang === 'es' ? `Anotar Mano para ${displayName}` : `Record Hand for ${displayName}`}
-                  </span>
-                  <span className="sm:hidden font-bold truncate">
-                    {t.addPoints}
-                  </span>
-                </button>
               </div>
             </div>
           );

@@ -927,6 +927,10 @@ export default function App() {
           setMusicModalTab('search');
           setIsMusicModalOpen(true);
         }}
+        onOpenAddRound={() => {
+          setActiveAddRoundPlayerId(undefined);
+          setIsAddRoundOpen(true);
+        }}
         onNewGame={handleNewGame}
         roundsCount={rounds.length}
       />
@@ -944,37 +948,6 @@ export default function App() {
           onUpdatePlayerMembers={handleUpdatePlayerMembers}
         />
 
-        {/* Quick Utilities Bar */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          {/* Botón Calculadora Tranca */}
-          <button
-            id="btn-quick-tranca"
-            onClick={() => setIsTrancaCalcOpen(true)}
-            title={t.trancaCalc}
-            className="py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white rounded-xl sm:rounded-2xl border border-stone-750 font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer"
-          >
-            <Calculator className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span>{t.trancaCalc}</span>
-          </button>
-
-          {/* Botón Música */}
-          <button
-            id="btn-quick-music"
-            onClick={() => {
-              setMusicModalTab('curated');
-              setIsMusicModalOpen(true);
-            }}
-            title={t.music}
-            className={`py-2.5 sm:py-3 landscape:py-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border font-bold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-sm cursor-pointer ${
-              isMusicPlaying
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-amber-950/40'
-                : 'bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white border-stone-750'
-            }`}
-          >
-            <Music className={`w-4 h-4 text-amber-400 flex-shrink-0 ${isMusicPlaying ? 'animate-bounce' : ''}`} />
-            <span>{isMusicPlaying ? (lang === 'es' ? 'Música Activa' : 'Music Playing') : t.music}</span>
-          </button>
-        </div>
 
         {/* Round History Table */}
         <RoundHistory
