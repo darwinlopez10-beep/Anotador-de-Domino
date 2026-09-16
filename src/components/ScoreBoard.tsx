@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Check, Flame, Award } from 'lucide-react';
+import { Edit2, Check, Award } from 'lucide-react';
 import { PlayerScore } from '../types';
 import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
@@ -61,7 +61,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
         }`}
       >
         {players.map((player) => {
-          const progressPercent = Math.min(100, Math.round((player.score / targetScore) * 100));
           const pointsRemaining = Math.max(0, targetScore - player.score);
           const isLeader = player.score > 0 && player.score === highestScore;
           const isAtLeyDe = pointsRemaining > 0 && pointsRemaining <= 25; // Domino term!
@@ -84,35 +83,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
               />
 
               <div className="p-2.5 sm:p-5 landscape:p-3 flex flex-col justify-between flex-1">
-                {/* Top Status Strip: Team label & Leader Badge (independent row so it never steals width from the name) */}
-                <div className="flex items-center justify-between gap-1 mb-1.5 min-h-[24px]">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
-                      style={{ backgroundColor: player.color }}
-                    />
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400 truncate">
-                      {isTwoTeams
-                        ? player.id === 'team_1'
-                          ? (lang === 'es' ? 'Equipo 1' : 'Team 1')
-                          : (lang === 'es' ? 'Equipo 2' : 'Team 2')
-                        : `${t.player} ${player.id.replace(/\D/g, '')}`}
-                    </span>
-                  </div>
-
-                  {/* Leader Badge positioned on dedicated row */}
-                  {isLeader ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-500/25 text-amber-300 border border-amber-500/50 whitespace-nowrap flex-shrink-0 shadow-sm animate-pulse">
-                      <Flame className="w-3 h-3 text-amber-400" />
-                      <span>{t.leading}</span>
-                    </span>
-                  ) : (
-                    <span className="text-[10px] sm:text-xs text-stone-500 font-medium font-mono">
-                      {progressPercent}%
-                    </span>
-                  )}
-                </div>
-
                 {/* Player Name Box: Generous container with 100% width, no truncating, wrapping support */}
                 <div className="mb-2">
                   {editingPlayerId === player.id ? (
@@ -216,22 +186,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="space-y-1 mt-1">
-                  <div className="flex justify-between text-[10px] sm:text-xs text-stone-400">
-                    <span>{lang === 'es' ? 'Progreso' : 'Progress'}</span>
-                    <span className="font-mono font-bold text-stone-300">{progressPercent}%</span>
-                  </div>
-                  <div className="h-1.5 sm:h-2 w-full bg-stone-950 rounded-full overflow-hidden p-0.5 border border-stone-800">
-                    <div
-                      className="h-full rounded-full transition-all duration-500 ease-out"
-                      style={{
-                        width: `${progressPercent}%`,
-                        backgroundColor: player.color,
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
             </div>
           );
