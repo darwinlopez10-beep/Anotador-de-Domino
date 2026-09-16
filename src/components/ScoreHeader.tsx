@@ -79,24 +79,24 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-          {/* Quick Tranca Calculator */}
+          {/* Quick Tranca Calculator (hidden on mobile, available in bottom nav) */}
           <button
             id="btn-open-tranca-calc"
             onClick={onOpenTrancaCalc}
             title={t.trancaTitle}
-            className="flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-200 hover:text-white text-xs font-medium border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center"
+            className="hidden sm:flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-200 hover:text-white text-xs font-medium border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] justify-center"
           >
             <Calculator className="w-4 h-4 text-amber-400" />
             <span className="hidden lg:inline">{t.trancaCalculator}</span>
           </button>
 
 
-          {/* Match History */}
+          {/* Match History / Copa (hidden on mobile, available in bottom nav) */}
           <button
             id="btn-open-history"
             onClick={onOpenHistory}
             title={t.history}
-            className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
+            className="hidden sm:flex p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] items-center justify-center"
           >
             <Trophy className="w-4 h-4 text-yellow-400" />
           </button>
