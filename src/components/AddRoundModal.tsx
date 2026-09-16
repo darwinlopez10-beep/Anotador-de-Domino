@@ -173,35 +173,35 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <form onSubmit={handleSubmit} className="p-3.5 sm:p-4 overflow-y-auto space-y-3 flex-1">
           {/* Points Display */}
-          <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 text-center shadow-inner">
-            <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1">
+          <div className="bg-stone-950 p-2.5 sm:p-3 rounded-xl border border-stone-800 text-center shadow-inner">
+            <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-0.5">
               {lang === 'es' ? 'Puntos a anotar' : 'Points to record'}
             </div>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-5xl font-black font-display tracking-tight text-amber-400">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-3xl sm:text-4xl font-black font-display tracking-tight text-amber-400">
                 {totalPointsToSave}
               </span>
-              <span className="text-base text-stone-400 font-semibold">{t.pts}</span>
+              <span className="text-sm text-stone-400 font-semibold">{t.pts}</span>
             </div>
           </div>
 
           {/* Quick Preset Buttons */}
           <div>
-            <div className="text-xs text-stone-400 mb-1.5 flex items-center justify-between">
+            <div className="text-[11px] text-stone-400 mb-1 flex items-center justify-between">
               <span>{lang === 'es' ? 'Suma rápida' : 'Quick Add'}</span>
-              <span className="text-[11px] text-stone-500">
+              <span className="text-[10px] text-stone-500">
                 {lang === 'es' ? 'Toca para sumar' : 'Tap to add'}
               </span>
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+            <div className="grid grid-cols-6 gap-1">
               {[5, 10, 15, 20, 25, 30].map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => handleAddPreset(preset)}
-                  className="py-1.5 px-2 bg-stone-800 hover:bg-stone-750 text-stone-200 border border-stone-700/60 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                  className="py-1 px-1 bg-stone-800 hover:bg-stone-750 text-stone-200 border border-stone-700/60 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer text-center"
                 >
                   +{preset}
                 </button>
@@ -210,14 +210,14 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           </div>
 
           {/* Large Tactile Numeric Keypad */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <div className="grid grid-cols-3 gap-1.5">
               {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
                 <button
                   key={digit}
                   type="button"
                   onClick={() => handleKeypadPress(digit)}
-                  className="py-3 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-xl font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  className="py-2.5 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-lg font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
                   {digit}
                 </button>
@@ -225,24 +225,24 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="py-3 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-red-400 text-sm font-bold rounded-xl border border-stone-800 transition-all active:scale-95 cursor-pointer"
+                className="py-2.5 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-red-400 text-xs font-bold rounded-xl border border-stone-800 transition-all active:scale-95 cursor-pointer"
               >
                 C
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress('0')}
-                className="py-3 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-xl font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95 cursor-pointer"
+                className="py-2.5 bg-stone-800 hover:bg-stone-750 active:bg-stone-700 text-stone-100 text-lg font-bold rounded-xl border border-stone-750 shadow-sm transition-all active:scale-95 cursor-pointer"
               >
                 0
               </button>
               <button
                 type="button"
                 onClick={handleBackspace}
-                className="py-3 bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center rounded-xl border border-stone-800 transition-all active:scale-95 cursor-pointer"
+                className="py-2.5 bg-stone-850 hover:bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center rounded-xl border border-stone-800 transition-all active:scale-95 cursor-pointer"
                 title={lang === 'es' ? 'Borrar último dígito' : 'Delete last digit'}
               >
-                <Delete className="w-5 h-5" />
+                <Delete className="w-4 h-4" />
               </button>
             </div>
           </div>
