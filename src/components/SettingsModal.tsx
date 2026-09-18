@@ -146,25 +146,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-stone-800 bg-stone-850 flex-shrink-0">
+        <div className="flex items-center justify-between px-3.5 sm:px-4 py-1.5 sm:py-2 border-b border-stone-800 bg-stone-850 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
-              <Settings className="w-5 h-5" />
+            <div className="p-1 rounded-md bg-amber-500/10 text-amber-400">
+              <Settings className="w-4 h-4" />
             </div>
-            <h3 className="text-lg font-bold text-stone-100 font-display">
+            <h3 className="text-sm sm:text-base font-bold text-stone-100 font-display leading-none">
               {t.settings}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Body */}
-        <div className="p-5 overflow-y-auto space-y-6 text-sm">
+        <div className="px-3 sm:px-4 pt-1 sm:pt-1.5 pb-4 overflow-y-auto space-y-4 text-sm">
           {/* Language Selector (Bilingual Auto Detection) */}
           <div className="p-3 bg-stone-850/80 rounded-xl border border-stone-800">
             <div className="flex items-center justify-between mb-2">
