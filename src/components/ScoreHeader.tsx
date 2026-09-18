@@ -4,8 +4,8 @@ import {
   Settings,
   Calculator,
   Trophy,
-  Volume2,
-  VolumeX,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { DominoTileIcon } from './DominoTileIcon';
 import { GameMode } from '../types';
@@ -14,10 +14,12 @@ import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
 interface ScoreHeaderProps {
   targetScore: number;
   gameMode: GameMode;
-  soundEnabled: boolean;
+  soundEnabled?: boolean;
   isMusicPlaying?: boolean;
   lang: AppLanguage;
-  onToggleSound: () => void;
+  isScreenAwake?: boolean;
+  onToggleSound?: () => void;
+  onToggleScreenAwake?: () => void;
   onOpenSettings: () => void;
   onOpenTrancaCalc: () => void;
   onOpenTimer?: () => void;
@@ -31,10 +33,12 @@ interface ScoreHeaderProps {
 export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
   targetScore,
   gameMode,
-  soundEnabled,
+  soundEnabled: _soundEnabled,
   isMusicPlaying: _isMusicPlaying,
   lang,
-  onToggleSound,
+  isScreenAwake = true,
+  onToggleSound: _onToggleSound,
+  onToggleScreenAwake,
   onOpenSettings,
   onOpenTrancaCalc,
   onOpenTimer: _onOpenTimer,
@@ -100,17 +104,26 @@ export const ScoreHeader: React.FC<ScoreHeaderProps> = ({
             <Trophy className="w-4 h-4 text-yellow-400" />
           </button>
 
-          {/* Sound Toggle */}
+          {/* Screen Wake Lock / Pantalla activa - al lado de ajustes */}
           <button
-            id="btn-toggle-sound"
-            onClick={onToggleSound}
-            title={soundEnabled ? (lang === 'es' ? 'Silenciar sonidos' : 'Mute sounds') : (lang === 'es' ? 'Activar sonidos' : 'Enable sounds')}
-            className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-300 hover:text-white border border-stone-700/70 transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
+            id="btn-toggle-wake-lock"
+            onClick={onToggleScreenAwake}
+            title={
+              isScreenAwake
+                ? (lang === 'es' ? 'Pantalla activa (No se apaga) - Clic para desactivar' : 'Screen awake ON (Stay awake) - Click to allow sleep')
+                : (lang === 'es' ? 'Mantener pantalla activa (Evitar suspensión) - Clic para activar' : 'Keep screen awake - Click to activate')
+            }
+            aria-label={lang === 'es' ? 'Mantener pantalla activa' : 'Keep screen awake'}
+            className={`p-2 rounded-lg transition-all active:scale-95 cursor-pointer flex-shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center border ${
+              isScreenAwake
+                ? 'bg-amber-500/15 border-amber-500/60 text-amber-400 hover:bg-amber-500/25 shadow-sm shadow-amber-500/10'
+                : 'bg-stone-800 hover:bg-stone-700 active:bg-stone-600 text-stone-400 hover:text-stone-200 border-stone-700/70'
+            }`}
           >
-            {soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-sky-400" />
+            {isScreenAwake ? (
+              <Sun className="w-4 h-4 text-amber-400" />
             ) : (
-              <VolumeX className="w-4 h-4 text-stone-500" />
+              <Moon className="w-4 h-4 text-stone-400" />
             )}
           </button>
 

@@ -42,6 +42,7 @@ export interface GameSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   timerDurationSeconds: number;
+  keepScreenAwake?: boolean;
   languageSetting?: 'auto' | 'es' | 'en';
 }
 

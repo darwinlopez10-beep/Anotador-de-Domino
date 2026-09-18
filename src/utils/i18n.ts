@@ -178,6 +178,12 @@ export interface Translations {
   soundEffects: string;
   hapticVibration: string;
   timerDuration: string;
+  keepScreenAwake: string;
+  keepScreenAwakeDesc: string;
+  screenAwakeOn: string;
+  screenAwakeOff: string;
+  screenAwakeActiveNotice: string;
+  screenAwakeInactiveNotice: string;
   saveSettings: string;
   resetSettings: string;
   // Victory Modal
@@ -332,6 +338,12 @@ export const TRANSLATIONS: Record<AppLanguage, Translations> = {
     soundEffects: 'Efectos de sonido',
     hapticVibration: 'Vibración al anotar puntos',
     timerDuration: 'Segundos por turno del temporizador',
+    keepScreenAwake: 'Mantener pantalla activa',
+    keepScreenAwakeDesc: 'Evita que la pantalla del teléfono se suspenda o apague durante el juego',
+    screenAwakeOn: 'Pantalla activa (No se apaga)',
+    screenAwakeOff: 'Pantalla normal (Se puede apagar)',
+    screenAwakeActiveNotice: 'Pantalla activa: tu teléfono no se apagará durante la partida',
+    screenAwakeInactiveNotice: 'Modo normal: tu pantalla se apagará según los ajustes de tu celular',
     saveSettings: 'Guardar Ajustes',
     resetSettings: 'Restaurar Valores',
     // Victory Modal
@@ -484,6 +496,12 @@ export const TRANSLATIONS: Record<AppLanguage, Translations> = {
     soundEffects: 'Sound effects',
     hapticVibration: 'Haptic vibration on points',
     timerDuration: 'Turn timer duration (seconds)',
+    keepScreenAwake: 'Keep screen awake',
+    keepScreenAwakeDesc: 'Prevents the phone screen from sleeping or dimming during the game',
+    screenAwakeOn: 'Screen awake (Always on)',
+    screenAwakeOff: 'Normal screen (Sleep allowed)',
+    screenAwakeActiveNotice: 'Screen awake: your phone will stay on during the match',
+    screenAwakeInactiveNotice: 'Normal mode: your screen will sleep according to device settings',
     saveSettings: 'Save Settings',
     resetSettings: 'Reset to Defaults',
     // Victory Modal

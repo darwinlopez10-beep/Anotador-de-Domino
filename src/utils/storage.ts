@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   timerDurationSeconds: 25,
+  keepScreenAwake: true,
   languageSetting: 'auto',
 };
 

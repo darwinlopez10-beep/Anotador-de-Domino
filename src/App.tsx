@@ -59,7 +59,8 @@ import {
   playTileClickSound,
   triggerVibration,
 } from './utils/sound';
-import { Calculator, Timer, Trophy, Music, Check, RotateCcw } from 'lucide-react';
+import { requestScreenWakeLock, releaseScreenWakeLock } from './utils/wakeLock';
+import { Calculator, Timer, Trophy, Music, Check, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 
 const TEAM_COLORS = ['#10b981', '#f59e0b', '#38bdf8', '#ec4899'];
 
@@ -273,6 +274,15 @@ export default function App() {
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  // Screen Wake Lock: mantener pantalla activa o permitir que se apague
+  useEffect(() => {
+    if (settings.keepScreenAwake ?? true) {
+      requestScreenWakeLock();
+    } else {
+      releaseScreenWakeLock();
+    }
+  }, [settings.keepScreenAwake]);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -633,6 +643,30 @@ export default function App() {
     });
   };
 
+  // Toggle Screen Wake Lock (mantener pantalla activa o permitir reposo)
+  const handleToggleScreenAwake = async () => {
+    const nextAwake = !(settings.keepScreenAwake ?? true);
+    setSettings((prev) => {
+      const updated = {
+        ...prev,
+        keepScreenAwake: nextAwake,
+      };
+      saveSettings(updated);
+      return updated;
+    });
+
+    if (nextAwake) {
+      await requestScreenWakeLock();
+      if (settings.soundEnabled) playTileClickSound();
+      if (settings.vibrationEnabled) triggerVibration(true, 30);
+      setToastMessage(t.screenAwakeActiveNotice);
+    } else {
+      await releaseScreenWakeLock();
+      if (settings.soundEnabled) playTileClickSound();
+      setToastMessage(t.screenAwakeInactiveNotice);
+    }
+  };
+
   // History Handlers
   const handleManualSaveMatch = () => {
     if (rounds.length === 0) {
@@ -941,7 +975,9 @@ export default function App() {
         soundEnabled={settings.soundEnabled}
         isMusicPlaying={isMusicPlaying}
         lang={lang}
+        isScreenAwake={settings.keepScreenAwake ?? true}
         onToggleSound={handleToggleSound}
+        onToggleScreenAwake={handleToggleScreenAwake}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenTrancaCalc={() => setIsTrancaCalcOpen(true)}
         onOpenTimer={() => setIsTimerOpen(true)}
@@ -1006,31 +1042,60 @@ export default function App() {
         />
       )}
 
-      {/* Bottom Sticky Mobile Navigation (hidden in landscape to keep both score cards full view) */}
-      <nav className="sm:hidden landscape:hidden fixed bottom-0 left-0 right-0 z-30 bg-stone-900/95 backdrop-blur-md border-t border-stone-800 px-3 py-2 flex items-center justify-around">
-
+      {/* Bottom Sticky Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-stone-900/95 backdrop-blur-md border-t border-stone-800 px-2 sm:px-4 py-2 flex items-center justify-around sm:justify-center sm:gap-10 shadow-2xl">
         <button
+          id="btn-bottom-tranca-calc"
           onClick={() => setIsTrancaCalcOpen(true)}
-          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 cursor-pointer"
+          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 transition-colors cursor-pointer min-w-[50px]"
         >
           <Calculator className="w-5 h-5" />
           <span className="text-[10px] font-medium">{t.trancaCalc}</span>
         </button>
 
         <button
+          id="btn-bottom-timer"
           onClick={() => setIsTimerOpen(true)}
-          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 cursor-pointer"
+          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 transition-colors cursor-pointer min-w-[50px]"
         >
           <Timer className="w-5 h-5" />
           <span className="text-[10px] font-medium">{t.turnTimer}</span>
         </button>
 
+        {/* Boton de Bocina / Sonido */}
         <button
+          id="btn-bottom-sound"
+          onClick={handleToggleSound}
+          title={
+            settings.soundEnabled
+              ? (lang === 'es' ? 'Silenciar sonidos' : 'Mute sounds')
+              : (lang === 'es' ? 'Activar sonidos' : 'Enable sounds')
+          }
+          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer min-w-[50px] ${
+            settings.soundEnabled
+              ? 'text-sky-400 hover:text-sky-300'
+              : 'text-stone-500 hover:text-stone-300'
+          }`}
+        >
+          {settings.soundEnabled ? (
+            <Volume2 className="w-5 h-5" />
+          ) : (
+            <VolumeX className="w-5 h-5" />
+          )}
+          <span className="text-[10px] font-medium">
+            {settings.soundEnabled
+              ? (lang === 'es' ? 'Sonido' : 'Sound')
+              : (lang === 'es' ? 'Silencio' : 'Muted')}
+          </span>
+        </button>
+
+        <button
+          id="btn-bottom-music"
           onClick={() => {
             setMusicModalTab('curated');
             setIsMusicModalOpen(true);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer ${
+          className={`flex flex-col items-center gap-1 cursor-pointer min-w-[50px] ${
             isMusicPlaying ? 'text-amber-400' : 'text-stone-400 hover:text-stone-200'
           }`}
         >
@@ -1039,8 +1104,9 @@ export default function App() {
         </button>
 
         <button
+          id="btn-bottom-history"
           onClick={() => setIsHistoryOpen(true)}
-          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 cursor-pointer"
+          className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 transition-colors cursor-pointer min-w-[50px]"
         >
           <Trophy className="w-5 h-5" />
           <span className="text-[10px] font-medium">{t.matchHistory}</span>

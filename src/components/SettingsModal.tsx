@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Users, Target, Shield, Sparkles, Volume2, Check, Globe } from 'lucide-react';
+import { X, Settings, Users, Target, Shield, Sparkles, Volume2, Check, Globe, Sun } from 'lucide-react';
 import { GameMode, GameSettings, LanguageSetting, TrancaRule } from '../types';
 import { AppLanguage, TRANSLATIONS, resolveActiveLanguage, saveLanguageSetting } from '../utils/i18n';
 
@@ -65,6 +65,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [timerDurationSeconds, setTimerDurationSeconds] = useState<number>(
     currentSettings.timerDurationSeconds
   );
+  const [keepScreenAwake, setKeepScreenAwake] = useState<boolean>(
+    currentSettings.keepScreenAwake !== undefined ? currentSettings.keepScreenAwake : true
+  );
 
   if (!isOpen) return null;
 
@@ -128,6 +131,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       soundEnabled,
       vibrationEnabled: soundEnabled ? vibrationEnabled : false,
       timerDurationSeconds,
+      keepScreenAwake,
       languageSetting,
     };
 
@@ -162,50 +166,56 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Form Body */}
         <div className="p-5 overflow-y-auto space-y-6 text-sm">
           {/* Language Selector (Bilingual Auto Detection) */}
-          <div className="p-3.5 bg-stone-850/80 rounded-2xl border border-stone-800">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2.5 flex items-center gap-1.5">
-              <Globe className="w-4 h-4 text-amber-400" />
-              <span>{t.languageSection}</span>
-            </label>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="p-3 bg-stone-850/80 rounded-xl border border-stone-800">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-amber-400" />
+                <span>{t.languageSection}</span>
+              </label>
+              <span className="text-[11px] text-stone-400 font-medium">
+                {effectiveLang === 'es' ? 'Activo: Español' : 'Active: English'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => handleSelectLanguage('auto')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all text-center flex items-center justify-center gap-1.5 min-h-[34px] cursor-pointer ${
                   languageSetting === 'auto'
-                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
-                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700'
+                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm font-bold'
+                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700 hover:text-stone-100'
                 }`}
+                title={effectiveLang === 'es' ? 'Automático (detecta idioma del celular)' : 'Auto (detect phone language)'}
               >
-                <div>{t.languageAuto}</div>
-                <div className="text-[10px] opacity-80 mt-0.5">{t.languageDesc}</div>
+                <span>📱</span>
+                <span>Auto</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleSelectLanguage('es')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all text-center flex items-center justify-center gap-1.5 min-h-[34px] cursor-pointer ${
                   languageSetting === 'es'
-                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
-                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700'
+                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm font-bold'
+                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700 hover:text-stone-100'
                 }`}
               >
-                <div>🇪🇸 Español</div>
-                <div className="text-[10px] opacity-80 mt-0.5">Spanish</div>
+                <span>🇪🇸</span>
+                <span>Español</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleSelectLanguage('en')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all text-center flex items-center justify-center gap-1.5 min-h-[34px] cursor-pointer ${
                   languageSetting === 'en'
-                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
-                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700'
+                    ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm font-bold'
+                    : 'bg-stone-900 border-stone-750 text-stone-300 hover:border-stone-700 hover:text-stone-100'
                 }`}
               >
-                <div>🇺🇸 English</div>
-                <div className="text-[10px] opacity-80 mt-0.5">Inglés</div>
+                <span>🇺🇸</span>
+                <span>English</span>
               </button>
             </div>
-            <p className="text-[11px] text-stone-400 mt-2">
+            <p className="text-[11px] text-stone-400 mt-1.5">
               {languageSetting === 'auto'
                 ? effectiveLang === 'es'
                   ? 'Detectado automáticamente en Español según el idioma del celular.'
@@ -473,6 +483,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 checked={soundEnabled && vibrationEnabled}
                 onChange={(e) => setVibrationEnabled(e.target.checked)}
                 className="w-4 h-4 accent-amber-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            {/* Keep screen awake toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-stone-800/80">
+              <div className="flex flex-col">
+                <span className="text-xs text-stone-200 font-medium flex items-center gap-2">
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span>{t.keepScreenAwake}</span>
+                </span>
+                <span className="text-[10px] text-stone-400 mt-0.5 leading-tight">
+                  {t.keepScreenAwakeDesc}
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={keepScreenAwake}
+                onChange={(e) => setKeepScreenAwake(e.target.checked)}
+                className="w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0"
               />
             </div>
           </div>
