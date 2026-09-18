@@ -985,55 +985,36 @@ export const MusicPlayerModal: React.FC<MusicPlayerModalProps> = ({
               ref={playerContainerRef}
               className="bg-stone-950 border border-stone-800 rounded-xl p-3 sm:p-3.5 shadow-md flex flex-col gap-2.5 transition-all"
             >
-              {/* Segundo plano & Auto-siguiente pills */}
-              <div className="flex items-center justify-between text-[11px] pb-1 border-b border-stone-850 gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {/* Auto-siguiente pill */}
+              {onToggleAutoplay && (
+                <div className="flex items-center justify-end text-[11px] pb-1 border-b border-stone-850">
+                  <button
+                    type="button"
+                    onClick={onToggleAutoplay}
+                    className={`flex items-center gap-1 border px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                      isAutoplay
+                        ? 'text-amber-300 bg-amber-500/20 border-amber-500/40 hover:bg-amber-500/30'
+                        : 'text-stone-400 bg-stone-850 border-stone-700 hover:text-stone-200'
+                    }`}
+                    title={
+                      lang === 'es'
+                        ? isAutoplay
+                          ? 'Autoplay activado: Pasa automáticamente a la siguiente canción en el celular. Toca para desactivar.'
+                          : 'Autoplay desactivado: Se detendrá al terminar. Toca para activar.'
+                        : isAutoplay
+                          ? 'Autoplay enabled: Advances automatically on mobile. Tap to disable.'
+                          : 'Autoplay disabled: Stops when track finishes. Tap to enable.'
+                    }
+                  >
+                    <Repeat className={`w-2.5 h-2.5 ${isAutoplay ? 'text-amber-400' : 'text-stone-500'}`} />
                     <span className="font-semibold uppercase text-[9px] tracking-wide">
-                      {lang === 'es' ? 'Segundo Plano' : 'Background Active'}
+                      {isAutoplay
+                        ? (lang === 'es' ? 'Autoplay: Activado' : 'Autoplay: ON')
+                        : (lang === 'es' ? 'Autoplay: Desactivado' : 'Autoplay: OFF')}
                     </span>
-                  </div>
-
-                  {onToggleAutoplay ? (
-                    <button
-                      type="button"
-                      onClick={onToggleAutoplay}
-                      className={`flex items-center gap-1 border px-2 py-0.5 rounded-full transition-all cursor-pointer ${
-                        isAutoplay
-                          ? 'text-amber-300 bg-amber-500/20 border-amber-500/40 hover:bg-amber-500/30'
-                          : 'text-stone-400 bg-stone-850 border-stone-700 hover:text-stone-200'
-                      }`}
-                      title={
-                        lang === 'es'
-                          ? isAutoplay
-                            ? 'Autoplay activado: Pasa automáticamente a la siguiente canción en el celular. Toca para desactivar.'
-                            : 'Autoplay desactivado: Se detendrá al terminar. Toca para activar.'
-                          : isAutoplay
-                            ? 'Autoplay enabled: Advances automatically on mobile. Tap to disable.'
-                            : 'Autoplay disabled: Stops when track finishes. Tap to enable.'
-                      }
-                    >
-                      <Repeat className={`w-2.5 h-2.5 ${isAutoplay ? 'text-amber-400' : 'text-stone-500'}`} />
-                      <span className="font-semibold uppercase text-[9px] tracking-wide">
-                        {isAutoplay
-                          ? (lang === 'es' ? 'Autoplay: Activado' : 'Autoplay: ON')
-                          : (lang === 'es' ? 'Autoplay: Desactivado' : 'Autoplay: OFF')}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-full">
-                      <Repeat className="w-2.5 h-2.5" />
-                      <span className="font-semibold uppercase text-[9px] tracking-wide">
-                        {lang === 'es' ? 'Auto-Siguiente Activo' : 'Auto-Next'}
-                      </span>
-                    </div>
-                  )}
+                  </button>
                 </div>
-                <span className="text-[10px] text-stone-400 hidden sm:inline">
-                  {lang === 'es' ? 'Suena al salir o apagar la pantalla' : 'Plays when leaving app or locked'}
-                </span>
-              </div>
+              )}
 
               {/* Cover & Info & Main controls */}
               <div className="flex items-center justify-between gap-2.5">
