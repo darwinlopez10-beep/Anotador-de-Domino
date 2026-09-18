@@ -550,6 +550,16 @@ export const TRANSLATIONS: Record<AppLanguage, Translations> = {
 export function formatPlayerDisplayName(name: string, lang: AppLanguage): string {
   if (!name) return lang === 'es' ? 'Jugador' : 'Player';
 
+  // Format raw IDs like team_1 or player_1
+  if (/^team[_-]?(\d+)$/i.test(name)) {
+    const num = name.match(/^team[_-]?(\d+)$/i)?.[1];
+    return lang === 'es' ? `Jugador ${num}` : `Player ${num}`;
+  }
+  if (/^player[_-]?(\d+)$/i.test(name)) {
+    const num = name.match(/^player[_-]?(\d+)$/i)?.[1];
+    return lang === 'es' ? `Jugador ${num}` : `Player ${num}`;
+  }
+
   // Translate "Jugador 1" -> "Player 1", "Equipo 1" -> "Team 1"
   if (lang === 'en') {
     if (/^jugador\s*(\d+)$/i.test(name)) {

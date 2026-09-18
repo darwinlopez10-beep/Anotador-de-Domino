@@ -18,7 +18,7 @@ import {
   Lock,
   ShieldAlert,
 } from 'lucide-react';
-import { GameMode, PastMatch, WinReason } from '../types';
+import { GameMode, PastMatch, WinReason, PlayerScore, Round } from '../types';
 import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
 
 interface MatchHistoryModalProps {
@@ -29,6 +29,10 @@ interface MatchHistoryModalProps {
   onClearHistory: (mode?: GameMode) => void;
   canSaveCurrentGame?: boolean;
   onSaveCurrentGame?: () => void;
+  currentPlayers?: PlayerScore[];
+  currentRounds?: Round[];
+  currentGameMode?: GameMode;
+  targetScore?: number;
   lang: AppLanguage;
 }
 
@@ -40,6 +44,10 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
   onClearHistory,
   canSaveCurrentGame,
   onSaveCurrentGame,
+  currentPlayers,
+  currentRounds,
+  currentGameMode = 'teams',
+  targetScore,
   lang,
 }) => {
   const t = TRANSLATIONS[lang];
@@ -89,6 +97,23 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
     }
   });
 
+  // Automatically register active players in the series stats if they don't have records yet
+  if (currentPlayers && currentGameMode === 'teams') {
+    currentPlayers.forEach((p) => {
+      if (!teamWinStats[p.name]) {
+        teamWinStats[p.name] = { wins: 0, color: p.color, totalPoints: p.score };
+      }
+    });
+  }
+
+  if (currentPlayers && currentGameMode === 'individual') {
+    currentPlayers.forEach((p) => {
+      if (!individualWinStats[p.name]) {
+        individualWinStats[p.name] = { wins: 0, color: p.color, totalPoints: p.score, matchesPlayed: 0 };
+      }
+    });
+  }
+
   const sortedIndividualRankings = Object.entries(individualWinStats).sort((a, b) => {
     if (b[1].wins !== a[1].wins) return b[1].wins - a[1].wins;
     return b[1].totalPoints - a[1].totalPoints;
@@ -128,22 +153,22 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 pt-1 sm:pt-3 md:pt-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
       <div
-        className="w-full max-w-xl bg-stone-900 border border-stone-800 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-xl bg-stone-900 border border-stone-800 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[93vh] mt-0.5 sm:mt-1.5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-800 bg-stone-850">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Trophy className="w-5 h-5" />
+        <div className="flex items-center justify-between px-3.5 sm:px-5 py-2.5 sm:py-3.5 border-b border-stone-800 bg-stone-850 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-stone-100 font-display">
+              <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display leading-tight">
                 {t.matchHistory}
               </h3>
-              <p className="text-xs text-stone-400">
+              <p className="text-[11px] sm:text-xs text-stone-400 leading-tight">
                 {lang === 'es'
                   ? 'Guarda y consulta partidas por pareja e individual'
                   : 'Save and view matches by teams and individual'}
@@ -179,7 +204,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -187,11 +212,11 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-stone-800 bg-stone-900 px-4 pt-3 gap-2 overflow-x-auto">
+        <div className="flex border-b border-stone-800 bg-stone-900 px-3 sm:px-4 pt-2 sm:pt-2.5 gap-2 overflow-x-auto flex-shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('all')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`pb-2 px-2.5 sm:px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'all'
                 ? 'border-amber-400 text-amber-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
@@ -206,7 +231,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('teams')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`pb-2 px-2.5 sm:px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'teams'
                 ? 'border-emerald-400 text-emerald-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
@@ -222,7 +247,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('individual')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`pb-2 px-2.5 sm:px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'individual'
                 ? 'border-sky-400 text-sky-300'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
@@ -236,9 +261,66 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
           </button>
         </div>
 
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-          {/* Mobile button to save current game */}
-          {canSaveCurrentGame && onSaveCurrentGame && (
+        <div className="p-3 sm:p-4.5 overflow-y-auto space-y-3 sm:space-y-4 flex-1">
+          {/* Current Table / Mesa Activa con Nombres Automáticos de Jugadores */}
+          {currentPlayers && currentPlayers.length > 0 && (
+            <div className="bg-gradient-to-br from-stone-850/95 to-stone-900 p-3 sm:p-3.5 rounded-2xl border border-amber-500/30 shadow-md">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-400">
+                    {lang === 'es' ? 'Mesa Actual en Juego' : 'Current Active Table'}
+                  </span>
+                  {currentRounds && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-stone-800 text-stone-300 font-medium">
+                      {currentRounds.length} {currentRounds.length === 1 ? (lang === 'es' ? 'mano' : 'hand') : (lang === 'es' ? 'manos' : 'hands')}
+                    </span>
+                  )}
+                </div>
+
+                {canSaveCurrentGame && onSaveCurrentGame && (
+                  <button
+                    type="button"
+                    onClick={onSaveCurrentGame}
+                    title={lang === 'es' ? 'Guardar partida actual en el historial de la copa' : 'Save current match to copa history'}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-all active:scale-95 cursor-pointer"
+                  >
+                    <BookmarkPlus className="w-3 h-3" />
+                    <span>{lang === 'es' ? 'Archivar en Copa' : 'Save to Copa'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Nombres automáticos de los jugadores actuales y sus puntuaciones */}
+              <div className={`grid gap-1.5 sm:gap-2 ${currentPlayers.length === 2 ? 'grid-cols-2' : currentPlayers.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                {currentPlayers.map((player) => (
+                  <div
+                    key={player.id}
+                    className="p-2 sm:p-2.5 rounded-xl bg-stone-900/90 border border-stone-800 flex items-center justify-between gap-1.5"
+                  >
+                    <div className="flex items-center gap-1.5 truncate min-w-0">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: player.color }}
+                      />
+                      <span className="text-xs font-bold text-stone-100 truncate">
+                        {formatPlayerDisplayName(player.name, lang)}
+                      </span>
+                    </div>
+                    <span className="font-mono font-black text-amber-400 text-xs sm:text-sm flex-shrink-0">
+                      {player.score} {targetScore ? <span className="text-[10px] text-stone-500 font-normal">/{targetScore}</span> : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile button to save current game if active mesa wasn't displayed */}
+          {(!currentPlayers || currentPlayers.length === 0) && canSaveCurrentGame && onSaveCurrentGame && (
             <div className="sm:hidden">
               <button
                 type="button"
@@ -448,7 +530,7 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-800/60 text-xs">
                             {match.finalScores.map((team, idx) => {
                               const isWinner = team.name === match.winnerName;
-                              const members = idx === 0 ? match.team1Members : match.team2Members;
+                              const members = team.members || (idx === 0 ? match.team1Members : match.team2Members);
                               return (
                                 <div
                                   key={idx}
@@ -466,11 +548,11 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
                                       {team.score}
                                     </span>
                                   </div>
-                                  {members && members.length === 2 && (
+                                  {members && members.length > 0 && (
                                     <div className="text-[11px] text-stone-400 flex items-center gap-1 mt-0.5 truncate">
                                       <Users className="w-3 h-3 text-stone-500 flex-shrink-0" />
                                       <span className="truncate">
-                                        {members[0]} &amp; {members[1]}
+                                        {members.map((m) => formatPlayerDisplayName(m, lang)).join(' & ')}
                                       </span>
                                     </div>
                                   )}

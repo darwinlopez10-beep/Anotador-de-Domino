@@ -1166,6 +1166,10 @@ export default function App() {
         onClearHistory={handleClearMatchHistory}
         canSaveCurrentGame={rounds.length > 0}
         onSaveCurrentGame={handleManualSaveMatch}
+        currentPlayers={players}
+        currentRounds={rounds}
+        currentGameMode={settings.gameMode}
+        targetScore={settings.targetScore}
         lang={lang}
       />
 
