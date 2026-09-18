@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Delete, Plus } from 'lucide-react';
+import { X, Delete, Plus, RotateCcw } from 'lucide-react';
 import { PlayerScore, WinReason } from '../types';
 import { playTileClickSound, triggerVibration } from '../utils/sound';
 import { AppLanguage, TRANSLATIONS, formatPlayerDisplayName } from '../utils/i18n';
@@ -114,49 +114,53 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
   const selectedPlayerObj = players.find((p) => p.id === selectedWinnerId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 pt-1 sm:pt-2 md:pt-3 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
       <div
-        className="w-full max-w-lg bg-stone-900 border border-stone-800 rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col -translate-y-4 sm:-translate-y-8 transition-transform"
+        className="w-full max-w-lg bg-stone-900 border border-stone-800 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[96vh] sm:max-h-[94vh] flex flex-col mt-0.5 sm:mt-1 transition-transform"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-800 bg-stone-850">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-lg font-bold text-stone-100 font-display">
+        <div className="flex items-center justify-between px-3.5 sm:px-5 py-2.5 sm:py-3.5 border-b border-stone-800 bg-stone-850 flex-shrink-0">
+          <div className="flex-1 min-w-0 mr-2">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+              <h3 className="text-base sm:text-lg font-bold text-stone-100 font-display">
                 {t.recordHand} #{roundNumber}
               </h3>
               {selectedPlayerObj && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (players.length === 2) {
-                      const other = players.find((p) => p.id !== selectedWinnerId);
-                      if (other) handleSelectWinner(other.id);
+                    if (players.length > 1) {
+                      const nextIndex =
+                        (players.findIndex((p) => p.id === selectedWinnerId) + 1) % players.length;
+                      handleSelectWinner(players[nextIndex].id);
                     }
                   }}
-                  title={players.length === 2 ? (lang === 'es' ? 'Toca para cambiar de jugador' : 'Tap to switch player') : undefined}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black border transition-all active:scale-95 cursor-pointer shadow-sm"
+                  title={lang === 'es' ? 'Toca para cambiar de jugador' : 'Tap to switch player'}
+                  className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl text-sm sm:text-base font-black border-2 transition-all active:scale-95 cursor-pointer shadow-md hover:brightness-110"
                   style={{
-                    backgroundColor: `${selectedPlayerObj.color}25`,
-                    borderColor: `${selectedPlayerObj.color}60`,
-                    color: selectedPlayerObj.color,
+                    backgroundColor: `${selectedPlayerObj.color}22`,
+                    borderColor: `${selectedPlayerObj.color}80`,
+                    color: '#ffffff',
                   }}
                 >
                   <span
-                    className="w-2 h-2 rounded-full"
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full flex-shrink-0 shadow-sm"
                     style={{ backgroundColor: selectedPlayerObj.color }}
                   />
-                  <span>{formatPlayerDisplayName(selectedPlayerObj.name, lang)}</span>
-                  {players.length === 2 && (
-                    <span className="text-[10px] text-stone-400 font-normal underline ml-0.5">
-                      {lang === 'es' ? 'cambiar' : 'change'}
+                  <span className="text-sm sm:text-base font-black text-stone-100 tracking-tight">
+                    {formatPlayerDisplayName(selectedPlayerObj.name, lang)}
+                  </span>
+                  {players.length > 1 && (
+                    <span className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-amber-300 bg-stone-900/90 px-2 sm:px-2.5 py-0.5 rounded-lg border border-amber-500/40 uppercase tracking-wide ml-1 shadow-inner">
+                      <span>{lang === 'es' ? 'cambiar' : 'change'}</span>
+                      <RotateCcw className="w-3 h-3 text-amber-400" />
                     </span>
                   )}
                 </button>
               )}
             </div>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-1 truncate">
               {lang === 'es'
                 ? `Ingresa los puntos ganados para ${formatPlayerDisplayName(selectedPlayerObj?.name || '', lang)}`
                 : `Enter points scored for ${formatPlayerDisplayName(selectedPlayerObj?.name || '', lang)}`}
@@ -164,7 +168,7 @@ export const AddRoundModal: React.FC<AddRoundModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
