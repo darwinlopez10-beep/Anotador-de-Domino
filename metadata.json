@@ -1,6 +1,6 @@
 {
   "name": "Anotador de Dominó",
-  "description": "Aplicación completa e intuitiva para anotar puntos en partidas de dominó, con soporte para parejas o individual, calculadora de tranca, historial de manos y estadísticas.",
+  "description": "Mesa & Dominó - Anotador de puntos: Control rápido y automático para tus partidas de dominó.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

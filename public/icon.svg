@@ -1,50 +1,159 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1c1917" />
-      <stop offset="100%" stop-color="#0c0a09" />
-    </linearGradient>
-    <linearGradient id="tileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Background Gradient -->
+    <radialGradient id="iconBgGlow" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#122b54" />
+      <stop offset="35%" stop-color="#0a1933" />
+      <stop offset="70%" stop-color="#040b17" />
+      <stop offset="100%" stop-color="#02060e" />
+    </radialGradient>
+
+    <!-- Golden Burst Behind Domino -->
+    <radialGradient id="iconGoldBurst" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.95" />
+      <stop offset="30%" stop-color="#f59e0b" stop-opacity="0.6" />
+      <stop offset="65%" stop-color="#d97706" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#d97706" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Tile Surface Gradient -->
+    <linearGradient id="iconTileFace" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#f5f5f4" />
+      <stop offset="20%" stop-color="#fbf8f2" />
+      <stop offset="70%" stop-color="#f1e9dc" />
+      <stop offset="100%" stop-color="#e4d8c7" />
     </linearGradient>
-    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f59e0b" />
-      <stop offset="100%" stop-color="#d97706" />
+
+    <!-- Tile 3D Side/Bevel Gradient -->
+    <linearGradient id="iconTileSide" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d6c7b2" />
+      <stop offset="50%" stop-color="#b8a790" />
+      <stop offset="100%" stop-color="#8c7a65" />
     </linearGradient>
-    <filter id="tileShadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.6" />
+
+    <!-- Tile Drop Shadow -->
+    <filter id="iconTileShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="-10" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.9" />
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#f59e0b" flood-opacity="0.25" />
+    </filter>
+
+    <!-- Pip (Dot) Inset Shadow & 3D Gradient -->
+    <radialGradient id="iconPipGrad" cx="38%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#2d2a26" />
+      <stop offset="50%" stop-color="#141210" />
+      <stop offset="90%" stop-color="#050505" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+
+    <!-- Gold 3D Text Gradients -->
+    <linearGradient id="iconGoldTextGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb" />
+      <stop offset="15%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="85%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <linearGradient id="iconGoldTextSide" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#b45309" />
+      <stop offset="50%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+
+    <!-- Cyan Neon Gradient -->
+    <linearGradient id="iconCyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#00d2ff" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Cyan Glow Filter -->
+    <filter id="iconCyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00d2ff" flood-opacity="0.75" />
+    </filter>
+
+    <filter id="iconGoldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#f59e0b" flood-opacity="0.45" />
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.65" />
     </filter>
   </defs>
 
-  <!-- Background with subtle border -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
-  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="url(#amberGrad)" stroke-width="6" stroke-opacity="0.5" />
-
-  <!-- Domino Tile Body -->
-  <g filter="url(#tileShadow)">
-    <rect x="156" y="86" width="200" height="340" rx="28" fill="url(#tileGrad)" stroke="#e7e5e4" stroke-width="4" />
-    
-    <!-- Divider Line with brass/amber pin -->
-    <line x1="176" y1="256" x2="336" y2="256" stroke="#a8a29e" stroke-width="4" stroke-linecap="round" />
-    <circle cx="256" cy="256" r="7" fill="url(#amberGrad)" stroke="#78350f" stroke-width="2" />
-
-    <!-- Top Half Dots: 4 dots -->
-    <circle cx="196" cy="126" r="13" fill="#1c1917" />
-    <circle cx="316" cy="126" r="13" fill="#1c1917" />
-    <circle cx="196" cy="216" r="13" fill="#1c1917" />
-    <circle cx="316" cy="216" r="13" fill="#1c1917" />
-
-    <!-- Bottom Half Dots: 6 dots -->
-    <circle cx="196" cy="296" r="13" fill="#1c1917" />
-    <circle cx="316" cy="296" r="13" fill="#1c1917" />
-    <circle cx="196" cy="346" r="13" fill="#1c1917" />
-    <circle cx="316" cy="346" r="13" fill="#1c1917" />
-    <circle cx="196" cy="396" r="13" fill="#1c1917" />
-    <circle cx="316" cy="396" r="13" fill="#1c1917" />
+  <!-- App Icon Background -->
+  <rect width="512" height="512" rx="100" fill="url(#iconBgGlow)" />
+  
+  <!-- Subtle dark vignette grid pattern in background -->
+  <g opacity="0.12">
+    <circle cx="60" cy="60" r="1.5" fill="#ffffff" /><circle cx="120" cy="60" r="1.5" fill="#ffffff" /><circle cx="180" cy="60" r="1.5" fill="#ffffff" /><circle cx="240" cy="60" r="1.5" fill="#ffffff" /><circle cx="300" cy="60" r="1.5" fill="#ffffff" /><circle cx="360" cy="60" r="1.5" fill="#ffffff" /><circle cx="420" cy="60" r="1.5" fill="#ffffff" /><circle cx="480" cy="60" r="1.5" fill="#ffffff" />
+    <circle cx="60" cy="120" r="1.5" fill="#ffffff" /><circle cx="120" cy="120" r="1.5" fill="#ffffff" /><circle cx="180" cy="120" r="1.5" fill="#ffffff" /><circle cx="240" cy="120" r="1.5" fill="#ffffff" /><circle cx="300" cy="120" r="1.5" fill="#ffffff" /><circle cx="360" cy="120" r="1.5" fill="#ffffff" /><circle cx="420" cy="120" r="1.5" fill="#ffffff" /><circle cx="480" cy="120" r="1.5" fill="#ffffff" />
+    <circle cx="60" cy="380" r="1.5" fill="#ffffff" /><circle cx="120" cy="380" r="1.5" fill="#ffffff" /><circle cx="180" cy="380" r="1.5" fill="#ffffff" /><circle cx="240" cy="380" r="1.5" fill="#ffffff" /><circle cx="300" cy="380" r="1.5" fill="#ffffff" /><circle cx="360" cy="380" r="1.5" fill="#ffffff" /><circle cx="420" cy="380" r="1.5" fill="#ffffff" /><circle cx="480" cy="380" r="1.5" fill="#ffffff" />
+    <circle cx="60" cy="440" r="1.5" fill="#ffffff" /><circle cx="120" cy="440" r="1.5" fill="#ffffff" /><circle cx="180" cy="440" r="1.5" fill="#ffffff" /><circle cx="240" cy="440" r="1.5" fill="#ffffff" /><circle cx="300" cy="440" r="1.5" fill="#ffffff" /><circle cx="360" cy="440" r="1.5" fill="#ffffff" /><circle cx="420" cy="440" r="1.5" fill="#ffffff" /><circle cx="480" cy="440" r="1.5" fill="#ffffff" />
   </g>
 
-  <!-- Amber corner score badge -->
-  <circle cx="376" cy="126" r="28" fill="url(#amberGrad)" stroke="#ffffff" stroke-width="3" />
-  <text x="376" y="134" font-family="system-ui, sans-serif" font-weight="900" font-size="22" fill="#1c1917" text-anchor="middle">★</text>
+  <!-- Golden Flare Burst Radiating From Behind Right Edge of Domino (x=335, y=210) -->
+  <circle cx="335" cy="210" r="230" fill="url(#iconGoldBurst)" />
+  <circle cx="335" cy="210" r="120" fill="url(#iconCenterGlow)" />
+
+  <!-- Dynamic Golden Light Beams -->
+  <g opacity="0.65">
+    <polygon points="335,210 500,70 420,170" fill="#fef08a" />
+    <polygon points="335,210 512,180 430,240" fill="#fde047" />
+    <polygon points="335,210 490,320 400,280" fill="#f59e0b" />
+    <polygon points="335,210 420,440 350,330" fill="#d97706" />
+    <polygon points="335,210 120,460 210,310" fill="#f59e0b" />
+    <polygon points="335,210 110,100 240,160" fill="#fef08a" />
+    <polygon points="335,210 320,10 310,130" fill="#ffffff" />
+  </g>
+
+  <!-- Floating Golden Sparkles and Stardust -->
+  <g>
+    <g transform="translate(370, 140)">
+      <polygon points="0,-18 4.5,-4.5 18,0 4.5,4.5 0,18 -4.5,4.5 -18,0 -4.5,-4.5" fill="#ffffff" filter="url(#iconGoldGlow)" />
+      <circle cx="0" cy="0" r="3" fill="#fef08a" />
+    </g>
+    <g transform="translate(420, 280)">
+      <polygon points="0,-12 3,-3 12,0 3,3 0,12 -3,3 -12,0 -3,-3" fill="#fffbeb" />
+    </g>
+    <g transform="translate(440, 190)">
+      <circle cx="0" cy="0" r="3.5" fill="#fde047" />
+    </g>
+    <g transform="translate(130, 360)">
+      <polygon points="0,-10 2.5,-2.5 10,0 2.5,2.5 0,10 -2.5,2.5 -10,0 -2.5,-2.5" fill="#fde047" />
+    </g>
+    <circle cx="340" cy="70" r="2.5" fill="#ffffff" opacity="0.9" />
+    <circle cx="410" cy="110" r="2" fill="#fef08a" opacity="0.8" />
+    <circle cx="470" cy="240" r="2.5" fill="#fde047" opacity="0.85" />
+    <circle cx="380" cy="350" r="2" fill="#fbbf24" opacity="0.8" />
+    <circle cx="120" cy="210" r="2" fill="#fde047" opacity="0.75" />
+    <circle cx="160" cy="420" r="2" fill="#ffffff" opacity="0.8" />
+  </g>
+
+  <!-- ==================== 3D DOMINO TILE (6 - 5) CENTERED & TILTED ==================== -->
+  <g transform="translate(248, 258) rotate(-16) scale(0.95)" filter="url(#iconTileShadow)">
+    <!-- 3D Extrusion Bottom & Left Side -->
+    <rect x="-83" y="-192" width="170" height="390" rx="28" fill="url(#iconTileSide)" />
+    
+    <!-- Front Face Ivory -->
+    <rect x="-85" y="-195" width="166" height="386" rx="26" fill="url(#iconTileFace)" stroke="#ffffff" stroke-width="2" />
+    <rect x="-83" y="-193" width="162" height="382" rx="24" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.75" />
+
+    <!-- Center Divider Line Deep Groove -->
+    <rect x="-70" y="-5" width="140" height="9" rx="4.5" fill="#1c1917" opacity="0.9" />
+    <line x1="-66" y1="-3" x2="66" y2="-3" stroke="#000000" stroke-width="3" stroke-linecap="round" />
+    <line x1="-66" y1="3" x2="66" y2="3" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.8" stroke-linecap="round" />
+
+    <!-- Top 6 Pips (3 pairs) with deep spherical socket effect -->
+    <g transform="translate(-36, -132)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(-36, -82)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(-36, -32)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(36, -132)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(36, -82)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(36, -32)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+
+    <!-- Bottom 5 Pips (Die 5 layout: 4 corners + 1 center) with deep spherical socket effect -->
+    <g transform="translate(-36, 36)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(36, 36)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(0, 86)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(-36, 136)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+    <g transform="translate(36, 136)"><circle cx="0" cy="0" r="14" fill="url(#iconPipGrad)" /><circle cx="-3.5" cy="-3.5" r="3" fill="#ffffff" opacity="0.35" /></g>
+  </g>
 </svg>

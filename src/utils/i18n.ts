@@ -227,10 +227,10 @@ export interface Translations {
 
 export const TRANSLATIONS: Record<AppLanguage, Translations> = {
   es: {
-    appName: 'Anotador de Dominó',
-    appShortName: 'DominoScore',
-    appTagline: 'Marcador profesional, calculadora de tranca y música para tus partidas',
-    metaDescription: 'Aplicación completa e intuitiva para anotar puntos en partidas de dominó, con soporte para parejas o individual, calculadora de tranca, historial de manos y estadísticas.',
+    appName: 'Mesa & Dominó',
+    appShortName: 'Mesa & Dominó',
+    appTagline: 'Anotador de Puntos • Control rápido y automático para tus partidas',
+    metaDescription: 'Mesa & Dominó - Anotador de puntos: Control rápido y automático para tus partidas de dominó.',
     // Header
     newMatch: 'Nueva Partida',
     confirmNewMatch: '¿Deseas iniciar una nueva partida? Se guardará el resultado de la partida actual en el historial.',
@@ -385,10 +385,10 @@ export const TRANSLATIONS: Record<AppLanguage, Translations> = {
     alreadyInstalled: '¡Ya estás usando la aplicación instalada!',
   },
   en: {
-    appName: 'Domino Scoreboard',
-    appShortName: 'DominoScore',
-    appTagline: 'Professional scorekeeper, tranca calculator, and music for your domino games',
-    metaDescription: 'Complete and intuitive app for scoring domino games, with support for teams or individual players, tranca calculator, hand history, and stats.',
+    appName: 'Mesa & Dominó',
+    appShortName: 'Mesa & Dominó',
+    appTagline: 'Scorekeeper • Fast and automatic control for your games',
+    metaDescription: 'Mesa & Dominó - Scorekeeper: Fast and automatic scoring for your domino games.',
     // Header
     newMatch: 'New Match',
     confirmNewMatch: 'Start a new match? The current match result will be saved to your history.',

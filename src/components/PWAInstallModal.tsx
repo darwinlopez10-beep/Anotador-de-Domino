@@ -2,6 +2,7 @@ import React from 'react';
 import { Download, Share2, PlusSquare, Check, X, Smartphone, Sparkles } from 'lucide-react';
 import { AppLanguage, TRANSLATIONS } from '../utils/i18n';
 import { usePWAInstall } from '../utils/usePWAInstall';
+import { AppLogo } from './AppLogo';
 
 interface PWAInstallModalProps {
   isOpen: boolean;
@@ -37,16 +38,16 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
 
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-stone-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-              <Smartphone className="w-5 h-5" />
-            </div>
+          <div className="flex items-center">
+            <AppLogo size="header" showText={false} />
             <div>
-              <h2 className="text-lg font-bold text-stone-100 font-display">
-                {t.downloadAppTitle}
-              </h2>
-              <p className="text-xs text-stone-400">
-                {lang === 'es' ? 'Aplicación Móvil Bilingüe' : 'Bilingual Mobile App'}
+              <div className="flex items-center gap-1">
+                <span className="text-base font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-500 uppercase font-display">
+                  MESA &amp; DOMINÓ
+                </span>
+              </div>
+              <p className="text-[11px] font-extrabold tracking-widest text-sky-400 uppercase">
+                - ANOTADOR DE PUNTOS -
               </p>
             </div>
           </div>
